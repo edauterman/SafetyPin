@@ -1,0 +1,29 @@
+WHAT:
+Agent to check behavior of U2F running det2F protocol.
+
+DEPENDENCIES:
+git clone https://github.com/signal11/hidapi
+
+sudo apt-get install libudev-dev libcrypto++-dev nlohmann-json-dev
+
+BUILD:
+linux, mac: make
+
+TEST:
+./Test
+  to run entire protocol with device: initialization, registration, and
+  authentication.
+
+./CounterTest
+  to test LRU behavior of counter.
+
+RUN:
+./Init
+  to initialize the device.
+
+INSTALL:
+  Build and edit agent.json to contain the absolute path of the Det2fAgent
+  executable. Move agent.json to ~/.config/google-chrome/NativeMessagingHosts/.
+
+TROUBLESHOOTING:
+  Make sure directory det2f-agent/storage exists.

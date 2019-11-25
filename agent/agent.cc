@@ -1,0 +1,116 @@
+// Copyright 2018 Google Inc. All rights reserved.
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <map>
+
+#include <iostream>
+#include <iomanip>
+
+#ifdef __OS_WIN
+#include <winsock2.h> // ntohl, htonl
+#else
+#include <arpa/inet.h> // ntohl, htonl
+#endif
+
+#include <openssl/ec.h>
+
+#include "agent.h"
+#include "asn1.h"
+#include "common.h"
+#include "hidapi.h"
+#include "hsm.h"
+#include "params.h"
+#include "sig_parse.h"
+#include "u2f.h"
+#include "u2f_util.h"
+
+#define EXPECTED_RET_VAL 0x9000
+
+#define VENDOR_ID 0x0483
+#define PRODUCT_ID 0xa2ca
+
+using namespace std;
+
+/* Convert buffers containing x and y coordinates to EC_POINT. */
+void bufs_to_pt(const_Params params, const uint8_t *x, const uint8_t *y,
+                EC_POINT *pt) {
+  uint8_t buf[65];
+  buf[0] = 4;
+  memcpy(buf + 1, x, 32);
+  memcpy(buf + 1 + 32, y, 32);
+  EC_POINT_oct2point(Params_group(params), pt, buf, 65, Params_ctx(params));
+}
+
+/* Convert EC_POINT to buffers containing x and y coordinates (uncompressed). */
+void pt_to_bufs(const_Params params, const EC_POINT *pt, uint8_t *x,
+                uint8_t *y) {
+  uint8_t buf[65];
+  EC_POINT_point2oct(Params_group(params), pt, POINT_CONVERSION_UNCOMPRESSED,
+                     buf, 65, Params_ctx(params));
+  memcpy(x, buf + 1, 32);
+  memcpy(y, buf + 1 + 32, 32);
+}
+
+/* Given the path to the U2F device, initialize the agent. */
+int create_agent(Agent *a, char *deviceName) {
+  int rv = ERROR;
+
+  CHECK_A (a->device = U2Fob_create());
+  CHECK_A (a->params = Params_new(P256));
+  
+  CHECK_C (!U2Fob_open(a->device, deviceName));
+  CHECK_C (!U2Fob_init(a->device));
+
+cleanup:
+  if (rv == ERROR) {
+    Agent_destroy(a);
+  }
+  return rv;
+}
+
+/* Find a U2F device and initialize the agent. */
+int Agent_init(Agent *a) {
+  int rv = ERROR;
+  struct hid_device_info *devs, *cur_dev;
+
+  hid_init();
+  devs = hid_enumerate(0x0, 0x0);
+  cur_dev = devs;
+  while (cur_dev) {
+    if ((cur_dev->vendor_id == VENDOR_ID) &&
+        (cur_dev->product_id == PRODUCT_ID)) {
+      //fprintf(stderr, "det2f: found at %s\n", cur_dev->path);
+      CHECK_C(create_agent(a, cur_dev->path));
+      break;
+    }
+    cur_dev = cur_dev->next;
+  }
+
+cleanup:
+  hid_exit();
+  return rv;
+}
+
+/* Destroy current agent, including writing state to storage. */
+void Agent_destroy(Agent *a) {
+
+  if (a->device) U2Fob_destroy(a->device);
+  if (a->params) Params_free(a->params);
+}
+
+int Ping(Agent *a) {
+    int rv =  ERROR;
+    string resp;
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(a->device, 0, HSM_PING, 0, 0, "",
+                &resp));
+    printf("sent ping!\n");
+cleanup:
+    return rv;
+}
