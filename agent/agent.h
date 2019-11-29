@@ -27,6 +27,7 @@ void Agent_destroy(Agent *a);
 
 int Setup(Agent *a);
 int Retrieve(Agent *a, uint16_t index);
+int Puncture(Agent *a, uint16_t index);
 
 #endif
 

@@ -161,3 +161,41 @@ cleanup:
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
+
+int Puncture(Agent *a, uint16_t index) {
+    int rv = ERROR;
+    HSM_PUNCTURE_REQ req;
+    HSM_PUNCTURE_RESP resp;
+    string resp_str;
+    uint16_t currIndex = index;
+    uint16_t totalTraveled = NUM_LEAVES;
+    uint16_t currInterval = NUM_LEAVES / 2;
+    size_t indexes[KEY_LEVELS];
+
+    for (int i = 0; i < KEY_LEVELS; i++) {
+        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
+        
+        memcpy(req.cts[KEY_LEVELS - i - 1], cts[totalTraveled + currIndex], CT_LEN);
+        indexes[i] = totalTraveled + currIndex;
+        totalTraveled += currInterval;
+        currInterval /= 2;
+        currIndex /= 2;
+    }
+
+    req.index = index;
+
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(a->device, 0, HSM_PUNCTURE, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+
+    memcpy(&resp, resp_str.data(), resp_str.size());
+
+    for (int i = 0; i < KEY_LEVELS; i++) {
+        printf("setting index %d for ct[%d]: ", indexes[i], i);
+        memcpy(cts[indexes[i]], resp.cts[i], CT_LEN);
+    }
+
+    printf("finished puncturing leaf\n");
+cleanup:
+    if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
+    return rv;
+}

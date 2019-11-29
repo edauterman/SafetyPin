@@ -46,3 +46,16 @@ int HSM_Retrieve(struct hsm_retrieve_request *req) {
 
     return U2F_SW_NO_ERROR;
 }
+
+int HSM_Puncture(struct hsm_puncture_request *req) {
+    printf1(TAG_GREEN, "puncturing leaf\n");
+    uint8_t newCts[KEY_LEVELS][CT_LEN];
+
+    PuncEnc_PunctureLeaf(req->cts, req->index, newCts);
+
+    printf1(TAG_GREEN, "finished puncturing leaf\n");
+
+    u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
+
+    return U2F_SW_NO_ERROR;
+}

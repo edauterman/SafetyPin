@@ -65,6 +65,12 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished retrieve\n");
                 break;
 
+            case HSM_PUNCTURE:
+                printf1(TAG_GREEN, "starting puncture\n");
+                rcode = HSM_Puncture((struct hsm_puncture_request *)payload);
+                printf1(TAG_GREEN, "finished puncture\n");
+                break;
+
             case U2F_REGISTER:
                 printf1(TAG_U2F, "U2F_REGISTER\n");
                 if (len != 64)

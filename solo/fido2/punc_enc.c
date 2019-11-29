@@ -109,7 +109,7 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
         crypto_aes256_decrypt_sep(leftKey, cts[i], KEY_LEN);
         crypto_aes256_decrypt_sep(rightKey, (uint8_t *)cts[i] + KEY_LEN, KEY_LEN);
 
-        if (currIndex <= currCmp) {
+        if (currIndex < currCmp) {
             printf("going left at %d\n", i);
             memcpy(currKey, leftKey, KEY_LEN);
         } else {
@@ -135,4 +135,65 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
     }
     memcpy(leaf, leftKey, KEY_LEN);
     memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);
+}
+
+void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint16_t index, uint8_t newCts[KEY_LEVELS][CT_LEN]) {
+    uint8_t currKey[KEY_LEN];
+    uint8_t leftKeys[KEY_LEVELS][KEY_LEN];
+    uint8_t rightKeys[KEY_LEVELS][KEY_LEN];
+    uint8_t pathKeys[KEY_LEVELS][KEY_LEN];
+    uint8_t pathDirs[KEY_LEVELS];
+    uint16_t currCmp = NUM_LEAVES / 2;
+    uint16_t currIndex = index;
+    
+    memcpy(currKey, msk, KEY_LEN);
+
+    printf1(TAG_GREEN, "trying to puncture %d\n", index);
+
+    for (int i = 0; i < KEY_LEVELS - 1; i++) {
+        memcpy(pathKeys[i], currKey, KEY_LEN);
+
+        crypto_aes256_init(currKey, NULL);
+        crypto_aes256_decrypt_sep(leftKeys[i], oldCts[i], KEY_LEN);
+        crypto_aes256_decrypt_sep(rightKeys[i], (uint8_t *)oldCts[i] + KEY_LEN, KEY_LEN);
+
+        if (currIndex <= currCmp) {
+            printf("going left at %d\n", i);
+            memcpy(currKey, leftKeys[i], KEY_LEN);
+            pathDirs[i] = 0;
+        } else {
+            printf("going right at %d\n", i);
+            memcpy(currKey, rightKeys[i], KEY_LEN);
+            currIndex -= currCmp;
+            pathDirs[i] = 1;
+        }
+        currCmp /= 2;
+    }
+
+    uint8_t newKey[KEY_LEN];
+    memset(newKey, 0xaa, KEY_LEN);
+
+    for (int i = KEY_LEVELS - 1; i >= 0; i--) {
+        uint8_t plaintext[CT_LEN];
+        if (pathDirs[i] == 0) {
+            memcpy(plaintext, newKey, KEY_LEN);
+            memcpy(plaintext + KEY_LEN, rightKeys[i], KEY_LEN);
+        } else {
+            memcpy(plaintext, leftKeys[i], KEY_LEN);
+            memcpy(plaintext + KEY_LEN, newKey, KEY_LEN);
+        }
+
+        ctap_generate_rng(newKey,  KEY_LEN);
+
+        crypto_aes256_init(newKey, NULL);
+        crypto_aes256_encrypt_sep(newCts[i], plaintext, CT_LEN);
+
+        printf("newCts[%d]: ", i);
+        for (int j = 0; j < KEY_LEN; j++) {
+            printf("%x ", newCts[i][j]);
+        }
+        printf("\n");
+    }
+
+    memcpy(msk, currKey, KEY_LEN);
 }

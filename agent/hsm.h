@@ -25,6 +25,7 @@ extern "C" {
 #define NUM_LEAVES NUM_SUB_LEAVES
 //#define NUM_LEAVES 256
 #define LEVELS 6 // log2(NUM_LEAVES) + 1
+#define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES) + 1
 //#define LEVELS 16 // log2(NUM_LEAVES)
 
 #define SUB_TREE_SIZE ((RESPONSE_BUFFER_SIZE / CT_LEN) - 1)
@@ -32,6 +33,7 @@ extern "C" {
 
 #define HSM_SETUP       0x70
 #define HSM_RETRIEVE    0x71
+#define HSM_PUNCTURE    0x72
 
 typedef struct{
     uint8_t cts[SUB_TREE_SIZE][CT_LEN];
@@ -47,6 +49,15 @@ typedef struct{
 typedef struct{
     uint8_t leaf[CT_LEN];
 } HSM_RETRIEVE_RESP;
+
+typedef struct {
+    uint16_t index;
+    uint8_t cts[KEY_LEVELS][CT_LEN];
+} HSM_PUNCTURE_REQ;
+
+typedef struct {
+    uint8_t cts[KEY_LEVELS][CT_LEN];
+} HSM_PUNCTURE_RESP;
 
 #ifdef __cplusplus
 }

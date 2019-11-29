@@ -25,6 +25,9 @@ int main(int argc, char *argv[]) {
 
   Setup(&a);
   Retrieve(&a, 0);
+  Retrieve(&a, 1);
+  //Puncture(&a, 0);
+  //Retrieve(&a, 1);
   Agent_destroy(&a);
 
   printf("Initialization completed. \n");
