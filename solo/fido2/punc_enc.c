@@ -94,7 +94,15 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
     uint8_t rightKey[KEY_LEN];
     uint16_t currCmp = NUM_LEAVES / 2;
     uint16_t currIndex = index;
-    
+   
+    printf("--- MSK: ");
+        for (int j = 0; j < KEY_LEN; j++) {
+            printf("%x ", msk[j]);
+        }
+        printf("\n");
+
+
+
     memcpy(currKey, msk, KEY_LEN);
 
     printf1(TAG_GREEN, "trying to retrieve %d\n", index);
@@ -150,14 +158,14 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint16_t index, ui
 
     printf1(TAG_GREEN, "trying to puncture %d\n", index);
 
-    for (int i = 0; i < KEY_LEVELS - 1; i++) {
+    for (int i = 0; i < KEY_LEVELS; i++) {
         memcpy(pathKeys[i], currKey, KEY_LEN);
 
         crypto_aes256_init(currKey, NULL);
         crypto_aes256_decrypt_sep(leftKeys[i], oldCts[i], KEY_LEN);
         crypto_aes256_decrypt_sep(rightKeys[i], (uint8_t *)oldCts[i] + KEY_LEN, KEY_LEN);
 
-        if (currIndex <= currCmp) {
+        if (currIndex < currCmp) {
             printf("going left at %d\n", i);
             memcpy(currKey, leftKeys[i], KEY_LEN);
             pathDirs[i] = 0;
@@ -167,6 +175,21 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint16_t index, ui
             currIndex -= currCmp;
             pathDirs[i] = 1;
         }
+       
+        printf("left key at %d: ", i);
+        for (int j = 0; j < KEY_LEN; j++) {
+            printf("%x ", leftKeys[i][j]);
+        }
+        printf("\n");
+
+        printf("right key at %d: ", i);
+        for (int j = 0; j < KEY_LEN; j++) {
+            printf("%x ", rightKeys[i][j]);
+        }
+        printf("\n");
+
+
+       
         currCmp /= 2;
     }
 
@@ -176,17 +199,39 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint16_t index, ui
     for (int i = KEY_LEVELS - 1; i >= 0; i--) {
         uint8_t plaintext[CT_LEN];
         if (pathDirs[i] == 0) {
+            printf("***keep right key: ");
+            for (int j = 0; j < KEY_LEN; j++) {
+                printf("%x ", rightKeys[i][j]);
+            }
+            printf("\n");
+
             memcpy(plaintext, newKey, KEY_LEN);
-            memcpy(plaintext + KEY_LEN, rightKeys[i], KEY_LEN);
+            memcpy((uint8_t *)plaintext + KEY_LEN, rightKeys[i], KEY_LEN);
         } else {
             memcpy(plaintext, leftKeys[i], KEY_LEN);
-            memcpy(plaintext + KEY_LEN, newKey, KEY_LEN);
+            memcpy((uint8_t *)plaintext + KEY_LEN, newKey, KEY_LEN);
         }
 
         ctap_generate_rng(newKey,  KEY_LEN);
+        printf("--- new key: ");
+        for (int j = 0; j < KEY_LEN; j++) {
+            printf("%x ", newKey[j]);
+        }
+        printf("\n");
 
+        printf("--- PLAINTEXT: ");
+        for (int j = 0; j < CT_LEN; j++) {
+            printf("%x ", plaintext[j]);
+        }
+        printf("\n");
+
+
+   
         crypto_aes256_init(newKey, NULL);
-        crypto_aes256_encrypt_sep(newCts[i], plaintext, CT_LEN);
+        crypto_aes256_encrypt_sep(newCts[KEY_LEVELS - i - 1], plaintext, KEY_LEN);
+        //crypto_aes256_encrypt_sep(newCts[i], plaintext, KEY_LEN);
+        crypto_aes256_encrypt_sep((uint8_t *)newCts[KEY_LEVELS - i - 1] + KEY_LEN, (uint8_t *)plaintext +  KEY_LEN, KEY_LEN);
+        //crypto_aes256_encrypt_sep((uint8_t *)newCts[i] + KEY_LEN, (uint8_t *)plaintext +  KEY_LEN, KEY_LEN);
 
         printf("newCts[%d]: ", i);
         for (int j = 0; j < KEY_LEN; j++) {
@@ -195,5 +240,12 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint16_t index, ui
         printf("\n");
     }
 
-    memcpy(msk, currKey, KEY_LEN);
+    memcpy(msk, newKey, KEY_LEN);
+    printf("--- MSK: ");
+        for (int j = 0; j < KEY_LEN; j++) {
+            printf("%x ", msk[j]);
+        }
+        printf("\n");
+
+
 }

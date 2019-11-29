@@ -33,7 +33,7 @@ int HSM_Retrieve(struct hsm_retrieve_request *req) {
     uint8_t leaf[CT_LEN];
 
     for (int i = 0;  i < LEVELS; i++) {
-        printf("ct[%d]: ", i);
+        printf("ct[%d/%d]: ", i, LEVELS);
         for (int j = 0; j < CT_LEN;  j++) {
             printf("%x ", req->cts[i][j]);
         }
