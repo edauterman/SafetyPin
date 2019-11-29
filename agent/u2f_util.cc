@@ -385,7 +385,7 @@ int U2Fob_apdu(struct U2Fob* device,
   buf[2] = P1;
   buf[3] = P2;
 
-  uint8_t offs = 4;
+  size_t offs = 4;
 
   // Encode lc.
   if (nc) {

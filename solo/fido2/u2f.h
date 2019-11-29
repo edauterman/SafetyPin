@@ -24,6 +24,8 @@
 #define U2F_MAX_REQUEST_PAYLOAD             (1 + U2F_CHALLENGE_SIZE+U2F_APPLICATION_SIZE + 1 + U2F_KEY_HANDLE_SIZE)
 
 
+#define HSM_PING                    0x70
+
 // U2F native commands
 #define U2F_REGISTER                        0x01
 #define U2F_AUTHENTICATE                    0x02

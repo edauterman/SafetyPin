@@ -337,6 +337,25 @@ void crypto_aes256_encrypt(uint8_t * buf, int length)
     AES_CBC_encrypt_buffer(&aes_ctx, buf, length);
 }
 
+void crypto_aes256_encrypt_sep(uint8_t *out, uint8_t *in, int len) {
+    for (int i = 0; i < len / 16; i++) {
+        uint8_t tmp[16];
+        memcpy(tmp, in + (i * 16), 16);
+        crypto_aes256_decrypt(tmp, 16);
+        memcpy(out + (i * 16), tmp, 16);
+    }
+}
+
+
+void crypto_aes256_decrypt_sep(uint8_t *out, uint8_t *in, int len) {
+    for (int i = 0; i < len / 16; i++) {
+        uint8_t tmp[16];
+        memcpy(tmp, in + (i * 16), 16);
+        crypto_aes256_decrypt(tmp, 16);
+        memcpy(out + (i * 16), tmp, 16);
+    }
+}
+
 
 const uint8_t _attestation_cert_der[] =
 "\x30\x82\x01\xfb\x30\x82\x01\xa1\xa0\x03\x02\x01\x02\x02\x01\x00\x30\x0a\x06\x08"

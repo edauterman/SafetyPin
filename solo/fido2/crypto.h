@@ -50,6 +50,9 @@ void crypto_aes256_reset_iv(uint8_t * nonce);
 void crypto_aes256_decrypt(uint8_t * buf, int lenth);
 void crypto_aes256_encrypt(uint8_t * buf, int lenth);
 
+void crypto_aes256_encrypt_sep(uint8_t *out, uint8_t *in, int len);
+void crypto_aes256_decrypt_sep(uint8_t *out, uint8_t *in, int len);
+
 void crypto_reset_master_secret();
 void crypto_load_master_secret(uint8_t * key);
 

@@ -13,6 +13,7 @@
 #include "device.h"
 #include "apdu.h"
 #include "wallet.h"
+#include "hsm.h"
 #ifdef ENABLE_U2F_EXTENSIONS
 #include "extensions.h"
 #endif
@@ -52,6 +53,18 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
 #ifdef ENABLE_U2F
         switch(req->ins)
         {
+            case HSM_SETUP:
+                printf1(TAG_GREEN, "starting setup\n");
+                rcode = HSM_Setup();
+                printf1(TAG_GREEN, "finished setup\n");
+                break;
+
+            case HSM_RETRIEVE:
+                printf1(TAG_GREEN, "starting retrieve\n");
+                rcode = HSM_Retrieve((struct hsm_retrieve_request *)payload);
+                printf1(TAG_GREEN, "finished retrieve\n");
+                break;
+
             case U2F_REGISTER:
                 printf1(TAG_U2F, "U2F_REGISTER\n");
                 if (len != 64)
@@ -100,6 +113,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
     device_set_status(CTAPHID_STATUS_IDLE);
 
 end:
+    printf1(TAG_GREEN, "at the end\n");
     if (rcode != U2F_SW_NO_ERROR)
     {
         printf1(TAG_U2F,"U2F Error code %04x\n", rcode);

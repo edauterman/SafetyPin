@@ -38,6 +38,8 @@
 
 using namespace std;
 
+uint8_t cts[SUB_TREE_SIZE][CT_LEN];
+
 /* Convert buffers containing x and y coordinates to EC_POINT. */
 void bufs_to_pt(const_Params params, const uint8_t *x, const uint8_t *y,
                 EC_POINT *pt) {
@@ -105,12 +107,57 @@ void Agent_destroy(Agent *a) {
   if (a->params) Params_free(a->params);
 }
 
-int Ping(Agent *a) {
+int Setup(Agent *a) {
     int rv =  ERROR;
-    string resp;
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(a->device, 0, HSM_PING, 0, 0, "",
-                &resp));
-    printf("sent ping!\n");
+    HSM_SETUP_RESP resp;
+    string resp_str;
+
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(a->device, 0, HSM_SETUP, 0, 0,
+                "", &resp_str));
+
+    memcpy(&resp, resp_str.data(), resp_str.size());
+    memcpy(cts, resp.cts, SUB_TREE_SIZE * CT_LEN);
+
+    printf("cts: ");
+    for (int i = 0; i < SUB_TREE_SIZE; i++) {
+        for (int j = 0; j < CT_LEN; j++) {
+            printf("%x ", cts[i][j]);
+        }
+    }
+    printf("\n");
+
+    printf("started setup\n");
 cleanup:
+    return rv;
+}
+
+int Retrieve(Agent *a, uint16_t index) {
+    int rv = ERROR;
+    HSM_RETRIEVE_REQ req;
+    HSM_RETRIEVE_RESP resp;
+    string resp_str;
+    uint16_t currIndex = index;
+    uint16_t totalTraveled = 0;
+    uint16_t currInterval = NUM_LEAVES;
+
+    for (int i = 0; i < LEVELS; i++) {
+        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
+        
+        memcpy(req.cts[LEVELS - i - 1], cts[totalTraveled + currIndex], CT_LEN);
+        totalTraveled += currInterval;
+        currInterval /= 2;
+        currIndex /= 2;
+    }
+
+    req.index = index;
+
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(a->device, 0, HSM_RETRIEVE, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+
+    memcpy(&resp, resp_str.data(), resp_str.size());
+
+    printf("finished retrieving leaf\n");
+cleanup:
+    if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }

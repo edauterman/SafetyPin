@@ -23,7 +23,8 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  Ping(&a);
+  Setup(&a);
+  Retrieve(&a, 0);
   Agent_destroy(&a);
 
   printf("Initialization completed. \n");

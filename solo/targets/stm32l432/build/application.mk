@@ -14,10 +14,12 @@ SRC += ../../fido2/version.c
 SRC += ../../fido2/data_migration.c
 SRC += ../../fido2/extensions/extensions.c ../../fido2/extensions/solo.c
 SRC += ../../fido2/extensions/wallet.c
+SRC += ../../fido2/hsm.c ../../fido2/punc_enc.c
 
 # Crypto libs
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c
 SRC += ../../crypto/cifra/src/sha512.c ../../crypto/cifra/src/blockwise.c
+#LDFLAGS += ../../crypto/jedi-pairing/pairing.a
 
 OBJ1=$(SRC:.c=.o)
 OBJ=$(OBJ1:.s=.o)
@@ -26,6 +28,7 @@ INC = -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/ -I../../fido2/ -I../../fido2/extens
 INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
 INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
+INC += -I../../crypto/jedi-pairing/include
 
 SEARCH=-L../../tinycbor/lib
 
@@ -49,8 +52,9 @@ DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAP
 
 CFLAGS=$(INC) -c $(DEFINES)   -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
 	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS)
-LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys
-LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor
+LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys -L../../crypto/jedi-pairing/pairing.a
+LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor -Bstatic -L../../crypto/jedi-pairing/pairing.a
+#LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor -Bstatic
 
 ECC_CFLAGS = $(CFLAGS) -DuECC_PLATFORM=5 -DuECC_OPTIMIZATION_LEVEL=4 -DuECC_SQUARE_FUNC=1 -DuECC_SUPPORT_COMPRESSED_POINT=0
 
@@ -61,16 +65,18 @@ all: $(TARGET).elf
 	$(SZ) $^
 
 %.o: %.c
-	$(CC) $^ $(HW)  -Os $(CFLAGS) -o $@
+	$(CC) $^ $(HW)  -Os $(CFLAGS) $(LDFLAGS) -o $@
 
 ../../crypto/micro-ecc/uECC.o: ../../crypto/micro-ecc/uECC.c
 	$(CC) $^ $(HW)  -O3 $(ECC_CFLAGS) -o $@
 
 %.o: %.s
-	$(CC) $^ $(HW)  -Os $(CFLAGS) -o $@
+#	$(CC) $^ $(HW)  -Os $(CFLAGS) $(LDFLAGS) -o $@
+	$(CC) $^ ../../crypto/jedi-pairing/pairing.a $(HW)  -Os $(CFLAGS) $(LDFLAGS) -o $@
 
 %.elf: $(OBJ)
-	$(CC) $^ $(HW) $(LDFLAGS) -o $@
+	#$(CC) $^ $(HW) $(LDFLAGS) -o $@
+	$(CC) $^ ../../crypto/jedi-pairing/pairing.a $(HW) $(LDFLAGS) -o $@
 	@echo "Built version: $(VERSION_FLAGS)"
 
 %.hex: %.elf
