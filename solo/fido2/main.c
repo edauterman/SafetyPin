@@ -58,7 +58,8 @@ int main(int argc, char *argv[])
     memset(hidmsg,0,sizeof(hidmsg));
 
     IBE_Setup();
-    printf1(TAG_GREEN, "starting!!!\n");
+
+    printf1(TAG_GREEN, "starting!\n");
 
     while(1)
     {

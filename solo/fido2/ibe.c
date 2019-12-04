@@ -15,7 +15,9 @@ void IBE_Setup() {
     /* Choose msk in Z_q^* */
     embedded_pairing_bls12_381_zp_random(&msk, ctap_generate_rng);
     /* Set mpk */
+    // TODO: this should probably be the generator
     embedded_pairing_bls12_381_g1_multiply(&mpk, embedded_pairing_bls12_381_g1_zero, &msk);
+
 }
 
 void hashToBaseField(uint16_t index, uint8_t buf[BASEFIELD_SZ]) {
@@ -44,11 +46,12 @@ void hashToBaseField(uint16_t index, uint8_t buf[BASEFIELD_SZ]) {
 void IBE_Extract(uint16_t index, embedded_pairing_bls12_381_g1_t *sk) {
     embedded_pairing_bls12_381_g1_t pt;
     uint8_t indexHash[BASEFIELD_SZ];
+    embedded_pairing_bls12_381_g1affine_t pt_affine;
     /* Map index to a point pt. */
     hashToBaseField(index, indexHash);
-    embedded_pairing_bls12_381_g1affine_from_hash(&pt, &indexHash);
+    embedded_pairing_bls12_381_g1affine_from_hash(&pt_affine, indexHash);
     /* Set sk = pt^msk. */
-    embedded_pairing_bls12_381_g1_multiply(sk, &pt, &msk);
+    embedded_pairing_bls12_381_g1_multiply_affine(sk, &pt_affine, &msk);
 }
 
 // TODO: decrypt

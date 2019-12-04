@@ -112,7 +112,7 @@ int Setup(Agent *a) {
     HSM_SETUP_RESP resp;
     string resp_str;
 
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(a->device, 0, HSM_SETUP, 0, 0,
+    CHECK_C(0 < U2Fob_apdu(a->device, 0, HSM_SETUP, 0, 0,
                 "", &resp_str));
 
     memcpy(&resp, resp_str.data(), resp_str.size());
@@ -128,6 +128,7 @@ int Setup(Agent *a) {
 
     printf("started setup\n");
 cleanup:
+    if (rv == ERROR) printf("SETUP ERROR\n");
     return rv;
 }
 

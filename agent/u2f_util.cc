@@ -311,7 +311,9 @@ int U2Fob_recv(struct U2Fob* device, uint8_t* cmd,
     timeout -= U2Fob_deltaTime(&timeTracker);
   } while (frame.cid != device->cid || FRAME_TYPE(frame) != TYPE_INIT);
 
-  if (frame.init.cmd == U2FHID_ERROR) return -frame.init.data[0];
+  if (frame.init.cmd == U2FHID_ERROR) {
+      return -frame.init.data[0];
+  }
 
   *cmd = frame.init.cmd;
 
@@ -355,7 +357,7 @@ int U2Fob_exchange_apdu_buffer(struct U2Fob* device,
 
   uint8_t buf[4096];
   memset(buf, 0xEE, sizeof(buf));
-  res = U2Fob_recv(device, &cmd, buf, sizeof(buf), 5.0);
+  res = U2Fob_recv(device, &cmd, buf, sizeof(buf), 100.0);
   if (res < 0) return res;
 
   if (cmd != U2FHID_MSG) return -ERR_OTHER;

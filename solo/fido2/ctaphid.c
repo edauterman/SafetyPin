@@ -259,6 +259,7 @@ static int buffer_len()
 static void ctaphid_write(CTAPHID_WRITE_BUFFER * wb, void * _data, int len)
 {
     uint8_t * data = (uint8_t *)_data;
+    
     if (_data == NULL)
     {
         if (wb->offset == 0 && wb->bytes_written == 0)

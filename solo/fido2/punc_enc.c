@@ -39,23 +39,24 @@ void crypto_aes256_decrypt_sep(uint8_t *out, uint8_t *in, int length) {
  * begin at value start. */
 void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][CT_LEN], int start) {
     for (int i = 0; i < NUM_SUB_LEAVES; i++) {
-        /*leaves[i][0] = (i + start) & 0xff;
-        leaves[i][1] = ((i + start) >> 8) & 0xff;
-        leaves[i][2] = ((i + start) >> 16) & 0xff;
-        leaves[i][3] = ((i + start) >> 24) & 0xff;
-        memset(leaves[i] + 4, 0, 28);*/
-        
-        memset(leaves[i], 0xff, CT_LEN);
-        memset(leaves[i], 0, CT_LEN);
+//        memset(leaves[i], 0xff, CT_LEN);
 
-        // compressed size = 48
-        /*uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
+        memset(leaves[i], 0, CT_LEN);
+        uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
         embedded_pairing_bls12_381_g1_t sk;
+        embedded_pairing_bls12_381_g1affine_t sk_affine;
         uint16_t index = i + start;
         IBE_Extract(index, &sk);
-        embedded_pairing_bls12_381_g1_marshal(buf, &sk, true);
+        embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
+        embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
         memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
-    */}
+        printf("leaf %d: ", i);
+        for (int j = 0; j < 48; j++) {
+            printf("%x ", buf[j]);
+        }
+        printf("\n");
+        //memset(leaves[i], 0xff, CT_LEN);
+    }
 }
 
 /* Build the subtree from a set of leaves, outputting a tree of ciphertexts. 
