@@ -1,7 +1,10 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
 #include "crypto.h"
+#include "ctap.h"
+#include "device.h"
 #include "ibe.h"
 #include "bls12_381/bls12_381.h"
 
@@ -20,7 +23,7 @@ void hashToBaseField(uint16_t index, uint8_t buf[BASEFIELD_SZ]) {
     uint8_t tmp[32];
     uint8_t ctr = 1;
     
-    memcpy(input + sizeof(uint8_t), index, sizeof(uint16_t));
+    memcpy(input + sizeof(uint8_t), &index, sizeof(uint16_t));
     memcpy(input, &ctr, sizeof(uint8_t));
     
     crypto_sha256_init();
@@ -45,7 +48,7 @@ void IBE_Extract(uint16_t index, embedded_pairing_bls12_381_g1_t *sk) {
     hashToBaseField(index, indexHash);
     embedded_pairing_bls12_381_g1affine_from_hash(&pt, &indexHash);
     /* Set sk = pt^msk. */
-    embedded_pairing_bls12_381_multiply(sk, &pt, &msk);
+    embedded_pairing_bls12_381_g1_multiply(sk, &pt, &msk);
 }
 
 // TODO: decrypt

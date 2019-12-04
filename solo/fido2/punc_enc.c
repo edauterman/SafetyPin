@@ -2,9 +2,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "bls12_381/bls12_381.h"
 #include "crypto.h"
 #include "ctap.h"
 #include "device.h"
+#include "ibe.h"
 #include "log.h"
 #include "hsm.h"
 
@@ -42,8 +44,18 @@ void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][CT_LEN], int start) {
         leaves[i][2] = ((i + start) >> 16) & 0xff;
         leaves[i][3] = ((i + start) >> 24) & 0xff;
         memset(leaves[i] + 4, 0, 28);*/
+        
         memset(leaves[i], 0xff, CT_LEN);
-    }
+        memset(leaves[i], 0, CT_LEN);
+
+        // compressed size = 48
+        /*uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
+        embedded_pairing_bls12_381_g1_t sk;
+        uint16_t index = i + start;
+        IBE_Extract(index, &sk);
+        embedded_pairing_bls12_381_g1_marshal(buf, &sk, true);
+        memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
+    */}
 }
 
 /* Build the subtree from a set of leaves, outputting a tree of ciphertexts. 
@@ -108,7 +120,7 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
     printf1(TAG_GREEN, "trying to retrieve %d\n", index);
 
     /* Walk down the tree. */
-    for (int i = 0; i < LEVELS; i++) {
+    for (int i = 0; i < LEVELS - 1; i++) {
         printf("ct[%d]: ", i);
         for (int j = 0; j < CT_LEN; j++) {
             printf("%x ", cts[i][j]);
@@ -145,8 +157,11 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
         //currIndex /= 2;
     }
     /* Set final leaf value. */
-    memcpy(leaf, leftKey, KEY_LEN);
-    memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);
+    crypto_aes256_init(currKey, NULL);
+    crypto_aes256_decrypt_sep(leaf, cts[LEVELS -  1], CT_LEN);
+    
+    //memcpy(leaf, leftKey, KEY_LEN);
+    //memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);
 }
 
 /* Puncture a leaf. Given ciphertexts along the path to the leaf corresponding

@@ -19,6 +19,7 @@
 #include "ctap.h"
 #include "crypto.h"
 #include "bls12_381/bls12_381.h"
+#include "ibe.h"
 #include APP_CONFIG
 
 #if !defined(TEST)
@@ -56,6 +57,7 @@ int main(int argc, char *argv[])
 
     memset(hidmsg,0,sizeof(hidmsg));
 
+    IBE_Setup();
     printf1(TAG_GREEN, "starting!!!\n");
 
     while(1)
