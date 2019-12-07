@@ -12,6 +12,7 @@
 #define __HSM_H_INCLUDED__
 
 #include "hsm.h"
+#include "ibe.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +35,7 @@ extern "C" {
 #define HSM_SETUP       0x70
 #define HSM_RETRIEVE    0x71
 #define HSM_PUNCTURE    0x72
+#define HSM_DECRYPT     0x73
 
 typedef struct{
     uint8_t cts[SUB_TREE_SIZE][CT_LEN];
@@ -58,6 +60,16 @@ typedef struct {
 typedef struct {
     uint8_t cts[KEY_LEVELS][CT_LEN];
 } HSM_PUNCTURE_RESP;
+
+typedef struct {
+    uint16_t index;
+    uint8_t treeCts[KEY_LEVELS][CT_LEN];
+    uint8_t ibeCt[IBE_CT_LEN];
+} HSM_DECRYPT_REQ;
+
+typedef struct {
+    uint8_t msg[IBE_MSG_LEN];
+} HSM_DECRYPT_RESP;
 
 #ifdef __cplusplus
 }

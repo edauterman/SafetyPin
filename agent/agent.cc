@@ -21,11 +21,14 @@
 
 #include <openssl/ec.h>
 
+#include "bls12_381/bls12_381.h"
+
 #include "agent.h"
 #include "asn1.h"
 #include "common.h"
 #include "hidapi.h"
 #include "hsm.h"
+#include "ibe.h"
 #include "params.h"
 #include "sig_parse.h"
 #include "u2f.h"
@@ -39,6 +42,7 @@
 using namespace std;
 
 uint8_t cts[SUB_TREE_SIZE][CT_LEN];
+embedded_pairing_bls12_381_g2_t mpk;
 
 /* Convert buffers containing x and y coordinates to EC_POINT. */
 void bufs_to_pt(const_Params params, const uint8_t *x, const uint8_t *y,
@@ -182,7 +186,7 @@ int Puncture(Agent *a, uint16_t index) {
         currInterval /= 2;
         currIndex /= 2;
     }
-
+    
     req.index = index;
 
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(a->device, 0, HSM_PUNCTURE, 0, 0,
@@ -200,3 +204,41 @@ cleanup:
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
+
+int Encrypt(Agent *a, uint16_t index, uint8_t msg[IBE_MSG_LEN], IBE_ciphertext *c) {
+    IBE_Encrypt(&mpk, index, msg, c);
+}
+
+int Decrypt(Agent *a, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_LEN]) {
+    int rv = ERROR;
+    HSM_DECRYPT_REQ req;
+    HSM_DECRYPT_RESP resp;
+    string resp_str;
+    uint16_t currIndex = index;
+    uint16_t totalTraveled = 0;
+    uint16_t currInterval = NUM_LEAVES;
+
+    for (int i = 0; i < LEVELS; i++) {
+        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
+        
+        memcpy(req.treeCts[LEVELS - i - 1], cts[totalTraveled + currIndex], CT_LEN);
+        totalTraveled += currInterval;
+        currInterval /= 2;
+        currIndex /= 2;
+    }
+
+    IBE_MarshalCt(c, req.ibeCt);
+    req.index = index;
+
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(a->device, 0, HSM_DECRYPT, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+
+    memcpy(&resp, resp_str.data(), resp_str.size());
+
+    printf("finished retrieving decryption\n");
+cleanup:
+    if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
+    return rv;
+}
+
+

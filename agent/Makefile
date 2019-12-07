@@ -35,8 +35,8 @@ endif  # Linux
 
 ifeq ($(UNAME), Darwin)
 
-CPPFLAGS+=-Ihidapi/hidapi -D__OS_MAC
-LDLIBS+=-framework IOKit -framework CoreFoundation
+CPPFLAGS+=-Ihidapi/hidapi -D__OS_MAC -Ijedi-pairing/include
+LDLIBS+=-framework IOKit -framework CoreFoundation -Ljedi-pairing/pairing.a
 HIDAPI=hid.o
 hid.o: hidapi/mac/hid.c
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o hid.o hidapi/mac/hid.c
@@ -47,7 +47,6 @@ endif  # Darwin
 u2f_util.o: u2f_util.cc u2f_util.h u2f.h u2f_hid.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) -Wall -o u2f_util.o u2f_util.cc
 
-# signature parsing
 sig_parse.o: sig_parse.c sig_parse.h
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o sig_parse.o sig_parse.c -lssl -lcrypto
 
@@ -60,10 +59,14 @@ asn1.o: asn1.c asn1.h
 base64.o: base64.c base64.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o base64.o base64.c -lssl -lcrypto
 
+ibe.o: ibe.c ibe.h
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o ibe.o ibe.c -lssl -lcrypto
+
+
 # simple hidapi tool to list devices to see paths.
 list: list.c $(HIDAPI)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
 
 # Test counter
-Test: Test.cc agent.o u2f_util.o sig_parse.o params.o asn1.o $(HIDAPI)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
+Test: Test.cc agent.o u2f_util.o sig_parse.o params.o asn1.o ibe.o $(HIDAPI)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
