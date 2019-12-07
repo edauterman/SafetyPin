@@ -36,10 +36,14 @@ extern "C" {
 #define HSM_RETRIEVE    0x71
 #define HSM_PUNCTURE    0x72
 #define HSM_DECRYPT     0x73
+#define HSM_MPK         0x74
+
+typedef struct{
+    uint8_t mpk[BASEFIELD_SZ_G2];
+} HSM_MPK_RESP;
 
 typedef struct{
     uint8_t cts[SUB_TREE_SIZE][CT_LEN];
-    //uint8_t cts[LEVELS][NUM_LEAVES][32];
 } HSM_SETUP_RESP;
 
 typedef struct{

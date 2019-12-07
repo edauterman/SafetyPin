@@ -3,10 +3,18 @@
 #include <stdlib.h>
 
 #include "hsm.h"
+#include "ibe.h"
 #include "log.h"
 #include "punc_enc.h"
 #include "u2f.h"
 
+
+int HSM_GetMpk() {
+    uint8_t mpk[BASEFIELD_SZ_G2];
+    IBE_MarshalMpk(mpk);
+    u2f_response_writeback(mpk, BASEFIELD_SZ_G2);
+    return U2F_SW_NO_ERROR;
+}
 
 int HSM_Setup() {
     printf1(TAG_GREEN, "before declaring array\n");

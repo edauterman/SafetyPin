@@ -53,6 +53,13 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
 #ifdef ENABLE_U2F
         switch(req->ins)
         {
+
+            case HSM_MPK:
+                printf1(TAG_GREEN, "starting get mpk\n");
+                rcode = HSM_GetMpk();
+                printf1(TAG_GREEN, "finished get mpk\n");
+                break;
+
             case HSM_SETUP:
                 printf1(TAG_GREEN, "starting setup\n");
                 rcode = HSM_Setup();

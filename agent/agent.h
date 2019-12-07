@@ -25,6 +25,7 @@ typedef struct {
 int Agent_init(Agent *a);
 void Agent_destroy(Agent *a);
 
+int GetMpk(Agent *a);
 int Setup(Agent *a);
 int Retrieve(Agent *a, uint16_t index);
 int Puncture(Agent *a, uint16_t index);

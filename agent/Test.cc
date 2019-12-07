@@ -23,6 +23,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  GetMpk(&a);
   Setup(&a);
   Retrieve(&a, 0);
   Retrieve(&a, 1);

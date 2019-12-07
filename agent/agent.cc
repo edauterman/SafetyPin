@@ -111,6 +111,24 @@ void Agent_destroy(Agent *a) {
   if (a->params) Params_free(a->params);
 }
 
+int GetMpk(Agent *a) {
+    int rv =  ERROR;
+    HSM_MPK_RESP resp;
+    string resp_str;
+
+    CHECK_C(0 < U2Fob_apdu(a->device, 0, HSM_MPK, 0, 0,
+                "", &resp_str));
+
+    memcpy(&resp, resp_str.data(), resp_str.size());
+
+    IBE_UnmarshalMpk(resp.mpk, &mpk);
+
+    printf("Got mpk\n");
+cleanup:
+    if (rv == ERROR) printf("MPK ERROR\n");
+    return rv;
+}
+
 int Setup(Agent *a) {
     int rv =  ERROR;
     HSM_SETUP_RESP resp;
@@ -207,6 +225,7 @@ cleanup:
 
 int Encrypt(Agent *a, uint16_t index, uint8_t msg[IBE_MSG_LEN], IBE_ciphertext *c) {
     IBE_Encrypt(&mpk, index, msg, c);
+    return OKAY;
 }
 
 int Decrypt(Agent *a, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_LEN]) {
