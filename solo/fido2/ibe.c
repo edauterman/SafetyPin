@@ -15,32 +15,40 @@ void IBE_Setup() {
     /* Choose msk in Z_q^* */
     embedded_pairing_bls12_381_zp_random(&msk, ctap_generate_rng);
     /* Set mpk */
-    //embedded_pairing_bls12_381_g1_multiply_affine(&mpk, embedded_pairing_bls12_381_g1affine_zero, &msk);
-    embedded_pairing_bls12_381_g2_multiply_affine(&mpk, embedded_pairing_bls12_381_g2affine_generator, &msk);
+    embedded_pairing_bls12_381_g2_multiply_affine(&mpk, embedded_pairing_bls12_381_g2affine_zero, &msk);
 
 }
 
 void hashToLength(uint8_t *inBytes, int inLen, uint8_t *outBytes, int outLen) {
-    uint16_t ctr = 1;
+    uint16_t ctr = 0;
     int bytesFilled = 0;
     while (bytesFilled < outLen) {
         uint8_t tmp[SHA256_DIGEST_LEN];
         crypto_sha256_init();
-        crypto_sha256_update(inBytes, inLen);
         crypto_sha256_update(&ctr, sizeof(uint16_t));
+        crypto_sha256_update(inBytes, inLen);
         crypto_sha256_final(tmp);
         
         int bytesToCopy = outLen -  bytesFilled > SHA256_DIGEST_LEN ? SHA256_DIGEST_LEN : outLen - bytesFilled;
         memcpy(outBytes + bytesFilled, tmp, bytesToCopy);
         bytesFilled += bytesToCopy;
+        ctr++;
     }
 }
 
 void IBE_Extract(uint16_t index, embedded_pairing_bls12_381_g1_t *sk) {
+    uint8_t indexBuf[sizeof(index)];
     uint8_t indexHash[BASEFIELD_SZ_G1];
     embedded_pairing_bls12_381_g1affine_t pt_affine;
     /* Map index to a point pt. */
-    hashToLength(&index, sizeof(index), indexHash, BASEFIELD_SZ_G1);
+    memcpy(indexBuf, &index, sizeof(index));
+    printf("INDEX BUF: %x %x\n", indexBuf[0], indexBuf[1]);
+    hashToLength(indexBuf, sizeof(index), indexHash, BASEFIELD_SZ_G1);
+    printf("index hash: ");
+    for (int i = 0; i < BASEFIELD_SZ_G1; i++) {
+        printf("%x ", indexHash[i]);
+    }
+    printf("\n");
     //hashToBaseField(index, indexHash);
     embedded_pairing_bls12_381_g1affine_from_hash(&pt_affine, indexHash);
     /* Set sk = pt^msk. */
@@ -84,7 +92,7 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, IBE_ciphertext *c, uint8_t
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
 
     /* Test u = rP */
-    embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_generator, &r);
+    embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_zero, &r);
     if (!embedded_pairing_bls12_381_g2_equal(&U_test, &c->U)) {
         printf("--------- ERROR IN DECRYPTION ----------\n");
     }

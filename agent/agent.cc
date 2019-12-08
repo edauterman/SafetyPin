@@ -253,6 +253,7 @@ int Decrypt(Agent *a, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_LEN
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
 
     memcpy(&resp, resp_str.data(), resp_str.size());
+    memcpy(msg, resp.msg, IBE_MSG_LEN);
 
     printf("finished retrieving decryption\n");
 cleanup:

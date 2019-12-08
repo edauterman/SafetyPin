@@ -101,7 +101,13 @@ int IBE_Encrypt(embedded_pairing_bls12_381_g2_t *mpk, uint16_t index, uint8_t ms
 
     /* hash index to point */
     memcpy(indexBuf, &index, sizeof(index));
+    printf("INDEX BUF: %x %x\n", indexBuf[0], indexBuf[1]);
     CHECK_C (hash_to_bytes(indexHash, BASEFIELD_SZ_G1, indexBuf, sizeof(index)));
+    printf("index hash: ");
+    for (int i = 0; i < BASEFIELD_SZ_G1; i++) {
+        printf("%x ", indexHash[i]);
+    }
+    printf("\n");
     embedded_pairing_bls12_381_g1affine_from_hash(&pt_affine, indexHash);
 
     /* randomly choose sigma */
