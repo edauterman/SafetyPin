@@ -49,7 +49,6 @@ void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][CT_LEN], int start) {
         IBE_Extract(index, &sk);
         embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
         embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
-        printf("g2 size: %d\n", embedded_pairing_bls12_381_g1_marshalled_compressed_size);
         memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
         printf("leaf %d: ", i);
         for (int j = 0; j < 48; j++) {

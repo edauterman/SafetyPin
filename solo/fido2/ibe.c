@@ -42,13 +42,7 @@ void IBE_Extract(uint16_t index, embedded_pairing_bls12_381_g1_t *sk) {
     embedded_pairing_bls12_381_g1affine_t pt_affine;
     /* Map index to a point pt. */
     memcpy(indexBuf, &index, sizeof(index));
-    printf("INDEX BUF: %x %x\n", indexBuf[0], indexBuf[1]);
     hashToLength(indexBuf, sizeof(index), indexHash, BASEFIELD_SZ_G1);
-    printf("index hash: ");
-    for (int i = 0; i < BASEFIELD_SZ_G1; i++) {
-        printf("%x ", indexHash[i]);
-    }
-    printf("\n");
     //hashToBaseField(index, indexHash);
     embedded_pairing_bls12_381_g1affine_from_hash(&pt_affine, indexHash);
     /* Set sk = pt^msk. */

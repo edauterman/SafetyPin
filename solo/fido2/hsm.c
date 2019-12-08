@@ -32,7 +32,6 @@ int HSM_Setup() {
     //    PuncEnc_Setup(cts);
     printf1(TAG_GREEN, "finished setup, just need to write back\n");
     u2f_response_writeback(cts, SUB_TREE_SIZE * CT_LEN);
-    //u2f_response_writeback(cts, LEVELS * NUM_LEAVES * 32);
     return U2F_SW_NO_ERROR;
 }
 

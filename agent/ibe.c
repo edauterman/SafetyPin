@@ -15,6 +15,7 @@ void IBE_Setup(embedded_pairing_core_bigint_256_t *msk, embedded_pairing_bls12_3
     //embedded_pairing_bls12_381_g1_multiply_affine(&mpk, embedded_pairing_bls12_381_g1affine_zero, &msk);
     uint8_t hash[32];
     memset(hash, 0xff, 32);
+    /* USING A DUMMY MSK ONLY FOR TESTING PURPOSES. */
     embedded_pairing_bls12_381_zp_from_hash(msk, hash);
     embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_zero, msk);
     //embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_generator, msk);
@@ -101,13 +102,7 @@ int IBE_Encrypt(embedded_pairing_bls12_381_g2_t *mpk, uint16_t index, uint8_t ms
 
     /* hash index to point */
     memcpy(indexBuf, &index, sizeof(index));
-    printf("INDEX BUF: %x %x\n", indexBuf[0], indexBuf[1]);
     CHECK_C (hash_to_bytes(indexHash, BASEFIELD_SZ_G1, indexBuf, sizeof(index)));
-    printf("index hash: ");
-    for (int i = 0; i < BASEFIELD_SZ_G1; i++) {
-        printf("%x ", indexHash[i]);
-    }
-    printf("\n");
     embedded_pairing_bls12_381_g1affine_from_hash(&pt_affine, indexHash);
 
     /* randomly choose sigma */
