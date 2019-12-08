@@ -24,28 +24,30 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  GetMpk(&a);
-  Setup(&a);
-  Retrieve(&a, 0);
-  Retrieve(&a, 1);
-//  Puncture(&a, 0);
-  Retrieve(&a, 1);
+  for (int hsm = 0; hsm < NUM_HSMS; hsm++) {
+    Agent_GetMpk(&a, hsm);
+    Agent_Setup(&a, hsm);
+    Agent_Retrieve(&a, 0, hsm);
+    Agent_Retrieve(&a, 1, hsm);
+    Agent_Puncture(&a, 0, hsm);
+    Agent_Retrieve(&a, 1, hsm);
 
-  uint8_t msg[IBE_MSG_LEN];
-  uint8_t msg_test[IBE_MSG_LEN];
-  IBE_ciphertext c;
-  memset(msg, 0xff, IBE_MSG_LEN);
-  Encrypt(&a, 1, msg, &c);
-  Decrypt(&a, 1, &c, msg_test);
+    uint8_t msg[IBE_MSG_LEN];
+    uint8_t msg_test[IBE_MSG_LEN];
+    IBE_ciphertext c;
+    memset(msg, 0xff, IBE_MSG_LEN);
+    Agent_Encrypt(&a, 1, msg, &c, hsm);
+    Agent_Decrypt(&a, 1, &c, msg_test, hsm);
 
-  if (memcmp(msg, msg_test, IBE_MSG_LEN) != 0) {
-    printf("Decryption did not return correct plaintext: ");
-    for (int i = 0; i < IBE_MSG_LEN; i++) {
-        printf("%x ", msg_test[i]);
+    if (memcmp(msg, msg_test, IBE_MSG_LEN) != 0) {
+        printf("Decryption did not return correct plaintext: ");
+        for (int i = 0; i < IBE_MSG_LEN; i++) {
+            printf("%x ", msg_test[i]);
+        }
+        printf("\n");
+    } else {
+        printf("Decryption successful.\n");
     }
-    printf("\n");
-  } else {
-    printf("Decryption successful.\n");
   }
 
   Agent_destroy(&a);

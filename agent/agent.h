@@ -1,9 +1,3 @@
-// Copyright 2018 Google Inc. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file or at
-// https://developers.google.com/open-source/licenses/bsd
-
 #ifndef _AGENT_H
 #define _AGENT_H
 
@@ -11,27 +5,37 @@
 #include <openssl/ec.h>
 #include <map>
 
+#include "bls12_381/bls12_381.h"
 #include "ibe.h"
+#include "hsm.h"
 #include "params.h"
 #include "u2f.h"
+
+#define NUM_HSMS 2
 
 using namespace std;
 
 typedef struct {
+    struct U2Fob *device;
+    uint8_t cts[SUB_TREE_SIZE][CT_LEN];
+    embedded_pairing_bls12_381_g2_t mpk;
+} HSM;
+
+typedef struct {
   /* Representation of fob used for HID transport. */
-  struct U2Fob *device;
+  HSM hsms[NUM_HSMS];
   Params params;
 } Agent;
 
 int Agent_init(Agent *a);
 void Agent_destroy(Agent *a);
 
-int GetMpk(Agent *a);
-int Setup(Agent *a);
-int Retrieve(Agent *a, uint16_t index);
-int Puncture(Agent *a, uint16_t index);
-int Encrypt(Agent *a, uint16_t index, uint8_t msg[IBE_MSG_LEN], IBE_ciphertext *c);
-int Decrypt(Agent *a, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_LEN]);
+int Agent_GetMpk(Agent *a, int hsmID);
+int Agent_Setup(Agent *a, int hsmID);
+int Agent_Retrieve(Agent *a, uint16_t index, int hsmID);
+int Agent_Puncture(Agent *a, uint16_t index,  int hsmID);
+int Agent_Encrypt(Agent *a, uint16_t index, uint8_t msg[IBE_MSG_LEN], IBE_ciphertext *c, int hsmID);
+int Agent_Decrypt(Agent *a, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_LEN], int hsmID);
 
 #endif
 
