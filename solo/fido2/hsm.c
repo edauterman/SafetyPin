@@ -67,3 +67,23 @@ int HSM_Puncture(struct hsm_puncture_request *req) {
 
     return U2F_SW_NO_ERROR;
 }
+
+int HSM_Decrypt(struct hsm_decrypt_request *req) {
+    printf1(TAG_GREEN, "starting to decrypt\n");
+    uint8_t leaf[CT_LEN];
+    IBE_ciphertext c;
+    embedded_pairing_bls12_381_g1_t sk;
+    uint8_t msg[IBE_MSG_LEN];
+
+    PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf);
+    IBE_UnmarshalCt(req->ibeCt, &c);
+    IBE_UnmarshalSk(leaf, &sk);
+    IBE_Decrypt(&sk, &c, msg);
+
+    printf1(TAG_GREEN, "finished decryption\n");
+
+    u2f_response_writeback(msg, IBE_MSG_LEN);
+
+    return U2F_SW_NO_ERROR;
+}
+

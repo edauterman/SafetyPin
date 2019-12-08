@@ -22,5 +22,6 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, IBE_ciphertext *c, uint8_t
 void IBE_MarshalCt(IBE_ciphertext *c, uint8_t buf[IBE_CT_LEN]);
 void IBE_UnmarshalCt(uint8_t buf[IBE_CT_LEN], IBE_ciphertext *c);
 void IBE_MarshalMpk(uint8_t buf[BASEFIELD_SZ_G2]);
+void IBE_UnmarshalSk(uint8_t buf[BASEFIELD_SZ_G1], embedded_pairing_bls12_381_g1_t *sk);
 
 #endif

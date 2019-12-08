@@ -11,6 +11,7 @@
 #include <map>
 
 #include "agent.h"
+#include "ibe.h"
 #include "common.h"
 
 using namespace std;
@@ -27,8 +28,26 @@ int main(int argc, char *argv[]) {
   Setup(&a);
   Retrieve(&a, 0);
   Retrieve(&a, 1);
-  Puncture(&a, 0);
+//  Puncture(&a, 0);
   Retrieve(&a, 1);
+
+  uint8_t msg[IBE_MSG_LEN];
+  uint8_t msg_test[IBE_MSG_LEN];
+  IBE_ciphertext c;
+  memset(msg, 0xff, IBE_MSG_LEN);
+  Encrypt(&a, 1, msg, &c);
+  Decrypt(&a, 1, &c, msg_test);
+
+  if (memcmp(msg, msg_test, IBE_MSG_LEN) != 0) {
+    printf("Decryption did not return correct plaintext: ");
+    for (int i = 0; i < IBE_MSG_LEN; i++) {
+        printf("%x ", msg_test[i]);
+    }
+    printf("\n");
+  } else {
+    printf("Decryption successful.\n");
+  }
+
   Agent_destroy(&a);
 
   printf("Initialization completed. \n");

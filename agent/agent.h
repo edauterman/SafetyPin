@@ -11,6 +11,7 @@
 #include <openssl/ec.h>
 #include <map>
 
+#include "ibe.h"
 #include "params.h"
 #include "u2f.h"
 
@@ -29,6 +30,8 @@ int GetMpk(Agent *a);
 int Setup(Agent *a);
 int Retrieve(Agent *a, uint16_t index);
 int Puncture(Agent *a, uint16_t index);
+int Encrypt(Agent *a, uint16_t index, uint8_t msg[IBE_MSG_LEN], IBE_ciphertext *c);
+int Decrypt(Agent *a, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_LEN]);
 
 #endif
 

@@ -53,5 +53,6 @@ int HSM_GetMpk();
 int HSM_Setup();
 int HSM_Retrieve(struct hsm_retrieve_request *req);
 int HSM_Puncture(struct hsm_puncture_request *req);
+int HSM_Decrypt(struct hsm_decrypt_request *req);
 
 #endif

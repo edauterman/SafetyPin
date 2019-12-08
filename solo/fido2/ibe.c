@@ -114,4 +114,10 @@ void IBE_MarshalMpk(uint8_t buf[BASEFIELD_SZ_G2]) {
     embedded_pairing_bls12_381_g2_marshal(&mpk_affine, buf, true);
 }
 
+void IBE_UnmarshalSk(uint8_t buf[BASEFIELD_SZ_G1], embedded_pairing_bls12_381_g1_t *sk) {
+    embedded_pairing_bls12_381_g1affine_t sk_affine;
+    embedded_pairing_bls12_381_g1_unmarshal(&sk_affine, buf, true, true);
+    embedded_pairing_bls12_381_g1_from_affine(sk, &sk_affine);
+}
+
 // TODO: decrypt
