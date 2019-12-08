@@ -9,6 +9,9 @@ typedef struct {
     BIGNUM *y;
 } ShamirShare;
 
-int Shamir_CreateShares(int t, int n, BIGNUM *secret, BIGNUM *prime, ShamirShare *shares);
-int Shamir_ReconstructShares(int t, int n, ShamirShare *shares, BIGNUM *prime, BIGNUM *secret);
+ShamirShare *ShamirShare_new();
+void ShamirShare_free(ShamirShare *share);
+
+int Shamir_CreateShares(int t, int n, BIGNUM *secret, BIGNUM *prime, ShamirShare **shares);
+int Shamir_ReconstructShares(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM *secret);
 #endif
