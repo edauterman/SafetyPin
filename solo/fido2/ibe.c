@@ -84,7 +84,7 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, IBE_ciphertext *c, uint8_t
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
 
     /* Test u = rP */
-    embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g1affine_generator, &r);
+    embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_generator, &r);
     if (!embedded_pairing_bls12_381_g2_equal(&U_test, &c->U)) {
         printf("--------- ERROR IN DECRYPTION ----------\n");
     }

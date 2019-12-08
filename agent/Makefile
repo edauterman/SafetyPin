@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://developers.google.com/open-source/licenses/bsd
 
-all: list Test
+all: list Test IBETest
 
 CC ?= gcc
 CXX ?= g++
@@ -69,4 +69,7 @@ list: list.c $(HIDAPI)
 
 # Test counter
 Test: Test.cc agent.o u2f_util.o sig_parse.o params.o asn1.o ibe.o $(HIDAPI)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
+
+IBETest: IBETest.cc params.o ibe.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto

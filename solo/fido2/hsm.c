@@ -75,9 +75,10 @@ int HSM_Decrypt(struct hsm_decrypt_request *req) {
     embedded_pairing_bls12_381_g1_t sk;
     uint8_t msg[IBE_MSG_LEN];
 
-    PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf);
+//    PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf);
     IBE_UnmarshalCt(req->ibeCt, &c);
-    IBE_UnmarshalSk(leaf, &sk);
+//    IBE_UnmarshalSk(leaf, &sk);
+    IBE_Extract(req->index, &sk);
     IBE_Decrypt(&sk, &c, msg);
 
     printf1(TAG_GREEN, "finished decryption\n");

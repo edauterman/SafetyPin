@@ -42,7 +42,7 @@
 using namespace std;
 
 uint8_t cts[SUB_TREE_SIZE][CT_LEN];
-embedded_pairing_bls12_381_g2_t mpk;
+embedded_pairing_bls12_381_g2_t mpk_;
 
 /* Convert buffers containing x and y coordinates to EC_POINT. */
 void bufs_to_pt(const_Params params, const uint8_t *x, const uint8_t *y,
@@ -121,7 +121,7 @@ int GetMpk(Agent *a) {
 
     memcpy(&resp, resp_str.data(), resp_str.size());
 
-    IBE_UnmarshalMpk(resp.mpk, &mpk);
+    IBE_UnmarshalMpk(resp.mpk, &mpk_);
 
     printf("Got mpk\n");
 cleanup:
@@ -224,7 +224,7 @@ cleanup:
 }
 
 int Encrypt(Agent *a, uint16_t index, uint8_t msg[IBE_MSG_LEN], IBE_ciphertext *c) {
-    IBE_Encrypt(&mpk, index, msg, c);
+    IBE_Encrypt(&mpk_, index, msg, c);
     return OKAY;
 }
 
