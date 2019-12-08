@@ -62,13 +62,16 @@ base64.o: base64.c base64.h
 ibe.o: ibe.c ibe.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o ibe.o ibe.c -lssl -lcrypto
 
+shamir.o: shamir.c shamir.h
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o shamir.o shamir.c -lssl -lcrypto
+
 
 # simple hidapi tool to list devices to see paths.
 list: list.c $(HIDAPI)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
 
 # Test counter
-Test: Test.cc agent.o u2f_util.o sig_parse.o params.o asn1.o ibe.o $(HIDAPI)
+Test: Test.cc agent.o u2f_util.o sig_parse.o params.o asn1.o ibe.o shamir.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
 IBETest: IBETest.cc params.o ibe.o
