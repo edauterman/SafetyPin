@@ -56,13 +56,18 @@ ibe.o: ibe.c ibe.h
 shamir.o: shamir.c shamir.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o shamir.o shamir.c -lssl -lcrypto
 
+hsm.o: hsm.cc hsm.h
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o hsm.o hsm.cc -lssl -lcrypto
+
+datacenter.o: datacenter.cc datacenter.h
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o datacenter.o datacenter.cc -lssl -lcrypto
 
 # simple hidapi tool to list devices to see paths.
 list: list.c $(HIDAPI)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
 
 # Test counter
-Test: Test.cc agent.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
+Test: Test.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
 CryptoTest: CryptoTest.cc params.o ibe.o shamir.o

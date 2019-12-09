@@ -13,6 +13,8 @@
 
 #include "hsm.h"
 #include "ibe.h"
+#include "bls12_381/bls12_381.h"
+#include "u2f.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,6 +76,24 @@ typedef struct {
 typedef struct {
     uint8_t msg[IBE_MSG_LEN];
 } HSM_DECRYPT_RESP;
+
+/* ---------------------------------- */
+
+typedef struct {
+    struct U2Fob *device;
+    uint8_t cts[SUB_TREE_SIZE][CT_LEN];
+    embedded_pairing_bls12_381_g2_t mpk;
+} HSM;
+
+HSM *HSM_new();
+void HSM_free(HSM *h);
+
+int HSM_GetMpk(HSM *h);
+int HSM_Setup(HSM *h);
+int HSM_Retrieve(HSM *h, uint16_t index);
+int HSM_Puncture(HSM *h, uint16_t index);
+int HSM_Encrypt(HSM *h, uint16_t index, uint8_t msg[IBE_MSG_LEN], IBE_ciphertext *c);
+int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_LEN]);
 
 #ifdef __cplusplus
 }

@@ -10,7 +10,8 @@
 #include <openssl/bn.h>
 #include <openssl/rand.h>
 
-#include "agent.h"
+#include "hsm.h"
+#include "params.h"
 #include "ibe.h"
 #include "common.h"
 #include "shamir.h"

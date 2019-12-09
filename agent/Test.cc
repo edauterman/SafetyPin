@@ -10,7 +10,8 @@
 #include <time.h>
 #include <map>
 
-#include "agent.h"
+#include "datacenter.h"
+#include "hsm.h"
 #include "ibe.h"
 #include "common.h"
 
@@ -18,31 +19,31 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Agent a;
-  if (Agent_init(&a) != OKAY) {
+  Datacenter *d = Datacenter_new();
+  if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
   }
 
-  for (int hsm = 0; hsm < NUM_HSMS; hsm++) {
-    Agent_GetMpk(&a, hsm);
-    Agent_Setup(&a, hsm);
-    Agent_Retrieve(&a, 0, hsm);
-    Agent_Retrieve(&a, 1, hsm);
-    Agent_Puncture(&a, 0, hsm);
-    Agent_Retrieve(&a, 1, hsm);
+  for (int i = 0; i < NUM_HSMS; i++) {
+    HSM_GetMpk(d->hsms[i]);
+    HSM_Setup(d->hsms[i]);
+    HSM_Retrieve(d->hsms[i], 0);
+    HSM_Retrieve(d->hsms[i], 1);
+    HSM_Puncture(d->hsms[i], 0);
+    HSM_Retrieve(d->hsms[i], 1);
 
     uint8_t msg[IBE_MSG_LEN];
     uint8_t msg_test[IBE_MSG_LEN];
     IBE_ciphertext c;
     memset(msg, 0xff, IBE_MSG_LEN);
-    Agent_Encrypt(&a, 1, msg, &c, hsm);
-    Agent_Decrypt(&a, 1, &c, msg_test, hsm);
+    HSM_Encrypt(d->hsms[i], 1, msg, &c);
+    HSM_Decrypt(d->hsms[i], 1, &c, msg_test);
 
     if (memcmp(msg, msg_test, IBE_MSG_LEN) != 0) {
         printf("Decryption did not return correct plaintext: ");
-        for (int i = 0; i < IBE_MSG_LEN; i++) {
-            printf("%x ", msg_test[i]);
+        for (int j = 0; j < IBE_MSG_LEN; j++) {
+            printf("%x ", msg_test[j]);
         }
         printf("\n");
     } else {
@@ -50,7 +51,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  Agent_destroy(&a);
+  Datacenter_free(d);
 
   printf("Initialization completed. \n");
 
