@@ -11,7 +11,7 @@
 #include "params.h"
 #include "u2f.h"
 
-#define NUM_HSMS 2
+#define NUM_HSMS 1
 
 using namespace std;
 

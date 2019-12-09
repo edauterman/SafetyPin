@@ -67,7 +67,7 @@ typedef struct {
 
 typedef struct {
     uint16_t index;
-    uint8_t treeCts[KEY_LEVELS][CT_LEN];
+    uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
 } HSM_DECRYPT_REQ;
 

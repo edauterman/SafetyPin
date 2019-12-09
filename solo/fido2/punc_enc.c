@@ -181,7 +181,7 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
         printf("\n");
         /* Decrypt current ciphertext. */
         if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[i]) == ERROR) {
-            printf("ERROR IN DECRYPTION\n");
+            printf("ERROR IN DECRYPTION OF INNER NODE\n");
         }
         //crypto_aes256_init(currKey, NULL);
         //crypto_aes256_decrypt_sep(leftKey, cts[i], KEY_LEN);
@@ -214,7 +214,7 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
     }
     /* Set final leaf value. */
     if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[LEVELS - 1]) == ERROR) {
-        printf("ERROR IN DECRYPTION\n");
+        printf("ERROR IN LEAF DECRYPTION\n");
     }
     memcpy(leaf, leftKey, KEY_LEN);
     memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);

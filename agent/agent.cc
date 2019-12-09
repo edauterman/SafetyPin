@@ -172,6 +172,7 @@ int Agent_Retrieve(Agent *a, uint16_t index, int hsmID) {
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(a->hsms[hsmID].device, 0, HSM_RETRIEVE, 0, 0,
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
 
+    printf("retrieved\n");
     memcpy(&resp, resp_str.data(), resp_str.size());
 
     printf("finished retrieving leaf\n");
