@@ -25,7 +25,7 @@ extern "C"{
 
 #define IV_LEN 16
 #define TAG_LEN 16
-#define AES256_KEY_LEN 32
+#define AES128_KEY_LEN 32
 
 int hash_to_bytes (uint8_t *bytes_out, int outlen,
     const uint8_t *bytes_in, int inlen);

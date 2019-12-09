@@ -89,7 +89,7 @@ int aesGcmEncrypt(const void *key, const uint8_t *pt, int ptLen,
     CHECK_C (RAND_bytes(iv, IV_LEN));
 
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
-    CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL));
+    CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL));
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, IV_LEN, NULL));
     CHECK_C (EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv));
     CHECK_C (EVP_EncryptUpdate(ctx, ct, &bytesFilled, pt, ptLen));
@@ -111,7 +111,7 @@ int aesGcmDecrypt(const void *key, uint8_t *pt,
     EVP_CIPHER_CTX *ctx;
 
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
-    CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL));
+    CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL));
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, IV_LEN, NULL));
     CHECK_C (EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv));
     CHECK_C (EVP_DecryptUpdate(ctx, pt, &bytesFilled, ct, ctLen));

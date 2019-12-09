@@ -92,12 +92,12 @@ void AESGCMTest() {
     uint8_t pt[128];
     uint8_t ptTest[128];
     uint8_t ct[128];
-    uint8_t key[AES256_KEY_LEN];
+    uint8_t key[AES128_KEY_LEN];
     uint8_t tag[TAG_LEN];
     uint8_t iv[IV_LEN];
 
     CHECK_C (RAND_bytes(iv, IV_LEN));
-    CHECK_C (RAND_bytes(key, AES256_KEY_LEN));
+    CHECK_C (RAND_bytes(key, AES128_KEY_LEN));
     CHECK_C (RAND_bytes(pt, 128));
 
     CHECK_C (aesGcmEncrypt(key, pt, 128, iv, tag, ct));
