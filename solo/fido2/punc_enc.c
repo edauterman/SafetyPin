@@ -14,6 +14,7 @@
 //#define LEVELS 8 // log2(NUM_LEAVES)
 
 static uint8_t msk[KEY_LEN];
+static uint8_t hmacKey[KEY_LEN];
 
 /* Encrypt with separate input and output buffers. */
 void crypto_aes256_encrypt_sep(uint8_t *out, uint8_t *in, int length) {
@@ -33,6 +34,55 @@ void crypto_aes256_decrypt_sep(uint8_t *out, uint8_t *in, int length) {
         crypto_aes256_decrypt(tmp, 16);
         memcpy(out + (i * 16), tmp, 16);
     }   
+}
+
+// outLen = 32
+void crypto_hmac(uint8_t *key, uint8_t *out, uint8_t *in, int inLen) {
+    uint8_t keyBuf[64];
+    uint8_t keyPadBuf[64];
+    uint8_t outBuf[32];
+    memset(keyBuf, 0, 64);
+    memcpy(keyBuf, key, KEY_LEN);
+    for (int i = 0; i < 64; i++) {
+        keyPadBuf[i] = keyBuf[i] ^ 0x36;
+    }
+    memset(outBuf, 0, 32);
+    memset(out, 0, 32);
+    crypto_sha256_init();
+    crypto_sha256_update(keyPadBuf, 64);
+    crypto_sha256_update(in, inLen);
+    crypto_sha256_final(outBuf);
+    for (int i = 0; i < 64; i++) {
+        keyPadBuf[i] = keyBuf[i] ^ 0x5c;
+    }
+    crypto_sha256_init();
+    crypto_sha256_update(keyPadBuf, 64);
+    crypto_sha256_update(outBuf, 32);
+    crypto_sha256_final(out);
+}
+
+void encryptKeysAndCreateTag(uint8_t *encKey, uint8_t *hmacKey, uint8_t *key1, uint8_t *key2, uint8_t *ct) {
+    crypto_aes256_init(encKey, NULL);
+    crypto_aes256_encrypt_sep(ct, key1, KEY_LEN);
+    crypto_aes256_encrypt_sep(ct + KEY_LEN, key2, KEY_LEN);
+    crypto_hmac(hmacKey, ct + 2 * KEY_LEN, ct, 2 * KEY_LEN);
+}
+
+int decryptKeysAndCheckTag(uint8_t *encKey, uint8_t *hmacKey, uint8_t *key1, uint8_t *key2, uint8_t *ct) {
+    uint8_t hmacTest[32];
+    crypto_aes256_init(encKey, NULL);
+    crypto_aes256_decrypt_sep(key1, ct, KEY_LEN);
+    crypto_aes256_decrypt_sep(key2, ct + KEY_LEN, KEY_LEN);
+    crypto_hmac(hmacKey, hmacTest, ct, 2 * KEY_LEN);
+    if (memcmp(hmacTest, ct + 2 * KEY_LEN, 32) != 0) {
+        return ERROR;
+    } else {
+        return OKAY;
+    }
+}
+
+void PuncEnc_Init() {
+    ctap_generate_rng(hmacKey, KEY_LEN);
 }
 
 /* Set the values of the leaves in a subtree, where the leaves in the subtree
@@ -82,11 +132,13 @@ void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][CT_LEN], uint8_t cts[SU
             /* Choose random key. */
             ctap_generate_rng(keys[index], KEY_LEN);
             /* Encrypt leaf. */
-            crypto_aes256_init(keys[index], NULL);
-            crypto_aes256_encrypt_sep(cts[index], currLeaves, KEY_LEN);
-            currLeaves += KEY_LEN;
-            crypto_aes256_encrypt_sep((uint8_t *)cts[index] + KEY_LEN, currLeaves, KEY_LEN);
-            currLeaves += KEY_LEN;
+            encryptKeysAndCreateTag(keys[index], hmacKey, currLeaves, currLeaves + KEY_LEN, cts[index]);
+            //crypto_aes256_init(keys[index], NULL);
+            //crypto_aes256_encrypt_sep(cts[index], currLeaves, KEY_LEN);
+            //currLeaves += KEY_LEN;
+            //crypto_aes256_encrypt_sep((uint8_t *)cts[index] + KEY_LEN, currLeaves, KEY_LEN);
+            //currLeaves += KEY_LEN;
+            currLeaves += CT_LEN;
             /* Next index. */
             printf1(TAG_GREEN, "index = %d/%d\n", index, SUB_TREE_SIZE);
             index++;
@@ -128,9 +180,12 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
         }
         printf("\n");
         /* Decrypt current ciphertext. */
-        crypto_aes256_init(currKey, NULL);
-        crypto_aes256_decrypt_sep(leftKey, cts[i], KEY_LEN);
-        crypto_aes256_decrypt_sep(rightKey, (uint8_t *)cts[i] + KEY_LEN, KEY_LEN);
+        if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[i]) == ERROR) {
+            printf("ERROR IN DECRYPTION\n");
+        }
+        //crypto_aes256_init(currKey, NULL);
+        //crypto_aes256_decrypt_sep(leftKey, cts[i], KEY_LEN);
+        //crypto_aes256_decrypt_sep(rightKey, (uint8_t *)cts[i] + KEY_LEN, KEY_LEN);
 
         /* Choose to go left or right. */
         if (currIndex < currCmp) {
@@ -158,8 +213,13 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
         //currIndex /= 2;
     }
     /* Set final leaf value. */
-    crypto_aes256_init(currKey, NULL);
-    crypto_aes256_decrypt_sep(leaf, cts[LEVELS -  1], CT_LEN);
+    if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[LEVELS - 1]) == ERROR) {
+        printf("ERROR IN DECRYPTION\n");
+    }
+    memcpy(leaf, leftKey, KEY_LEN);
+    memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);
+    //crypto_aes256_init(currKey, NULL);
+    //crypto_aes256_decrypt_sep(leaf, cts[LEVELS -  1], CT_LEN);
     
     //memcpy(leaf, leftKey, KEY_LEN);
     //memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);
@@ -185,9 +245,12 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint16_t index, ui
         memcpy(pathKeys[i], currKey, KEY_LEN);
 
         /* Decrypt ciphertext. */
-        crypto_aes256_init(currKey, NULL);
-        crypto_aes256_decrypt_sep(leftKeys[i], oldCts[i], KEY_LEN);
-        crypto_aes256_decrypt_sep(rightKeys[i], (uint8_t *)oldCts[i] + KEY_LEN, KEY_LEN);
+        if (decryptKeysAndCheckTag(currKey, hmacKey, leftKeys[i], rightKeys[i], oldCts[i]) == ERROR) {
+            printf("ERROR IN DECRYPTION\n");
+        }
+        //crypto_aes256_init(currKey, NULL);
+        //crypto_aes256_decrypt_sep(leftKeys[i], oldCts[i], KEY_LEN);
+        //crypto_aes256_decrypt_sep(rightKeys[i], (uint8_t *)oldCts[i] + KEY_LEN, KEY_LEN);
 
         /* Decide to go left or right. */
         if (currIndex < currCmp) {
@@ -253,11 +316,10 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint16_t index, ui
         printf("\n");
    
         /* Encrypt original key and replacement key. */
-        crypto_aes256_init(newKey, NULL);
-        crypto_aes256_encrypt_sep(newCts[KEY_LEVELS - i - 1], plaintext, KEY_LEN);
-        //crypto_aes256_encrypt_sep(newCts[i], plaintext, KEY_LEN);
-        crypto_aes256_encrypt_sep((uint8_t *)newCts[KEY_LEVELS - i - 1] + KEY_LEN, (uint8_t *)plaintext +  KEY_LEN, KEY_LEN);
-        //crypto_aes256_encrypt_sep((uint8_t *)newCts[i] + KEY_LEN, (uint8_t *)plaintext +  KEY_LEN, KEY_LEN);
+        encryptKeysAndCreateTag(newKey, hmacKey, plaintext, plaintext + KEY_LEN, newCts[KEY_LEVELS - i - 1]);
+        //crypto_aes256_init(newKey, NULL);
+        //crypto_aes256_encrypt_sep(newCts[KEY_LEVELS - i - 1], plaintext, KEY_LEN);
+        //crypto_aes256_encrypt_sep((uint8_t *)newCts[KEY_LEVELS - i - 1] + KEY_LEN, (uint8_t *)plaintext +  KEY_LEN, KEY_LEN);
 
         printf("newCts[%d]: ", i);
         for (int j = 0; j < KEY_LEN; j++) {

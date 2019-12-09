@@ -19,17 +19,17 @@ extern "C" {
 #endif
 
 #define KEY_LEN 32
-#define CT_LEN 64
+#define CT_LEN (2 * KEY_LEN + 32)
 
 #define RESPONSE_BUFFER_SIZE 4096
 
 #define NUM_LEAVES NUM_SUB_LEAVES
 //#define NUM_LEAVES 256
-#define LEVELS 6 // log2(NUM_LEAVES) + 1
+#define LEVELS 5 // log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES) + 1
 //#define LEVELS 16 // log2(NUM_LEAVES)
 
-#define SUB_TREE_SIZE ((RESPONSE_BUFFER_SIZE / CT_LEN) - 1)
+#define SUB_TREE_SIZE ((RESPONSE_BUFFER_SIZE / (4 * KEY_LEN)) - 1)
 #define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)
 
 #define HSM_SETUP       0x70

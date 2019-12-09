@@ -5,13 +5,17 @@
 #include "ctaphid.h"
 #include "ibe.h"
 
+#define OKAY 1
+#define ERROR 0
+
 #define KEY_LEN 32
-#define CT_LEN 64
+#define CT_LEN (2 * KEY_LEN + 32) 
 
 #define NUM_LEAVES NUM_SUB_LEAVES
-#define LEVELS 6    //log2(NUM_LEAVES) + 1
+#define LEVELS 5    //log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1)
-#define SUB_TREE_SIZE ((CTAP_RESPONSE_BUFFER_SIZE / CT_LEN) - 1)
+// SUB_TREE_SIZE before had CT_LEN instead of 4 * KEY_LEN, but then CT_LEN changed to have tag
+#define SUB_TREE_SIZE ((CTAP_RESPONSE_BUFFER_SIZE / (4 * KEY_LEN)) - 1)
 #define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)
 
 #define HSM_SETUP    0x70
