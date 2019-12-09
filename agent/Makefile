@@ -47,17 +47,8 @@ endif  # Darwin
 u2f_util.o: u2f_util.cc u2f_util.h u2f.h u2f_hid.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) -Wall -o u2f_util.o u2f_util.cc
 
-sig_parse.o: sig_parse.c sig_parse.h
-	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o sig_parse.o sig_parse.c -lssl -lcrypto
-
 params.o: params.c params.h
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o params.o params.c -lssl -lcrypto
-
-asn1.o: asn1.c asn1.h
-	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o asn1.o asn1.c -lssl -lcrypto
-
-base64.o: base64.c base64.h
-	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o base64.o base64.c -lssl -lcrypto
 
 ibe.o: ibe.c ibe.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o ibe.o ibe.c -lssl -lcrypto
@@ -71,7 +62,7 @@ list: list.c $(HIDAPI)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
 
 # Test counter
-Test: Test.cc agent.o u2f_util.o sig_parse.o params.o asn1.o ibe.o shamir.o $(HIDAPI)
+Test: Test.cc agent.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
 CryptoTest: CryptoTest.cc params.o ibe.o shamir.o

@@ -24,7 +24,6 @@ typedef struct {
 typedef struct {
   /* Representation of fob used for HID transport. */
   HSM hsms[NUM_HSMS];
-  Params params;
 } Agent;
 
 int Agent_init(Agent *a);

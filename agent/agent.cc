@@ -18,13 +18,11 @@
 #include "bls12_381/bls12_381.h"
 
 #include "agent.h"
-#include "asn1.h"
 #include "common.h"
 #include "hidapi.h"
 #include "hsm.h"
 #include "ibe.h"
 #include "params.h"
-#include "sig_parse.h"
 #include "u2f.h"
 #include "u2f_util.h"
 
@@ -34,26 +32,6 @@
 #define PRODUCT_ID 0xa2ca
 
 using namespace std;
-
-/* Convert buffers containing x and y coordinates to EC_POINT. */
-void bufs_to_pt(const_Params params, const uint8_t *x, const uint8_t *y,
-                EC_POINT *pt) {
-  uint8_t buf[65];
-  buf[0] = 4;
-  memcpy(buf + 1, x, 32);
-  memcpy(buf + 1 + 32, y, 32);
-  EC_POINT_oct2point(Params_group(params), pt, buf, 65, Params_ctx(params));
-}
-
-/* Convert EC_POINT to buffers containing x and y coordinates (uncompressed). */
-void pt_to_bufs(const_Params params, const EC_POINT *pt, uint8_t *x,
-                uint8_t *y) {
-  uint8_t buf[65];
-  EC_POINT_point2oct(Params_group(params), pt, POINT_CONVERSION_UNCOMPRESSED,
-                     buf, 65, Params_ctx(params));
-  memcpy(x, buf + 1, 32);
-  memcpy(y, buf + 1 + 32, 32);
-}
 
 /* Given the path to the U2F device, initialize the agent. */
 int create_agent(Agent *a, char *deviceName, int i) {
@@ -77,8 +55,6 @@ int Agent_init(Agent *a) {
   struct hid_device_info *devs, *cur_dev;
   int i = 0;
 
-  CHECK_A (a->params = Params_new(P256));
-
   hid_init();
   devs = hid_enumerate(0x0, 0x0);
   cur_dev = devs;
@@ -100,7 +76,6 @@ cleanup:
 
 /* Destroy current agent, including writing state to storage. */
 void Agent_destroy(Agent *a) {
-  if (a->params) Params_free(a->params);
   for (int i = 0; i < NUM_HSMS; i++) {
     if (a->hsms[i].device) U2Fob_destroy(a->hsms[i].device);
   }
