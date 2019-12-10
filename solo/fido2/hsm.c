@@ -76,10 +76,10 @@ int HSM_Decrypt(struct hsm_decrypt_request *req) {
     uint8_t msg[IBE_MSG_LEN];
 
     PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf);
-    IBE_UnmarshalCt(req->ibeCt, &c);
+    IBE_UnmarshalCt(req->ibeCt, &c, IBE_MSG_LEN);
     IBE_UnmarshalSk(leaf, &sk);
 //    IBE_Extract(req->index, &sk);
-    IBE_Decrypt(&sk, &c, msg);
+    IBE_Decrypt(&sk, &c, msg, IBE_MSG_LEN);
 
     printf1(TAG_GREEN, "finished decryption\n");
 
