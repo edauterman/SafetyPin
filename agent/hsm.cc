@@ -157,12 +157,12 @@ cleanup:
     return rv;
 }
 
-int HSM_Encrypt(HSM *h, uint16_t index, uint8_t msg[IBE_MSG_LEN], IBE_ciphertext *c) {
-    IBE_Encrypt(&h->mpk, index, msg, c);
+int HSM_Encrypt(HSM *h, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c) {
+    IBE_Encrypt(&h->mpk, index, msg, msgLen, c);
     return OKAY;
 }
 
-int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_LEN]) {
+int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msgLen) {
     int rv = ERROR;
     HSM_DECRYPT_REQ req;
     HSM_DECRYPT_RESP resp;
@@ -180,14 +180,14 @@ int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_L
         currIndex /= 2;
     }
 
-    IBE_MarshalCt(c, req.ibeCt);
+    IBE_MarshalCt(req.ibeCt, msgLen, c);
     req.index = index;
 
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_DECRYPT, 0, 0,
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
 
     memcpy(&resp, resp_str.data(), resp_str.size());
-    memcpy(msg, resp.msg, IBE_MSG_LEN);
+    memcpy(msg, resp.msg, msgLen);
 
     printf("finished retrieving decryption\n");
 cleanup:

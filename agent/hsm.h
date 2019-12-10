@@ -92,8 +92,8 @@ int HSM_GetMpk(HSM *h);
 int HSM_Setup(HSM *h);
 int HSM_Retrieve(HSM *h, uint16_t index);
 int HSM_Puncture(HSM *h, uint16_t index);
-int HSM_Encrypt(HSM *h, uint16_t index, uint8_t msg[IBE_MSG_LEN], IBE_ciphertext *c);
-int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t msg[IBE_MSG_LEN]);
+int HSM_Encrypt(HSM *h, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c);
+int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msgLen);
 
 #ifdef __cplusplus
 }

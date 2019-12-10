@@ -35,10 +35,10 @@ int main(int argc, char *argv[]) {
 
     uint8_t msg[IBE_MSG_LEN];
     uint8_t msg_test[IBE_MSG_LEN];
-    IBE_ciphertext c;
+    IBE_ciphertext *c = IBE_ciphertext_new(IBE_MSG_LEN);
     memset(msg, 0xff, IBE_MSG_LEN);
-    HSM_Encrypt(d->hsms[i], 1, msg, &c);
-    HSM_Decrypt(d->hsms[i], 1, &c, msg_test);
+    HSM_Encrypt(d->hsms[i], 1, msg, IBE_MSG_LEN, c);
+    HSM_Decrypt(d->hsms[i], 1, c, msg_test, IBE_MSG_LEN);
 
     if (memcmp(msg, msg_test, IBE_MSG_LEN) != 0) {
         printf("Decryption did not return correct plaintext: ");
@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
     } else {
         printf("Decryption successful.\n");
     }
+    IBE_ciphertext_free(c);
   }
 
   Datacenter_free(d);
