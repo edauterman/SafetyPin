@@ -19,13 +19,11 @@ int HSM_GetMpk() {
 int HSM_Setup() {
     printf1(TAG_GREEN, "before declaring array\n");
     uint8_t cts[SUB_TREE_SIZE][CT_LEN];
-    uint8_t leaves[NUM_SUB_LEAVES][CT_LEN];
-    uint8_t finalKey[KEY_LEN];
+    uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN];
     printf1(TAG_GREEN, "declared the array\n");
 
-    PuncEnc_FillLeaves(leaves, 0);
-    PuncEnc_BuildSubTree(leaves, cts, finalKey);
-    PuncEnc_SetMsk(finalKey);
+    PuncEnc_FillLeaves(leaves);
+    PuncEnc_BuildSubTree(leaves, cts);
 
     /* Note that need to actually recurse through tree and set msk correctly. */
 

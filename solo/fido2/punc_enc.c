@@ -16,6 +16,10 @@
 static uint8_t msk[KEY_LEN];
 static uint8_t hmacKey[KEY_LEN];
 
+static uint8_t oldCachedLeaves[NUM_LEAVES / NUM_SUB_LEAVES][KEY_LEN];
+static uint8_t newCachedLeaves[NUM_LEAVES / NUM_SUB_LEAVES][KEY_LEN];
+static int setupCtr = 0;
+
 /* Encrypt with separate input and output buffers. */
 void crypto_aes256_encrypt_sep(uint8_t *out, uint8_t *in, int length) {
     for (int i = 0; i < length / 16; i++) {
@@ -87,11 +91,11 @@ void PuncEnc_Init() {
 
 /* Set the values of the leaves in a subtree, where the leaves in the subtree
  * begin at value start. */
-void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][CT_LEN], int start) {
+void setIBELeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], int start) {
     for (int i = 0; i < NUM_SUB_LEAVES; i++) {
 //        memset(leaves[i], 0xff, CT_LEN);
 
-        memset(leaves[i], 0, CT_LEN);
+        memset(leaves[i], 0, LEAF_LEN);
         uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
         embedded_pairing_bls12_381_g1_t sk;
         embedded_pairing_bls12_381_g1affine_t sk_affine;
@@ -109,11 +113,86 @@ void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][CT_LEN], int start) {
     }
 }
 
+/* Assumes 4 levels of subtrees where NUM_LEAVES = 65536. */
+/* What cached index to start retrieving leaves from */
+int getOldCachedLeavesCtr() {
+    if (setupCtr < NUM_LEAVES / NUM_SUB_LEAVES) {
+        /* bottom level. */
+        return -1;
+    } else if (setupCtr < (NUM_LEAVES / NUM_SUB_LEAVES) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS)) {
+        /* 2nd from bottom level, leaves are previous ciphertexts. */
+        return setupCtr - (NUM_LEAVES / NUM_SUB_LEAVES);
+    } else if (setupCtr < (NUM_LEAVES / NUM_SUB_LEAVES) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS / NUM_INTERMEDIATE_KEYS)) {
+        /* 2nd from top level, leaves are previous ciphertexts. */
+        return setupCtr - (NUM_LEAVES / NUM_SUB_LEAVES) - (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS);
+    } else {
+        /* top level. */
+        return setupCtr - (NUM_LEAVES / NUM_SUB_LEAVES) - (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS / NUM_INTERMEDIATE_KEYS);
+    }
+}
+
+/* Assumes 4 levels of subtrees where NUM_LEAVES = 65536. */
+int getNewCachedLeavesCtr() {
+    if (setupCtr < NUM_LEAVES / NUM_SUB_LEAVES) {
+        /* bottom level. */
+        return setupCtr;
+    } else if (setupCtr < (NUM_LEAVES / NUM_SUB_LEAVES) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS)) {
+        /* 2nd from bottom level, leaves are previous ciphertexts. */
+        return setupCtr - (NUM_LEAVES / NUM_SUB_LEAVES);
+    } else if (setupCtr < (NUM_LEAVES / NUM_SUB_LEAVES) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS / NUM_INTERMEDIATE_KEYS)) {
+        /* 2nd from top level, leaves are previous ciphertexts. */
+        return setupCtr - (NUM_LEAVES / NUM_SUB_LEAVES) - (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS);
+    } else {
+        /* Top level, shouldn't be cached (set as msk) */
+        return -1;
+    }
+}
+
+bool movingToNewRow() {
+    if (setupCtr == NUM_LEAVES / NUM_SUB_LEAVES) {
+        /* bottom level complete. */
+        return true;
+    } else if (setupCtr == (NUM_LEAVES / NUM_SUB_LEAVES) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS)) {
+        /* 2nd from bottom level complete. */
+        return true;
+    } else if (setupCtr == (NUM_LEAVES / NUM_SUB_LEAVES) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS) + (NUM_LEAVES / NUM_SUB_LEAVES / NUM_INTERMEDIATE_KEYS / NUM_INTERMEDIATE_KEYS)) {
+        /* 2nd from top level complete. */
+        return true;
+    }
+    /* don't need to worry about top level. */
+    return false;
+}
+
+/* Assumes 3 levels of subtrees where NUM_LEAVES = 16384. */
+void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN]) {
+    int ctr = getOldCachedLeavesCtr();
+    if (ctr < 0) {
+        /* Bottom level, IBE leaves. */
+        setIBELeaves(leaves, setupCtr * NUM_SUB_LEAVES);
+    } else  {
+        /* Not bottom level, leaves are previous ciphertexts. */
+        memcpy(leaves, oldCachedLeaves + (ctr * NUM_SUB_LEAVES * LEAF_LEN), NUM_SUB_LEAVES * LEAF_LEN);
+    }
+}
+
+void processSubTreeRoot(uint8_t root[KEY_LEN]) {
+    int ctr = getNewCachedLeavesCtr();
+    if (ctr == -1) {
+        PuncEnc_SetMsk(root);
+        return;
+    }
+    memcpy(newCachedLeaves + (ctr * KEY_LEN), root, KEY_LEN);
+    if (movingToNewRow()) {
+        memcpy(newCachedLeaves, oldCachedLeaves, NUM_LEAVES / NUM_SUB_LEAVES * KEY_LEN);
+        memset(oldCachedLeaves, 0, NUM_LEAVES / NUM_SUB_LEAVES * KEY_LEN);
+    } 
+}
+
 /* Build the subtree from a set of leaves, outputting a tree of ciphertexts. 
  * First NUM_SUB_LEAVES ciphertexts correspond to the leaves, next NUM_SUB_LEAVES / 2
  * are their parents, and so on, and the last ciphertext is the root. Sets finalKey
  * to be the key encrypting the root. */
-void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][CT_LEN], uint8_t cts[SUB_TREE_SIZE][CT_LEN], uint8_t finalKey[KEY_LEN]) {
+void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], uint8_t cts[SUB_TREE_SIZE][CT_LEN]) {
     /* For each level in subtree, choose random key, encrypt two children keys or leaf */
     printf1(TAG_GREEN, "in build subtree\n");
 
@@ -138,7 +217,7 @@ void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][CT_LEN], uint8_t cts[SU
             //currLeaves += KEY_LEN;
             //crypto_aes256_encrypt_sep((uint8_t *)cts[index] + KEY_LEN, currLeaves, KEY_LEN);
             //currLeaves += KEY_LEN;
-            currLeaves += CT_LEN;
+            currLeaves += LEAF_LEN;
             /* Next index. */
             printf1(TAG_GREEN, "index = %d/%d\n", index, SUB_TREE_SIZE);
             index++;
@@ -150,9 +229,11 @@ void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][CT_LEN], uint8_t cts[SU
     }
 
     /* Set key for root. */
-    memcpy(finalKey, keys[SUB_TREE_SIZE - 1], KEY_LEN);
+    processSubTreeRoot(keys[SUB_TREE_SIZE - 1]);
+    //memcpy(finalKey, keys[SUB_TREE_SIZE - 1], KEY_LEN);
 
     printf1(TAG_GREEN, "done building subtree\n");
+    setupCtr++;
 }
 
 /* Set msk value. Should be called for final_key value for top subtree. */

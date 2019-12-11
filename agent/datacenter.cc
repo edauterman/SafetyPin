@@ -76,3 +76,27 @@ cleanup:
   hid_exit();
   return rv;
 }
+
+int Datacenter_Setup(Datacenter *d) {
+    int rv;
+    for (int i = 0; i < NUM_HSMS; i++) {
+        CHECK_C (HSM_GetMpk(d->hsms[i]));
+        CHECK_C (HSM_Setup(d->hsms[i]));
+    }
+cleanup:
+    return rv;
+}
+
+//int Datacenter_Save(Datacenter *d, uint8_t saveKey[SAVE_KEY_LEN], uint8_t pin[PIN_LEN], RecoveryCiphertext *c) {
+    /* Choose salt. */
+
+    /* Hash salt and pin to choose recovery HSMs. */
+
+    /* Split saveKey into shares */
+
+    /* Encrypt [saveKey]_i, H(pin, salt) to each HSM. */
+
+    /* Encrypt all those ciphertexts with a transport key. */
+
+    /* Encrypt shares of transport key to recovery HSMs. */
+//}
