@@ -13,7 +13,10 @@
 #define CT_LEN (2 * KEY_LEN + 32) 
 
 #define NUM_LEAVES 16
+//#define NUM_LEAVES 16384 
+//#define NUM_LEAVES 65536 
 //#define NUM_LEAVES NUM_SUB_LEAVES
+//#define LEVELS 5    //log2(NUM_LEAVES) + 1
 #define LEVELS 5    //log2(NUM_LEAVES) + 1
 //#define LEVELS 15    //log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1)
@@ -22,6 +25,10 @@
 #define SUB_TREE_SIZE ((CTAP_RESPONSE_BUFFER_SIZE / (4 * KEY_LEN)) - 1)
 #define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)
 #define NUM_INTERMEDIATE_KEYS (NUM_SUB_LEAVES * 2) 
+
+#define LEVEL_0 0
+#define LEVEL_1 1
+#define LEVEL_2 2
 
 #define HSM_SETUP    0x70
 #define HSM_RETRIEVE 0x71
