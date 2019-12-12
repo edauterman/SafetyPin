@@ -97,9 +97,9 @@ void PuncEnc_Init() {
  * begin at value start. */
 void setIBELeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], int start) {
     for (int i = 0; i < NUM_SUB_LEAVES; i++) {
-        //memset(leaves[i], 0xff, LEAF_LEN);
+        memset(leaves[i], 0xff, LEAF_LEN);
 
-        memset(leaves[i], 0, LEAF_LEN);
+        /*memset(leaves[i], 0, LEAF_LEN);
         uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
         embedded_pairing_bls12_381_g1_t sk;
         embedded_pairing_bls12_381_g1affine_t sk_affine;
@@ -112,7 +112,7 @@ void setIBELeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], int start) {
         for (int j = 0; j < 48; j++) {
             printf("%x ", buf[j]);
         }
-        printf("\n");
+        printf("\n"); */
         //memset(leaves[i], 0xff, CT_LEN);
     }
 }
@@ -126,8 +126,7 @@ void increment() {
             ctr[0]++;
         }
         ibeLeafCtr++;
-    }
-    if (currLevel == LEVEL_1) {
+    } else if (currLevel == LEVEL_1) {
         if (ctr[1] == NUM_INTERMEDIATE_KEYS - 1) {
             currLevel = LEVEL_2;
             ctr[1] = 0;
@@ -151,9 +150,9 @@ void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN]) {
 
 void processSubTreeRoot(uint8_t root[KEY_LEN]) {
     if (currLevel == LEVEL_0) {
-        memcpy(levelOneLeaves + ctr[0] * KEY_LEN, root, KEY_LEN);
+        memcpy(levelOneLeaves[ctr[0]], root, KEY_LEN);
     } else if (currLevel == LEVEL_1) {
-        memcpy(levelTwoLeaves + ctr[1] * KEY_LEN, root, KEY_LEN);
+        memcpy(levelTwoLeaves[ctr[1]], root, KEY_LEN);
     } else {
         setMsk(root);
     }
@@ -166,6 +165,8 @@ void processSubTreeRoot(uint8_t root[KEY_LEN]) {
 void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], uint8_t cts[SUB_TREE_SIZE][CT_LEN]) {
     /* For each level in subtree, choose random key, encrypt two children keys or leaf */
     printf1(TAG_GREEN, "in build subtree\n");
+
+    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
 
     int index = 0;
     int currNumLeaves = NUM_SUB_LEAVES;
@@ -199,10 +200,15 @@ void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], uint8_t cts[
         printf1(TAG_GREEN, "new currNumLeaves = %d\n", currNumLeaves);
     }
 
+    printf("going to process and increment\n");
+
+    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
     /* Set key for root. */
     processSubTreeRoot(keys[SUB_TREE_SIZE - 1]);
+    printf("processed root, going to increment\n");
     increment();
     //memcpy(finalKey, keys[SUB_TREE_SIZE - 1], KEY_LEN);
+    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
 
     printf1(TAG_GREEN, "done building subtree\n");
 }

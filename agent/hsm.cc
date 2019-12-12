@@ -84,30 +84,33 @@ int HSM_Setup(HSM *h) {
     int ctr[3] = {0, 0, 0};
 
     while (currLevel != LEVEL_DONE) {
+        printf("currLevel = %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
         CHECK_C(0 < U2Fob_apdu(h->device, 0, HSM_SETUP, 0, 0,
                     "", &resp_str));
 
+        printf("just received\n");
         memcpy(&resp, resp_str.data(), resp_str.size());
         if (currLevel ==  LEVEL_0) {
             copySubTree((uint8_t *)h->cts, (uint8_t *)resp.cts, NUM_LEAVES, NUM_SUB_LEAVES, ctr[0]);
             ctr[0]++;
+            if (ctr[0] % NUM_INTERMEDIATE_KEYS == 0) {
+                currLevel = LEVEL_1;
+            }
         } else if (currLevel == LEVEL_1) {
             copySubTree((uint8_t *)h->cts + LEVEL_1_OFFSET, (uint8_t *)resp.cts, LEVEL_1_NUM_LEAVES, NUM_SUB_LEAVES, ctr[1]);
-           ctr[1]++; 
+           ctr[1]++;
+           if (ctr[0] == 2 * LEVEL_1_NUM_LEAVES) {
+                currLevel = LEVEL_2;
+           } else {
+                currLevel = LEVEL_0;
+           }
         } else if (currLevel == LEVEL_2) {
             copySubTree((uint8_t *)h->cts + LEVEL_2_OFFSET, (uint8_t *)resp.cts, LEVEL_2_NUM_LEAVES, NUM_SUB_LEAVES, ctr[2]);
             ctr[2]++;
+            currLevel = LEVEL_DONE;
         }
         
-        if (ctr[0] % NUM_INTERMEDIATE_KEYS == 0 && ctr[1] % NUM_INTERMEDIATE_KEYS == 0 && ctr[2] > 0) {
-            currLevel = LEVEL_DONE;
-        } else if (ctr[0] %  NUM_INTERMEDIATE_KEYS == 0 && ctr[1] % NUM_INTERMEDIATE_KEYS == 0) {
-            currLevel = LEVEL_2;
-        } else if (ctr[0] % NUM_INTERMEDIATE_KEYS == 0) {
-            currLevel = LEVEL_1;
-        } else {
-            currLevel = LEVEL_0;
-        }
+        printf("next level: %d\n", currLevel);
 
     }
     /*printf("cts: ");
@@ -150,6 +153,11 @@ int HSM_Retrieve(HSM *h, uint16_t index) {
     printf("retrieved\n");
     memcpy(&resp, resp_str.data(), resp_str.size());
 
+    printf("leaf: ");
+    for (int i = 0; i < LEAF_LEN; i++) {
+        printf("%x ", resp.leaf[i]);
+    }
+    printf("\n");
     printf("finished retrieving leaf\n");
 cleanup:
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");

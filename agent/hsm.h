@@ -34,6 +34,7 @@ extern "C" {
 //#define LEVELS 16 // log2(NUM_LEAVES)
 
 #define SUB_TREE_SIZE ((RESPONSE_BUFFER_SIZE / (4 * KEY_LEN)) - 1)
+#define TREE_SIZE (NUM_LEAVES * 2 - 1)
 #define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)
 #define NUM_INTERMEDIATE_KEYS (NUM_SUB_LEAVES * 2)
 
@@ -51,7 +52,9 @@ extern "C" {
 #define LEVEL_1_OFFSET ((16384 + 8192 + 4096 + 2048 + 1024) * CT_LEN)
 #define LEVEL_2_OFFSET (LEVEL_1_OFFSET + ((512 + 256 + 128 + 64 + 32) * CT_LEN))
 #define LEVEL_1_NUM_LEAVES 512
+//#define LEVEL_1_NUM_LEAVES 1024 
 #define LEVEL_2_NUM_LEAVES 16
+//#define LEVEL_2_NUM_LEAVES 32
 
 typedef struct{
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -94,7 +97,7 @@ typedef struct {
 
 typedef struct {
     struct U2Fob *device;
-    uint8_t cts[SUB_TREE_SIZE][CT_LEN];
+    uint8_t cts[TREE_SIZE][CT_LEN];
     embedded_pairing_bls12_381_g2_t mpk;
 } HSM;
 
