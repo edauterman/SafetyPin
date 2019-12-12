@@ -62,24 +62,61 @@ cleanup:
     return rv;
 }
 
+void copySubTree(uint8_t *out, uint8_t *in, int numLeaves, int numSubLeaves, int ctr) {
+    int offsetOut = 0;
+    int offsetIn = 0;
+    int factor = 1;
+    int numToCopy = numSubLeaves;
+    for (int i = 0; i < SUB_TREE_LEVELS; i++) {
+        memcpy(out + offsetOut + (ctr * numToCopy * CT_LEN), in + offsetIn, numToCopy * CT_LEN);
+        offsetOut += (numLeaves / factor * CT_LEN);
+        offsetIn += (numToCopy * CT_LEN);
+        numToCopy /= 2;
+        factor *= 2;
+    }
+}
+
 int HSM_Setup(HSM *h) {
     int rv =  ERROR;
     HSM_SETUP_RESP resp;
     string resp_str;
+    int currLevel = LEVEL_0;
+    int ctr[3] = {0, 0, 0};
 
-    CHECK_C(0 < U2Fob_apdu(h->device, 0, HSM_SETUP, 0, 0,
-                "", &resp_str));
+    while (currLevel != LEVEL_DONE) {
+        CHECK_C(0 < U2Fob_apdu(h->device, 0, HSM_SETUP, 0, 0,
+                    "", &resp_str));
 
-    memcpy(&resp, resp_str.data(), resp_str.size());
-    memcpy(h->cts, resp.cts, SUB_TREE_SIZE * CT_LEN);
+        memcpy(&resp, resp_str.data(), resp_str.size());
+        if (currLevel ==  LEVEL_0) {
+            copySubTree((uint8_t *)h->cts, (uint8_t *)resp.cts, NUM_LEAVES, NUM_SUB_LEAVES, ctr[0]);
+            ctr[0]++;
+        } else if (currLevel == LEVEL_1) {
+            copySubTree((uint8_t *)h->cts + LEVEL_1_OFFSET, (uint8_t *)resp.cts, LEVEL_1_NUM_LEAVES, NUM_SUB_LEAVES, ctr[1]);
+           ctr[1]++; 
+        } else if (currLevel == LEVEL_2) {
+            copySubTree((uint8_t *)h->cts + LEVEL_2_OFFSET, (uint8_t *)resp.cts, LEVEL_2_NUM_LEAVES, NUM_SUB_LEAVES, ctr[2]);
+            ctr[2]++;
+        }
+        
+        if (ctr[0] % NUM_INTERMEDIATE_KEYS == 0 && ctr[1] % NUM_INTERMEDIATE_KEYS == 0 && ctr[2] > 0) {
+            currLevel = LEVEL_DONE;
+        } else if (ctr[0] %  NUM_INTERMEDIATE_KEYS == 0 && ctr[1] % NUM_INTERMEDIATE_KEYS == 0) {
+            currLevel = LEVEL_2;
+        } else if (ctr[0] % NUM_INTERMEDIATE_KEYS == 0) {
+            currLevel = LEVEL_1;
+        } else {
+            currLevel = LEVEL_0;
+        }
 
-    printf("cts: ");
+    }
+    /*printf("cts: ");
     for (int i = 0; i < SUB_TREE_SIZE; i++) {
         for (int j = 0; j < CT_LEN; j++) {
             printf("%x ", h->cts[i][j]);
         }
     }
-    printf("\n");
+    printf("\n");*/
 
     printf("started setup\n");
 cleanup:

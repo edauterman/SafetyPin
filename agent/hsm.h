@@ -25,20 +25,33 @@ extern "C" {
 
 #define RESPONSE_BUFFER_SIZE 4096
 
-#define NUM_LEAVES NUM_SUB_LEAVES
+#define NUM_LEAVES 16384
+//#define NUM_LEAVES NUM_SUB_LEAVES
 //#define NUM_LEAVES 256
-#define LEVELS 5 // log2(NUM_LEAVES) + 1
+#define LEVELS 15 // log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES) + 1
+#define SUB_TREE_LEVELS 5
 //#define LEVELS 16 // log2(NUM_LEAVES)
 
 #define SUB_TREE_SIZE ((RESPONSE_BUFFER_SIZE / (4 * KEY_LEN)) - 1)
 #define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)
+#define NUM_INTERMEDIATE_KEYS (NUM_SUB_LEAVES * 2)
 
 #define HSM_SETUP       0x70
 #define HSM_RETRIEVE    0x71
 #define HSM_PUNCTURE    0x72
 #define HSM_DECRYPT     0x73
 #define HSM_MPK         0x74
+
+#define LEVEL_0 0
+#define LEVEL_1 1
+#define LEVEL_2 2
+#define LEVEL_DONE -1
+
+#define LEVEL_1_OFFSET ((16384 + 8192 + 4096 + 2048 + 1024) * CT_LEN)
+#define LEVEL_2_OFFSET (LEVEL_1_OFFSET + ((512 + 256 + 128 + 64 + 32) * CT_LEN))
+#define LEVEL_1_NUM_LEAVES 512
+#define LEVEL_2_NUM_LEAVES 16
 
 typedef struct{
     uint8_t mpk[BASEFIELD_SZ_G2];
