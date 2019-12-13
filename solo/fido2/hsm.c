@@ -17,10 +17,8 @@ int HSM_GetMpk() {
 }
 
 int HSM_Setup() {
-    printf1(TAG_GREEN, "before declaring array\n");
     uint8_t cts[SUB_TREE_SIZE][CT_LEN];
     uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN];
-    printf1(TAG_GREEN, "declared the array\n");
 
     PuncEnc_FillLeaves(leaves);
     PuncEnc_BuildSubTree(leaves, cts);
@@ -33,6 +31,18 @@ int HSM_Setup() {
     u2f_response_writeback(cts, SUB_TREE_SIZE * CT_LEN);
     return U2F_SW_NO_ERROR;
 }
+
+int HSM_SmallSetup() {
+    uint8_t cts[SUB_TREE_SIZE][CT_LEN];
+
+    PuncEnc_BuildSmallTree(cts);
+
+    printf1(TAG_GREEN, "finished small setup, just need to write back\n");
+    //printf("writeback size: %d\n", SUB_TREE_SIZE * CT_LEN);
+    u2f_response_writeback(cts, SUB_TREE_SIZE * CT_LEN);
+    return U2F_SW_NO_ERROR;
+}
+
 
 int HSM_Retrieve(struct hsm_retrieve_request *req) {
     printf1(TAG_GREEN, "retrieving leaf\n");

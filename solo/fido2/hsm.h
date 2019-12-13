@@ -28,11 +28,12 @@
 #define LEVEL_1 1
 #define LEVEL_2 2
 
-#define HSM_SETUP    0x70
-#define HSM_RETRIEVE 0x71
-#define HSM_PUNCTURE 0x72
-#define HSM_DECRYPT  0x73
-#define HSM_MPK      0x74
+#define HSM_SETUP       0x70
+#define HSM_RETRIEVE    0x71
+#define HSM_PUNCTURE    0x72
+#define HSM_DECRYPT     0x73
+#define HSM_MPK         0x74
+#define HSM_SMALL_SETUP 0x75
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -65,6 +66,7 @@ struct hsm_decrypt_response {
 
 int HSM_GetMpk();
 int HSM_Setup();
+int HSM_SmallSetup();
 int HSM_Retrieve(struct hsm_retrieve_request *req);
 int HSM_Puncture(struct hsm_puncture_request *req);
 int HSM_Decrypt(struct hsm_decrypt_request *req);

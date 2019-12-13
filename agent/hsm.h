@@ -21,6 +21,7 @@ extern "C" {
 #endif
 
 #define KEY_LEN 32
+#define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32)
 
 #define RESPONSE_BUFFER_SIZE 4096
@@ -43,6 +44,7 @@ extern "C" {
 #define HSM_PUNCTURE    0x72
 #define HSM_DECRYPT     0x73
 #define HSM_MPK         0x74
+#define HSM_SMALL_SETUP 0x75
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -106,6 +108,7 @@ void HSM_free(HSM *h);
 
 int HSM_GetMpk(HSM *h);
 int HSM_Setup(HSM *h);
+int HSM_SmallSetup(HSM *h);
 int HSM_Retrieve(HSM *h, uint16_t index);
 int HSM_Puncture(HSM *h, uint16_t index);
 int HSM_Encrypt(HSM *h, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c);

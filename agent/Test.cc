@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 
   for (int i = 0; i < NUM_HSMS; i++) {
     HSM_GetMpk(d->hsms[i]);
-    HSM_Setup(d->hsms[i]);
+    HSM_SmallSetup(d->hsms[i]);
     HSM_Retrieve(d->hsms[i], 0);
     HSM_Retrieve(d->hsms[i], 1);
     HSM_Puncture(d->hsms[i], 0);

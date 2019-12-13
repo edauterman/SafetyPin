@@ -66,6 +66,12 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished setup\n");
                 break;
 
+           case HSM_SMALL_SETUP:
+                printf1(TAG_GREEN, "starting small setup\n");
+                rcode = HSM_SmallSetup();
+                printf1(TAG_GREEN, "finished small setup\n");
+                break;
+
             case HSM_RETRIEVE:
                 printf1(TAG_GREEN, "starting retrieve\n");
                 rcode = HSM_Retrieve((struct hsm_retrieve_request *)payload);
