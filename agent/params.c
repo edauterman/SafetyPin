@@ -29,8 +29,10 @@ inline int min (int a, int b) {
   return (a < b) ? a : b;
 }
 
-int init() {
+Params *Params_new() {
     int rv = ERROR;
+
+    Params *params = NULL;
     CHECK_A (params = malloc(sizeof(Params)));
     CHECK_A (params->prime = BN_new());
     CHECK_A (params->numHsms = BN_new());
@@ -41,10 +43,21 @@ int init() {
     BN_dec2bn(&params->numHsms, numHsmsBuf);
 
     // TODO: choose prime closer to 2^128
-    BN_hex2bn(params->prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
+    BN_hex2bn(&params->prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
 
 cleanup:
-    return rv;
+    if (rv == ERROR) {
+        Params_free(params);
+        return NULL;
+    } 
+    return params;
+}
+
+void Params_free(Params *params) {
+    BN_free(params->prime);
+    BN_free(params->numHsms);
+    BN_CTX_free(params->bn_ctx);
+    free(params);
 }
 
 /*

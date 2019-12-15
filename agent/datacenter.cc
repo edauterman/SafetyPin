@@ -16,12 +16,12 @@
 
 using namespace std;
 
-RecoveryCiphertext *RecoveryCiphertext_new(int msgLen) {
+RecoveryCiphertext *RecoveryCiphertext_new() {
     int rv = ERROR;
     RecoveryCiphertext *c = NULL;
     CHECK_A (c = (RecoveryCiphertext *)malloc(sizeof(RecoveryCiphertext)));
     for (int i = 0; i < HSM_GROUP_SIZE; i++)  {
-        CHECK_A (c->transportKeyCts[i] = IBE_ciphertext_new(msgLen));
+        CHECK_A (c->transportKeyCts[i] = IBE_ciphertext_new(IBE_MSG_LEN));
     }
 cleanup:
     if (rv == ERROR) {
@@ -33,9 +33,9 @@ cleanup:
 
 void RecoveryCiphertext_free(RecoveryCiphertext *c) {
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        IBE_ciphertext_free(c->transportKeyCts[i]);
+        if (c && c->transportKeyCts[i]) IBE_ciphertext_free(c->transportKeyCts[i]);
     }
-    free(c);
+    if (c) free(c);
 }
 
 Datacenter *Datacenter_new() {
@@ -123,7 +123,7 @@ cleanup:
     return rv;
 }
 
-int chooseHsmsFromSaltAndPin(uint8_t h[HSM_GROUP_SIZE], BIGNUM *saltHashes[HSM_GROUP_SIZE], BIGNUM *salt, uint8_t pin[PIN_LEN]) {
+int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *saltHashes[HSM_GROUP_SIZE], BIGNUM *salt, uint8_t pin[PIN_LEN]) {
     int rv = ERROR;
     BIGNUM *hsm;
     uint8_t out[SHA256_DIGEST_LENGTH];
@@ -141,7 +141,9 @@ int chooseHsmsFromSaltAndPin(uint8_t h[HSM_GROUP_SIZE], BIGNUM *saltHashes[HSM_G
         CHECK_A (saltHashes[i] = BN_bin2bn(out, SHA256_DIGEST_LENGTH, NULL));
         CHECK_C (BN_mod(hsm, saltHashes[i], params->numHsms, params->bn_ctx));
         // NOTE: ASSUMING NUM_HSMS NEVER GREATER THAN 256
+        h[i] = 0;
         BN_bn2bin(hsm, &h[i]);
+        printf("h[%d] = %d\n", i, h[i]);
     }
 cleanup:
     if (hsm) BN_free(hsm);
@@ -154,7 +156,7 @@ cleanup:
  * bn_ctx 
  * make IBE_MSG_LEN = 32 + 16 = 48*/
 
-int Datacenter_Save(Datacenter *d, BIGNUM *saveKey, uint16_t userID, uint8_t pin[PIN_LEN], RecoveryCiphertext *c) {
+int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, uint8_t pin[PIN_LEN], RecoveryCiphertext *c) {
     int rv = ERROR;
     uint8_t h1[HSM_GROUP_SIZE];
     BIGNUM *r = NULL;
@@ -180,7 +182,7 @@ int Datacenter_Save(Datacenter *d, BIGNUM *saveKey, uint16_t userID, uint8_t pin
     CHECK_C (BN_rand_range(s, params->prime));
 
     /* Hash salt and pin to choose recovery HSMs. */
-    chooseHsmsFromSaltAndPin(h1, saltHashes, r, pin);
+    chooseHsmsFromSaltAndPin(params, h1, saltHashes, r, pin);
     
     /* Split saveKey into shares */
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKey, params->prime, saveKeyShares));
@@ -197,11 +199,12 @@ int Datacenter_Save(Datacenter *d, BIGNUM *saveKey, uint16_t userID, uint8_t pin
     }
 
     /* Encrypt all those ciphertexts with a transport key. */
-    uint8_t innerCtBuf[HSM_GROUP_SIZE * CT_LEN];
+    uint8_t innerCtBuf[HSM_GROUP_SIZE * IBE_CT_LEN];
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         IBE_MarshalCt(innerCtBuf + i * IBE_CT_LEN, IBE_MSG_LEN, innerCts[i]);
     }
     CHECK_C (BN_rand_range(transportKey, params->prime));
+    memset(transportKeyBuf, 0, AES128_KEY_LEN);
     BN_bn2bin(transportKey, transportKeyBuf);
     CHECK_C (aesGcmEncrypt(transportKey, innerCtBuf, HSM_GROUP_SIZE * IBE_CT_LEN, c->iv, c->tag, c->ct));
 
@@ -218,6 +221,7 @@ int Datacenter_Save(Datacenter *d, BIGNUM *saveKey, uint16_t userID, uint8_t pin
         IBE_Encrypt(&d->hsms[h1[i]]->mpk, userID, msg, IBE_MSG_LEN, c->transportKeyCts[i]);
          
     }
+    // No hiding meta-salt yet.
 
 cleanup:
     if (r) BN_free(r);
