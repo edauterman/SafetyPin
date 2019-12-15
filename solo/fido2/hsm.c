@@ -11,6 +11,7 @@
 
 int HSM_GetMpk() {
     uint8_t mpk[BASEFIELD_SZ_G2];
+    printf1(TAG_GREEN, "returning mpk\n");
     IBE_MarshalMpk(mpk);
     u2f_response_writeback(mpk, BASEFIELD_SZ_G2);
     return U2F_SW_NO_ERROR;

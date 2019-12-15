@@ -25,8 +25,17 @@ extern "C"{
 
 #define IV_LEN 16
 #define TAG_LEN 16
-#define AES128_KEY_LEN 32
+#define AES128_KEY_LEN 16 
 
+typedef struct {
+    BIGNUM *prime;
+    BIGNUM *numHsms;
+    BN_CTX *bn_ctx;
+} Params;
+
+static Params *params;
+
+int init();
 int hash_to_bytes (uint8_t *bytes_out, int outlen,
     const uint8_t *bytes_in, int inlen);
 int aesGcmEncrypt(const void *key, const uint8_t *pt, int ptLen, uint8_t *iv, uint8_t *tag, uint8_t *ct);

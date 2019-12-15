@@ -21,11 +21,30 @@
 
 #include "common.h"
 #include "params.h"
+#include "datacenter.h"
 
 int min(int a, int b); 
 
 inline int min (int a, int b) {
   return (a < b) ? a : b;
+}
+
+int init() {
+    int rv = ERROR;
+    CHECK_A (params = malloc(sizeof(Params)));
+    CHECK_A (params->prime = BN_new());
+    CHECK_A (params->numHsms = BN_new());
+    CHECK_A (params->bn_ctx = BN_CTX_new());
+
+    char numHsmsBuf[4];
+    sprintf(numHsmsBuf, "%d", NUM_HSMS);
+    BN_dec2bn(&params->numHsms, numHsmsBuf);
+
+    // TODO: choose prime closer to 2^128
+    BN_hex2bn(params->prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
+
+cleanup:
+    return rv;
 }
 
 /*

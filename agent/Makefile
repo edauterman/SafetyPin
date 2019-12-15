@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://developers.google.com/open-source/licenses/bsd
 
-all: list Test CryptoTest TreeTest
+all: list Test CryptoTest TreeTest RecoveryTest
 
 CC ?= gcc
 CXX ?= g++
@@ -66,7 +66,10 @@ datacenter.o: datacenter.cc datacenter.h
 list: list.c $(HIDAPI)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
 
-TreeTest: TreeTest.cc hsm.o datacenter.o u2f_util.o params.o ibe.o $(HIDAPI)
+TreeTest: TreeTest.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
+
+RecoveryTest: RecoveryTest.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
 Test: Test.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
