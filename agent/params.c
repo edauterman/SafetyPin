@@ -147,6 +147,7 @@ int aesGcmDecrypt(const void *key, uint8_t *pt,
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, IV_LEN, NULL));
     CHECK_C (EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv));
     CHECK_C (EVP_DecryptUpdate(ctx, pt, &bytesFilled, ct, ctLen));
+    printf("bytes filled = %d, wanted %d\n", bytesFilled, ctLen);
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, TAG_LEN, tag));
     CHECK_C (EVP_DecryptFinal_ex(ctx, pt + bytesFilled, &bytesFilled));
 

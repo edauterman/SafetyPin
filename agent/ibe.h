@@ -7,7 +7,8 @@
 
 #define BASEFIELD_SZ_G1 48
 #define BASEFIELD_SZ_G2 96
-#define IBE_MSG_LEN 48 
+#define IBE_MSG_LEN 64
+//#define IBE_MSG_LEN 48 
 #define IBE_CT_LEN (2 * IBE_MSG_LEN + BASEFIELD_SZ_G2)
 
 typedef struct {

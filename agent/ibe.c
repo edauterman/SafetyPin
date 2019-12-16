@@ -163,7 +163,7 @@ void IBE_UnmarshalCt(uint8_t *buf, int msgLen, IBE_ciphertext *c) {
     embedded_pairing_bls12_381_g2_unmarshal(&U_affine, buf, true, true); 
     embedded_pairing_bls12_381_g2_from_affine(&c->U, &U_affine);
     memcpy(c->V, buf + embedded_pairing_bls12_381_g2_marshalled_compressed_size, msgLen);
-    memcpy(c->W, buf + embedded_pairing_bls12_381_g1_marshalled_compressed_size + msgLen, msgLen);
+    memcpy(c->W, buf + embedded_pairing_bls12_381_g2_marshalled_compressed_size + msgLen, msgLen);
 }
 
 void IBE_UnmarshalMpk(uint8_t buf[BASEFIELD_SZ_G2], embedded_pairing_bls12_381_g2_t *mpk) {

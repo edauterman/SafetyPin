@@ -18,6 +18,7 @@ typedef struct {
     uint8_t tag[TAG_LEN];
     uint8_t ct[HSM_GROUP_SIZE * IBE_CT_LEN];
     IBE_ciphertext *transportKeyCts[HSM_GROUP_SIZE];
+    BIGNUM *r;
 } RecoveryCiphertext;
 
 RecoveryCiphertext *RecoveryCiphertext_new();
@@ -30,4 +31,5 @@ int Datacenter_init(Datacenter *d);
 int Datacenter_Setup(Datacenter *d);
 int Datacenter_SmallSetup(Datacenter *d);
 int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, uint8_t pin[PIN_LEN], RecoveryCiphertext *c);
+int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, uint8_t pin[PIN_LEN], RecoveryCiphertext *c);
 #endif
