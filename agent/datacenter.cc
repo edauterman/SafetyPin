@@ -245,6 +245,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
         uint8_t msg[IBE_MSG_LEN];
         memset(msg, 0, IBE_MSG_LEN);
         Shamir_Marshal(msg, transportKeyShares[i]);
+        memset(msg + SHAMIR_MARSHALLED_SIZE, 0xff, SHA256_DIGEST_LENGTH);
         CHECK_C (HSM_Encrypt(d->hsms[h1[i]], userID, msg, IBE_MSG_LEN, c->transportKeyCts[i]));
         //IBE_Encrypt(&d->hsms[h1[i]]->mpk, userID, msg, IBE_MSG_LEN, c->transportKeyCts[i]);
          
@@ -284,9 +285,11 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     chooseHsmsFromSaltAndPin(params, h1, saltHashes, c->r, pin);
     
     /* Decrypt shares of transport key with HSMs. */
+    uint8_t pinHashPlaceholder[SHA256_DIGEST_LENGTH];
+    memset(pinHashPlaceholder, 0xff, SHA256_DIGEST_LENGTH);
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         uint8_t share[IBE_MSG_LEN];
-        CHECK_C (HSM_Decrypt(d->hsms[h1[i]], userID, c->transportKeyCts[i], share, IBE_MSG_LEN));
+        CHECK_C (HSM_AuthDecrypt(d->hsms[h1[i]], userID, c->transportKeyCts[i], share, IBE_MSG_LEN, pinHashPlaceholder));
         Shamir_Unmarshal(share, transportKeyShares[i]);
     }
 
