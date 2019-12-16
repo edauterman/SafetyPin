@@ -133,12 +133,14 @@ int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *
     CHECK_A (hsm = BN_new());
 
     /* Hash salt and pin to choose recovery HSMs. */
+    printf("num hsms: %s\n", BN_bn2hex(params->numHsms));
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         uint8_t *in = NULL;
-        int len = BN_num_bytes(salt) + PIN_LEN;
+        int len = BN_num_bytes(salt) + PIN_LEN + 1;
         CHECK_A (in = (uint8_t *)malloc(len));
-        BN_bn2bin(salt, in);
-        memcpy(in + BN_num_bytes(salt), pin, PIN_LEN);
+        in[0] = i;
+        BN_bn2bin(salt, in + 1);
+        memcpy(in + BN_num_bytes(salt) + 1, pin, PIN_LEN);
         hash_to_bytes(out, SHA256_DIGEST_LENGTH, in, len);
         CHECK_A (saltHashes[i] = BN_bin2bn(out, SHA256_DIGEST_LENGTH, NULL));
         CHECK_C (BN_mod(hsm, saltHashes[i], params->numHsms, params->bn_ctx));
@@ -307,7 +309,9 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         uint8_t share[IBE_MSG_LEN];
         // TODO: SHOULD ALSO CHECK THE PIN!! This message has pin hash appended
 
-        CHECK_C (HSM_Decrypt(d->hsms[h1[i]], userID, innerCts[i], share, IBE_MSG_LEN));
+        uint8_t pinHash[SHA256_DIGEST_LENGTH];
+        BN_bn2bin(saltHashes[i], pinHash);
+        CHECK_C (HSM_AuthDecrypt(d->hsms[h1[i]], userID, innerCts[i], share, IBE_MSG_LEN, pinHash));
         printf("share[%d]: ", i);
         for (int j = 0; j < IBE_MSG_LEN; j++) {
             printf("%x ", share[j]);

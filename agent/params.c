@@ -39,6 +39,7 @@ Params *Params_new() {
     CHECK_A (params->bn_ctx = BN_CTX_new());
 
     char numHsmsBuf[4];
+    printf("NUM_HSMS: %d\n", NUM_HSMS);
     sprintf(numHsmsBuf, "%d", NUM_HSMS);
     BN_dec2bn(&params->numHsms, numHsmsBuf);
 

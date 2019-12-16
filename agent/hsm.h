@@ -11,6 +11,8 @@
 #ifndef __HSM_H_INCLUDED__
 #define __HSM_H_INCLUDED__
 
+#include <openssl/sha.h>
+
 #include "hsm.h"
 #include "ibe.h"
 #include "bls12_381/bls12_381.h"
@@ -39,12 +41,13 @@ extern "C" {
 #define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)
 #define NUM_INTERMEDIATE_KEYS (NUM_SUB_LEAVES * 2)
 
-#define HSM_SETUP       0x70
-#define HSM_RETRIEVE    0x71
-#define HSM_PUNCTURE    0x72
-#define HSM_DECRYPT     0x73
-#define HSM_MPK         0x74
-#define HSM_SMALL_SETUP 0x75
+#define HSM_SETUP           0x70
+#define HSM_RETRIEVE        0x71
+#define HSM_PUNCTURE        0x72
+#define HSM_DECRYPT         0x73
+#define HSM_MPK             0x74
+#define HSM_SMALL_SETUP     0x75
+#define HSM_AUTH_DECRYPT    0x76
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -95,6 +98,19 @@ typedef struct {
     uint8_t msg[IBE_MSG_LEN];
 } HSM_DECRYPT_RESP;
 
+typedef struct {
+    uint16_t index;
+    uint8_t treeCts[LEVELS][CT_LEN];
+    uint8_t ibeCt[IBE_CT_LEN];
+    uint8_t pinHash[SHA256_DIGEST_LENGTH];
+} HSM_AUTH_DECRYPT_REQ;
+
+typedef struct {
+    uint8_t msg[IBE_MSG_LEN];
+} HSM_AUTH_DECRYPT_RESP;
+
+
+
 /* ---------------------------------- */
 
 typedef struct {
@@ -113,6 +129,7 @@ int HSM_Retrieve(HSM *h, uint16_t index);
 int HSM_Puncture(HSM *h, uint16_t index);
 int HSM_Encrypt(HSM *h, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c);
 int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msgLen);
+int HSM_AuthDecrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msgLen, uint8_t *pinHash);
 
 #ifdef __cplusplus
 }
