@@ -127,7 +127,7 @@ int U2Fob_open(struct U2Fob* device, const char* path) {
     device->path = NULL;
   }
   device->path = strdup(path);
-  device->dev = hid_open_path(device->path);
+  device->dev = hid_open_path(device->path); // TODO check this
   return device->dev != NULL ? -ERR_NONE : -ERR_OTHER;
 }
 
@@ -154,7 +154,7 @@ void U2Fob_setLog(struct U2Fob* device, FILE* fd, int level) {
 static
 void U2Fob_logFrame(struct U2Fob* device,
                     const char* tag, const U2FHID_FRAME* f) {
-  if (device->logfp) {
+    if (device->logfp) {
     fprintf(device->logfp, "t+%.3f", U2Fob_deltaTime(&device->logtime));
     fprintf(device->logfp, "%s %08x:%02x", tag, f->cid, f->type);
     if (f->type & TYPE_INIT) {
@@ -199,7 +199,8 @@ int U2Fob_receiveHidFrame(struct U2Fob* device, U2FHID_FRAME* r, float to) {
   memset((int8_t*)r, 0xEE, sizeof(U2FHID_FRAME));
   int res = hid_read_timeout(device->dev,
                              (uint8_t*) r, sizeof(U2FHID_FRAME),
-                             (int) (to * 1000));
+                             -1);
+                             //(int) (to * 1000));
   if (res == sizeof(U2FHID_FRAME)) {
     r->cid = ntohl(r->cid);
     U2Fob_logFrame(device, "<", r);

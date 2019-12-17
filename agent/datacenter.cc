@@ -91,9 +91,11 @@ int Datacenter_init(Datacenter *d) {
   devs = hid_enumerate(0x0, 0x0);
   cur_dev = devs;
   while (cur_dev) {
+
     if ((cur_dev->vendor_id == VENDOR_ID) &&
         (cur_dev->product_id == PRODUCT_ID)) {
       CHECK_C(create_hsm(d->hsms[i], cur_dev->path, i));
+      printf("created hsm %d/%d\n", i, NUM_HSMS);
       i++;
       if (i == NUM_HSMS) break;
     }
