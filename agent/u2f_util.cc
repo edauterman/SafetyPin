@@ -127,6 +127,7 @@ int U2Fob_open(struct U2Fob* device, const char* path) {
     device->path = NULL;
   }
   device->path = strdup(path);
+  printf("path: %s\n", device->path);
   device->dev = hid_open_path(device->path); // TODO check this
   return device->dev != NULL ? -ERR_NONE : -ERR_OTHER;
 }

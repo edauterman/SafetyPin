@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <openssl/bn.h>
 #include <openssl/sha.h>
+#include <thread>
 
 #include "common.h"
 #include "datacenter.h"
@@ -71,8 +72,11 @@ int create_hsm(HSM *h, char *deviceName, int i) {
 
   CHECK_A (h->device = U2Fob_create());
 
+  printf("going to create\n");
   CHECK_C (!U2Fob_open(h->device, deviceName));
+  printf("opened\n");
   CHECK_C (!U2Fob_init(h->device));
+  printf("finished creating\n");
 
 cleanup:
   if (rv == ERROR) {
@@ -88,17 +92,19 @@ int Datacenter_init(Datacenter *d) {
   int i = 0;
 
   hid_init();
-  devs = hid_enumerate(0x0, 0x0);
+  //devs = hid_enumerate(0x0, 0x0);
+  devs = hid_enumerate(VENDOR_ID, PRODUCT_ID);
   cur_dev = devs;
   while (cur_dev) {
 
-    if ((cur_dev->vendor_id == VENDOR_ID) &&
-        (cur_dev->product_id == PRODUCT_ID)) {
+    //if ((cur_dev->vendor_id == VENDOR_ID) &&
+    //    (cur_dev->product_id == PRODUCT_ID)) {
+      printf("serial no: %s\n", cur_dev->serial_number);
       CHECK_C(create_hsm(d->hsms[i], cur_dev->path, i));
       printf("created hsm %d/%d\n", i, NUM_HSMS);
       i++;
       if (i == NUM_HSMS) break;
-    }
+    //}
     cur_dev = cur_dev->next;
   }
 
@@ -109,9 +115,19 @@ cleanup:
 
 int Datacenter_Setup(Datacenter *d) {
     int rv;
+    thread t[NUM_HSMS];
     for (int i = 0; i < NUM_HSMS; i++) {
         CHECK_C (HSM_GetMpk(d->hsms[i]));
-        CHECK_C (HSM_Setup(d->hsms[i]));
+        printf("Got mpk %d/%d\n", i, NUM_HSMS);
+    }
+    for (int i = 0; i < NUM_HSMS; i++) {
+        t[i] = thread(HSM_Setup, d->hsms[i]);
+        printf("Started setup  %d/%d\n", i, NUM_HSMS);
+        //HSM_Setup(d->hsms[i]));
+    }
+    for (int i = 0; i < NUM_HSMS; i++) {
+        t[i].join();
+        printf("Done with setup  for %d/%d\n", i, NUM_HSMS);
     }
 cleanup:
     return rv;
@@ -119,9 +135,19 @@ cleanup:
 
 int Datacenter_SmallSetup(Datacenter *d) {
     int rv;
+    thread t[NUM_HSMS];
     for (int i = 0; i < NUM_HSMS; i++) {
         CHECK_C (HSM_GetMpk(d->hsms[i]));
-        CHECK_C (HSM_SmallSetup(d->hsms[i]));
+        printf("Got mpk %d/%d\n", i, NUM_HSMS);
+    }
+    for (int i = 0; i < NUM_HSMS; i++) {
+        t[i] = thread(HSM_SmallSetup, d->hsms[i]);
+        printf("Started setup  %d/%d\n", i, NUM_HSMS);
+        //HSM_Setup(d->hsms[i]));
+    }
+    for (int i = 0; i < NUM_HSMS; i++) {
+        t[i].join();
+        printf("Done with setup  for %d/%d\n", i, NUM_HSMS);
     }
 cleanup:
     return rv;
@@ -225,11 +251,11 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
         IBE_MarshalCt(innerCtBuf + i * IBE_CT_LEN, IBE_MSG_LEN, innerCts[i]);
     }
 
-    printf("inner ct: ");
-    for (int i = 0; i < HSM_GROUP_SIZE * IBE_CT_LEN; i++) {
-        printf("%x ", innerCtBuf[i]);
-    }
-    printf("\n");
+    //printf("inner ct: ");
+    //for (int i = 0; i < HSM_GROUP_SIZE * IBE_CT_LEN; i++) {
+    //    printf("%x ", innerCtBuf[i]);
+    //}
+    //printf("\n");
 
 
     CHECK_C (BN_rand_range(transportKey, params->prime));
@@ -275,6 +301,8 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     uint8_t innerCtBuf[HSM_GROUP_SIZE * IBE_CT_LEN];
     IBE_ciphertext *innerCts[HSM_GROUP_SIZE];
     ShamirShare *saveKeyShares[HSM_GROUP_SIZE];
+    thread t1[HSM_GROUP_SIZE];
+    thread t2[HSM_GROUP_SIZE];
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (transportKeyShares[i] = ShamirShare_new());
@@ -289,10 +317,20 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     /* Decrypt shares of transport key with HSMs. */
     uint8_t pinHashPlaceholder[SHA256_DIGEST_LENGTH];
     memset(pinHashPlaceholder, 0xff, SHA256_DIGEST_LENGTH);
+    uint8_t transportKeyShareBufs[HSM_GROUP_SIZE][IBE_MSG_LEN];
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        uint8_t share[IBE_MSG_LEN];
-        CHECK_C (HSM_AuthDecrypt(d->hsms[h1[i]], userID, c->transportKeyCts[i], share, IBE_MSG_LEN, pinHashPlaceholder));
-        Shamir_Unmarshal(share, transportKeyShares[i]);
+        t1[i] = thread(HSM_AuthDecrypt, d->hsms[h1[i]], userID, c->transportKeyCts[i], transportKeyShareBufs[i], IBE_MSG_LEN, pinHashPlaceholder);
+        //CHECK_C (HSM_AuthDecrypt(d->hsms[h1[i]], userID, c->transportKeyCts[i], share, IBE_MSG_LEN, pinHashPlaceholder));
+        //Shamir_Unmarshal(share, transportKeyShares[i]);
+    }
+    for (int i = 0; i < HSM_GROUP_SIZE; i++)  {
+        t1[i].join();
+        printf("transport key share %d/%d: ", i, HSM_GROUP_SIZE);
+        for (int j = 0; j < HSM_GROUP_SIZE; j++) {
+            printf("%x ", transportKeyShareBufs[i][j]);
+        }
+        printf("\n");
+        Shamir_Unmarshal(transportKeyShareBufs[i], transportKeyShares[i]);
     }
 
     /* Reassemble transport key. */
@@ -310,19 +348,17 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
 
     /* Decrypt inner cts with HSMs. */
+    uint8_t saveKeyShareBufs[HSM_GROUP_SIZE][IBE_MSG_LEN];
+    uint8_t pinHashes[HSM_GROUP_SIZE][SHA256_DIGEST_LENGTH];
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        uint8_t share[IBE_MSG_LEN];
-        // TODO: SHOULD ALSO CHECK THE PIN!! This message has pin hash appended
-
-        uint8_t pinHash[SHA256_DIGEST_LENGTH];
-        BN_bn2bin(saltHashes[i], pinHash);
-        CHECK_C (HSM_AuthDecrypt(d->hsms[h1[i]], userID, innerCts[i], share, IBE_MSG_LEN, pinHash));
-        printf("share[%d]: ", i);
-        for (int j = 0; j < IBE_MSG_LEN; j++) {
-            printf("%x ", share[j]);
-        }
-        printf("\n");
-        Shamir_Unmarshal(share, saveKeyShares[i]);
+        BN_bn2bin(saltHashes[i], pinHashes[i]);
+        t2[i] = thread(HSM_AuthDecrypt, d->hsms[h1[i]], userID, innerCts[i], saveKeyShareBufs[i], IBE_MSG_LEN, pinHashes[i]);
+        //CHECK_C (HSM_AuthDecrypt(d->hsms[h1[i]], userID, innerCts[i], share, IBE_MSG_LEN, pinHash));
+        //Shamir_Unmarshal(share, saveKeyShares[i]);
+    }
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        t2[i].join();
+        Shamir_Unmarshal(saveKeyShareBufs[i], saveKeyShares[i]);
     }
 
     /* Reassemble original saveKey. */

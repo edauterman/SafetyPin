@@ -6,8 +6,10 @@
 
 all: list Test CryptoTest TreeTest RecoveryTest
 
-CC ?= gcc
-CXX ?= g++
+#CC ?= gcc
+#CXX ?= g++
+CC ?= clang
+CXX ?= clang++
 PKG_CONFIG ?= pkg-config
 
 UNAME := $(shell uname)
@@ -35,12 +37,14 @@ endif  # Linux
 
 ifeq ($(UNAME), Darwin)
 
+CFLAGS+=-Ihidapi/hidapi -D__OS_MAC -Ijedi-pairing/include
 CPPFLAGS+=-Ihidapi/hidapi -D__OS_MAC -Ijedi-pairing/include
 LDLIBS+=-framework IOKit -framework CoreFoundation -Ljedi-pairing/pairing.a
 HIDAPI=hid.o
 hid.o: hidapi/mac/hid.c
-	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o hid.o hidapi/mac/hid.c
+	$(CC) -c $(CFLAGS) -o hid.o hidapi/mac/hid.c
 
+CPPFLAGS+=-std=c++11 -stdlib=libc++
 endif  # Darwin
 
 # utility tools.
@@ -48,7 +52,7 @@ u2f_util.o: u2f_util.cc u2f_util.h u2f.h u2f_hid.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) -Wall -o u2f_util.o u2f_util.cc
 
 params.o: params.c params.h
-	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o params.o params.c -lssl -lcrypto
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o params.o params.c -lssl -lcrypto
 
 ibe.o: ibe.c ibe.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o ibe.o ibe.c -lssl -lcrypto
@@ -64,7 +68,7 @@ datacenter.o: datacenter.cc datacenter.h
 
 # simple hidapi tool to list devices to see paths.
 list: list.c $(HIDAPI)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
 
 TreeTest: TreeTest.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto

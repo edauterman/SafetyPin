@@ -18,6 +18,7 @@
 #include <string.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
+#include <openssl/rand.h>
 
 #include "common.h"
 #include "params.h"
@@ -33,7 +34,7 @@ Params *Params_new() {
     int rv = ERROR;
 
     Params *params = NULL;
-    CHECK_A (params = malloc(sizeof(Params)));
+    CHECK_A (params = (Params *)malloc(sizeof(Params)));
     CHECK_A (params->prime = BN_new());
     CHECK_A (params->numHsms = BN_new());
     CHECK_A (params->bn_ctx = BN_CTX_new());
@@ -118,15 +119,16 @@ int aesGcmEncrypt(const void *key, const uint8_t *pt, int ptLen,
     int rv = ERROR;
     int bytesFilled = 0;
     EVP_CIPHER_CTX *ctx;
+    int len;
 
     CHECK_C (RAND_bytes(iv, IV_LEN));
 
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
     CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL));
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, IV_LEN, NULL));
-    CHECK_C (EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv));
+    CHECK_C (EVP_EncryptInit_ex(ctx, NULL, NULL, (const unsigned char *)key, iv));
     CHECK_C (EVP_EncryptUpdate(ctx, ct, &bytesFilled, pt, ptLen));
-    int len = bytesFilled;
+    len = bytesFilled;
     printf("len = %d, in len = %d\n", len, ptLen);
     CHECK_C (EVP_EncryptFinal_ex(ctx, ct + len, &bytesFilled));
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, TAG_LEN, tag));
@@ -146,10 +148,10 @@ int aesGcmDecrypt(const void *key, uint8_t *pt,
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
     CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL));
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, IV_LEN, NULL));
-    CHECK_C (EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv));
+    CHECK_C (EVP_DecryptInit_ex(ctx, NULL, NULL, (const unsigned char *)key, iv));
     CHECK_C (EVP_DecryptUpdate(ctx, pt, &bytesFilled, ct, ctLen));
     printf("bytes filled = %d, wanted %d\n", bytesFilled, ctLen);
-    CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, TAG_LEN, tag));
+    CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, TAG_LEN, (void *)tag));
     CHECK_C (EVP_DecryptFinal_ex(ctx, pt + bytesFilled, &bytesFilled));
 
 cleanup:

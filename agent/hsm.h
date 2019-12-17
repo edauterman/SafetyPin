@@ -12,6 +12,7 @@
 #define __HSM_H_INCLUDED__
 
 #include <openssl/sha.h>
+#include <pthread.h>
 
 #include "hsm.h"
 #include "ibe.h"
@@ -60,6 +61,8 @@ extern "C" {
 //#define LEVEL_1_NUM_LEAVES 1024 
 #define LEVEL_2_NUM_LEAVES 16
 //#define LEVEL_2_NUM_LEAVES 32
+
+using namespace std;
 
 typedef struct{
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -117,6 +120,7 @@ typedef struct {
     struct U2Fob *device;
     uint8_t cts[TREE_SIZE][CT_LEN];
     embedded_pairing_bls12_381_g2_t mpk;
+    pthread_mutex_t m;
 } HSM;
 
 HSM *HSM_new();

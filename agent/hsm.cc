@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <map>
+#include <mutex>
 
 #include <iostream>
 #include <iomanip>
@@ -38,12 +39,14 @@ HSM *HSM_new() {
     HSM *h = NULL;
 
     CHECK_A (h = (HSM *)malloc(sizeof(HSM)));
+    pthread_mutex_init(&h->m, NULL);
 
 cleanup:
     return h;
 }
 
 void HSM_free(HSM *h) {
+    pthread_mutex_destroy(&h->m);
     free(h);
 }
 
@@ -51,6 +54,9 @@ int HSM_GetMpk(HSM *h) {
     int rv =  ERROR;
     HSM_MPK_RESP resp;
     string resp_str;
+    printf("going to lock\n");
+    pthread_mutex_lock(&h->m);
+    printf("locked\n");
 
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_MPK, 0, 0,
                 "", &resp_str));
@@ -61,6 +67,7 @@ int HSM_GetMpk(HSM *h) {
 
     printf("Got mpk\n");
 cleanup:
+    pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("MPK ERROR\n");
     return rv;
 }
@@ -86,6 +93,8 @@ int HSM_SmallSetup(HSM *h) {
 
     isSmall = true;
 
+    pthread_mutex_lock(&h->m);
+
     CHECK_C (EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_SMALL_SETUP, 0,
                 0, "", &resp_str));
 
@@ -95,6 +104,7 @@ int HSM_SmallSetup(HSM *h) {
 
     printf("done with small setup\n");
 cleanup:
+    pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("SMALL SETUP ERROR\n");
     return rv;
 }
@@ -107,6 +117,8 @@ int HSM_Setup(HSM *h) {
     int ctr[3] = {0, 0, 0};
 
     isSmall = false;
+
+    pthread_mutex_lock(&h->m);
 
     while (currLevel != LEVEL_DONE) {
         printf("currLevel = %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
@@ -148,6 +160,7 @@ int HSM_Setup(HSM *h) {
 
     printf("started setup\n");
 cleanup:
+    pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("SETUP ERROR\n");
     return rv;
 }
@@ -162,6 +175,8 @@ int HSM_Retrieve(HSM *h, uint16_t index) {
     uint16_t currIndex = index;
     uint16_t totalTraveled = 0;
     uint16_t currInterval = numLeaves;
+
+    pthread_mutex_lock(&h->m);
 
     for (int i = 0; i < levels; i++) {
         printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
@@ -187,6 +202,7 @@ int HSM_Retrieve(HSM *h, uint16_t index) {
     printf("\n");
     printf("finished retrieving leaf\n");
 cleanup:
+    pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
@@ -202,6 +218,8 @@ int HSM_Puncture(HSM *h, uint16_t index) {
     uint16_t totalTraveled = numLeaves;
     uint16_t currInterval = numLeaves / 2;
     size_t indexes[keyLevels];
+
+    pthread_mutex_lock(&h->m);
 
     for (int i = 0; i < keyLevels; i++) {
         printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
@@ -227,12 +245,15 @@ int HSM_Puncture(HSM *h, uint16_t index) {
 
     printf("finished puncturing leaf\n");
 cleanup:
+    pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
 
 int HSM_Encrypt(HSM *h, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c) {
+    pthread_mutex_lock(&h->m);
     IBE_Encrypt(&h->mpk, index, msg, msgLen, c);
+    pthread_mutex_unlock(&h->m);
     return OKAY;
 }
 
@@ -246,6 +267,8 @@ int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msg
     uint16_t currIndex = index;
     uint16_t totalTraveled = 0;
     uint16_t currInterval = numLeaves;
+
+    pthread_mutex_lock(&h->m);
 
     for (int i = 0; i < levels; i++) {
         printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
@@ -267,6 +290,7 @@ int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msg
 
     printf("finished retrieving decryption\n");
 cleanup:
+    pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
@@ -281,6 +305,8 @@ int HSM_AuthDecrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int
     uint16_t currIndex = index;
     uint16_t totalTraveled = 0;
     uint16_t currInterval = numLeaves;
+
+    pthread_mutex_lock(&h->m);
 
     for (int i = 0; i < levels; i++) {
         printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
@@ -303,6 +329,7 @@ int HSM_AuthDecrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int
 
     printf("finished retrieving auth decryption\n");
 cleanup:
+    pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
