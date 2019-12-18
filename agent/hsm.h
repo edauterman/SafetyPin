@@ -49,6 +49,7 @@ extern "C" {
 #define HSM_MPK             0x74
 #define HSM_SMALL_SETUP     0x75
 #define HSM_AUTH_DECRYPT    0x76
+#define HSM_TEST_SETUP      0x77
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -112,7 +113,10 @@ typedef struct {
     uint8_t msg[IBE_MSG_LEN];
 } HSM_AUTH_DECRYPT_RESP;
 
-
+typedef struct {
+    uint8_t msk[KEY_LEN];
+    uint8_t hmacKey[KEY_LEN];
+} HSM_TEST_SETUP_REQ;
 
 /* ---------------------------------- */
 
@@ -129,6 +133,7 @@ void HSM_free(HSM *h);
 int HSM_GetMpk(HSM *h);
 int HSM_Setup(HSM *h);
 int HSM_SmallSetup(HSM *h);
+int HSM_TestSetup(HSM *h);
 int HSM_Retrieve(HSM *h, uint16_t index);
 int HSM_Puncture(HSM *h, uint16_t index);
 int HSM_Encrypt(HSM *h, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c);

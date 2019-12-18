@@ -35,6 +35,7 @@
 #define HSM_MPK             0x74
 #define HSM_SMALL_SETUP     0x75
 #define HSM_AUTH_DECRYPT    0x76
+#define HSM_TEST_SETUP      0x77
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -76,9 +77,15 @@ struct hsm_auth_decrypt_response {
     uint8_t msg[IBE_MSG_LEN];
 };
 
+struct hsm_test_setup_request {
+    uint8_t msk[KEY_LEN];
+    uint8_t hmacKey[KEY_LEN];
+};
+
 int HSM_GetMpk();
 int HSM_Setup();
 int HSM_SmallSetup();
+int HSM_TestSetup(struct hsm_test_setup_request *req);
 int HSM_Retrieve(struct hsm_retrieve_request *req);
 int HSM_Puncture(struct hsm_puncture_request *req);
 int HSM_Decrypt(struct hsm_decrypt_request *req);

@@ -25,6 +25,7 @@
 #include "hsm.h"
 #include "ibe.h"
 #include "params.h"
+#include "punc_enc.h"
 #include "u2f.h"
 #include "u2f_util.h"
 
@@ -85,6 +86,30 @@ void copySubTree(uint8_t *out, uint8_t *in, int numLeaves, int numSubLeaves, int
         factor *= 2;
     }
 }
+
+int HSM_TestSetup(HSM *h) {
+    int rv = ERROR;
+    HSM_TEST_SETUP_REQ req;
+    HSM_SETUP_RESP resp;
+    string resp_str;
+
+    isSmall = false;
+
+    pthread_mutex_lock(&h->m);
+
+    PuncEnc_BuildTree(h->cts, req.msk, req.hmacKey, &h->mpk);
+
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_TEST_SETUP, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+
+    printf("done with test setup\n");
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("TEST SETUP ERROR\n");
+    return rv;
+}
+
+
 
 int HSM_SmallSetup(HSM *h) {
     int rv = ERROR;

@@ -267,7 +267,11 @@ void PuncEnc_BuildSmallTree(uint8_t cts[SUB_TREE_SIZE][CT_LEN]) {
     printf1(TAG_GREEN, "done building small tree\n");
 }
 
-
+void PuncEnc_TestSetup(uint8_t newMsk[KEY_LEN], uint8_t newHmacKey[KEY_LEN]) {
+    setMsk(newMsk);
+    memcpy(hmacKey, newHmacKey, KEY_LEN);
+    isSmall = false;
+}
 
 /* Set msk value. Should be called for final_key value for top subtree. */
 void setMsk(uint8_t newMsk[KEY_LEN]) {

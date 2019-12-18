@@ -44,6 +44,11 @@ int HSM_SmallSetup() {
     return U2F_SW_NO_ERROR;
 }
 
+int HSM_TestSetup(struct hsm_test_setup_request *req) {
+    printf1(TAG_GREEN, "running test setup\n");
+    PuncEnc_TestSetup(req->msk, req->hmacKey);
+    return U2F_SW_NO_ERROR;
+}
 
 int HSM_Retrieve(struct hsm_retrieve_request *req) {
     printf1(TAG_GREEN, "retrieving leaf\n");

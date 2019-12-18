@@ -57,6 +57,9 @@ params.o: params.c params.h
 ibe.o: ibe.c ibe.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o ibe.o ibe.c -lssl -lcrypto
 
+punc_enc.o: punc_enc.c punc_enc.h
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o punc_enc.o punc_enc.c -lssl -lcrypto
+
 shamir.o: shamir.c shamir.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o shamir.o shamir.c -lssl -lcrypto
 
@@ -70,13 +73,13 @@ datacenter.o: datacenter.cc datacenter.h
 list: list.c $(HIDAPI)
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
 
-TreeTest: TreeTest.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
+TreeTest: TreeTest.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o punc_enc.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
-RecoveryTest: RecoveryTest.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
+RecoveryTest: RecoveryTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
-Test: Test.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o $(HIDAPI)
+Test: Test.cc hsm.o datacenter.o u2f_util.o params.o ibe.o shamir.o punc_enc.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
 CryptoTest: CryptoTest.cc params.o ibe.o shamir.o
