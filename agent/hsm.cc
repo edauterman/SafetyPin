@@ -205,7 +205,7 @@ int HSM_Retrieve(HSM *h, uint16_t index) {
     pthread_mutex_lock(&h->m);
 
     for (int i = 0; i < levels; i++) {
-        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
+        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
         memcpy(req.cts[levels - i - 1], h->cts[totalTraveled + currIndex], CT_LEN);
         totalTraveled += currInterval;
@@ -248,7 +248,7 @@ int HSM_Puncture(HSM *h, uint16_t index) {
     pthread_mutex_lock(&h->m);
 
     for (int i = 0; i < keyLevels; i++) {
-        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
+        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
         memcpy(req.cts[keyLevels - i - 1], h->cts[totalTraveled + currIndex], CT_LEN);
         indexes[i] = totalTraveled + currIndex;
@@ -318,7 +318,7 @@ int HSM_Decrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t 
         currInterval = numLeaves;
     
         for (int j = 0; j < levels; j++) {
-            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
+            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
             memcpy(req.treeCts[levels - j - 1], h->cts[totalTraveled + currIndex], CT_LEN);
             totalTraveled += currInterval;
@@ -373,11 +373,13 @@ int HSM_AuthDecrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
         currIndex = indexes[i];
         totalTraveled = 0;
         currInterval = numLeaves;
+        size_t ctIndexes[levels];
     
         for (int j = 0; j < levels; j++) {
-            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
+            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
             memcpy(req.treeCts[levels - j - 1], h->cts[totalTraveled + currIndex], CT_LEN);
+            ctIndexes[j] = totalTraveled + currIndex;
             totalTraveled += currInterval;
             currInterval /= 2;
             currIndex /= 2;
@@ -398,6 +400,11 @@ int HSM_AuthDecrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
             printf("Got valid decryption\n");
             memcpy(msg, resp.msg, msgLen);
         }
+
+        for (int j = 0; j < levels - 1; j++) {
+            memcpy(h->cts[ctIndexes[j]], resp.newCts[j], CT_LEN);
+        }
+        printf("finished ciphertexts %d/%d\n", i, PUNC_ENC_REPL);
     }
 
     printf("finished retrieving auth decryption\n");

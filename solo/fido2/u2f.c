@@ -92,7 +92,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
 
             case HSM_AUTH_DECRYPT:
                 printf1(TAG_GREEN, "starting auth decrypt\n");
-                rcode = HSM_Decrypt((struct hsm_auth_decrypt_request *)payload);
+                rcode = HSM_AuthDecrypt((struct hsm_auth_decrypt_request *)payload);
                 printf1(TAG_GREEN, "finished auth decrypt\n");
                 break;
 

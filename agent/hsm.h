@@ -17,7 +17,7 @@ extern "C" {
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32)
 
-#define PUNC_ENC_REPL 10
+#define PUNC_ENC_REPL 3 
 
 #define RESPONSE_BUFFER_SIZE 4096
 
@@ -103,6 +103,7 @@ typedef struct {
 
 typedef struct {
     uint8_t msg[IBE_MSG_LEN];
+    uint8_t newCts[KEY_LEVELS][CT_LEN];
 } HSM_AUTH_DECRYPT_RESP;
 
 typedef struct {
@@ -123,12 +124,17 @@ typedef struct {
 HSM *HSM_new();
 void HSM_free(HSM *h);
 
+/* Setup */
 int HSM_GetMpk(HSM *h);
 int HSM_Setup(HSM *h);
 int HSM_SmallSetup(HSM *h);
 int HSM_TestSetup(HSM *h);
+
+/* Testing tree. */
 int HSM_Retrieve(HSM *h, uint16_t index);
 int HSM_Puncture(HSM *h, uint16_t index);
+
+/* Encryption/decryption. Decrypt only for testing. Only use AuthDecrypt. */
 int HSM_Encrypt(HSM *h, uint16_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]);
 int HSM_Decrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen);
 int HSM_AuthDecrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash);

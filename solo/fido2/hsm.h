@@ -75,6 +75,7 @@ struct hsm_auth_decrypt_request {
 
 struct hsm_auth_decrypt_response {
     uint8_t msg[IBE_MSG_LEN];
+    uint8_t newCts[KEY_LEVELS][CT_LEN];
 };
 
 struct hsm_test_setup_request {

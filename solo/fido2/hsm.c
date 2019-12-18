@@ -118,6 +118,7 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req) {
     uint8_t W[IBE_MSG_LEN];
     embedded_pairing_bls12_381_g1_t sk;
     uint8_t msg[IBE_MSG_LEN];
+    uint8_t newCts[KEY_LEVELS][CT_LEN];
 
     if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
         printf("Couldn't retrieve leaf\n");
@@ -136,8 +137,13 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req) {
     }  else {
         printf("Pin hash check passed.\n");
     }
-    
+
+    printf1(TAG_GREEN, "going to puncture\n");
+    PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
+    printf1(TAG_GREEN, "finished puncturing leaf\n");
+
     u2f_response_writeback(msg, IBE_MSG_LEN);
+    u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
 
     return U2F_SW_NO_ERROR;
 }
