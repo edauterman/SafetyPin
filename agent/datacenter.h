@@ -19,7 +19,8 @@ typedef struct {
     uint8_t tag[TAG_LEN];
     uint8_t ct[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];
     IBE_ciphertext *transportKeyCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
-    BIGNUM *r;
+    BIGNUM *s;
+    IBE_ciphertext *saltCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
 } RecoveryCiphertext;
 
 RecoveryCiphertext *RecoveryCiphertext_new();

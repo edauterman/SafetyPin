@@ -145,6 +145,8 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req) {
     u2f_response_writeback(msg, IBE_MSG_LEN);
     u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
 
+    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+
     return U2F_SW_NO_ERROR;
 }
 
