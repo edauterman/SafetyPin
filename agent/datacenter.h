@@ -3,8 +3,9 @@
 
 #include "hsm.h"
 #include "params.h"
+#include "punc_enc.h"
 
-#define NUM_HSMS 20
+#define NUM_HSMS 1 
 #define HSM_GROUP_SIZE 5
 #define HSM_THRESHOLD_SIZE 3
 #define PIN_LEN 10
@@ -16,8 +17,8 @@ typedef struct {
 typedef struct {
     uint8_t iv[IV_LEN];
     uint8_t tag[TAG_LEN];
-    uint8_t ct[HSM_GROUP_SIZE * IBE_CT_LEN];
-    IBE_ciphertext *transportKeyCts[HSM_GROUP_SIZE];
+    uint8_t ct[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];
+    IBE_ciphertext *transportKeyCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     BIGNUM *r;
 } RecoveryCiphertext;
 

@@ -41,6 +41,7 @@ HSM *HSM_new() {
 
     CHECK_A (h = (HSM *)malloc(sizeof(HSM)));
     pthread_mutex_init(&h->m, NULL);
+    CHECK_A (h->params = Params_new());
 
 cleanup:
     return h;
@@ -48,6 +49,7 @@ cleanup:
 
 void HSM_free(HSM *h) {
     pthread_mutex_destroy(&h->m);
+    Params_free(h->params);
     free(h);
 }
 
@@ -90,7 +92,6 @@ void copySubTree(uint8_t *out, uint8_t *in, int numLeaves, int numSubLeaves, int
 int HSM_TestSetup(HSM *h) {
     int rv = ERROR;
     HSM_TEST_SETUP_REQ req;
-    HSM_SETUP_RESP resp;
     string resp_str;
 
     isSmall = false;
@@ -275,43 +276,69 @@ cleanup:
     return rv;
 }
 
-int HSM_Encrypt(HSM *h, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c) {
+int HSM_Encrypt(HSM *h, uint16_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]) {
+    int rv;
+    uint16_t indexes[PUNC_ENC_REPL];
+
     pthread_mutex_lock(&h->m);
-    IBE_Encrypt(&h->mpk, index, msg, msgLen, c);
+    
+    CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
+
+    for (int i = 0; i < PUNC_ENC_REPL; i++)  {
+        IBE_Encrypt(&h->mpk, indexes[i], msg, msgLen, c[i]);
+    }
     pthread_mutex_unlock(&h->m);
-    return OKAY;
+cleanup:
+    return rv;
 }
 
-int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msgLen) {
+int HSM_Decrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen) {
     int rv = ERROR;
     HSM_DECRYPT_REQ req;
     HSM_DECRYPT_RESP resp;
     string resp_str;
-    int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
-    int levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
-    uint16_t currIndex = index;
-    uint16_t totalTraveled = 0;
-    uint16_t currInterval = numLeaves;
+    int numLeaves;
+    int levels;
+    uint16_t currIndex;
+    uint16_t totalTraveled;
+    uint16_t currInterval;
+    uint16_t indexes[PUNC_ENC_REPL];
+    uint8_t zeros[msgLen];
 
     pthread_mutex_lock(&h->m);
 
-    for (int i = 0; i < levels; i++) {
-        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
+    CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
+
+    for (int i = 0; i < PUNC_ENC_REPL; i++) {
+
+        numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
+        levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
+        currIndex = indexes[i];
+        totalTraveled = 0;
+        currInterval = numLeaves;
+    
+        for (int j = 0; j < levels; j++) {
+            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
         
-        memcpy(req.treeCts[levels - i - 1], h->cts[totalTraveled + currIndex], CT_LEN);
-        totalTraveled += currInterval;
-        currInterval /= 2;
-        currIndex /= 2;
+            memcpy(req.treeCts[levels - j - 1], h->cts[totalTraveled + currIndex], CT_LEN);
+            totalTraveled += currInterval;
+            currInterval /= 2;
+            currIndex /= 2;
+        }
+
+        IBE_MarshalCt(req.ibeCt, msgLen, c[i]);
+        req.index = indexes[i];
+
+        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_DECRYPT, 0, 0,
+                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+
+        memcpy(&resp, resp_str.data(), resp_str.size());
+        
+        if (memcmp(resp.msg, zeros, msgLen) != 0) {
+            printf("Got valid decryption\n");
+            memcpy(msg, resp.msg, msgLen);
+        }
     }
-
-    IBE_MarshalCt(req.ibeCt, msgLen, c);
-    req.index = index;
-
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_DECRYPT, 0, 0,
-                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-
-    memcpy(&resp, resp_str.data(), resp_str.size());
-    memcpy(msg, resp.msg, msgLen);
 
     printf("finished retrieving decryption\n");
 cleanup:
@@ -320,37 +347,58 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthDecrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msgLen, uint8_t *pinHash) {
+int HSM_AuthDecrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash) {
     int rv = ERROR;
     HSM_AUTH_DECRYPT_REQ req;
     HSM_AUTH_DECRYPT_RESP resp;
     string resp_str;
-    int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
-    int levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
-    uint16_t currIndex = index;
-    uint16_t totalTraveled = 0;
-    uint16_t currInterval = numLeaves;
+    int numLeaves;
+    int levels;
+    uint16_t currIndex;
+    uint16_t totalTraveled;
+    uint16_t currInterval;
+    uint16_t indexes[PUNC_ENC_REPL];
+    uint8_t zeros[msgLen];
 
     pthread_mutex_lock(&h->m);
 
-    for (int i = 0; i < levels; i++) {
-        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
+    CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
+
+    memset(zeros, 0, msgLen);
+
+    for (int i = 0; i < PUNC_ENC_REPL; i++) {
+
+        numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
+        levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
+        currIndex = indexes[i];
+        totalTraveled = 0;
+        currInterval = numLeaves;
+    
+        for (int j = 0; j < levels; j++) {
+            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, SUB_TREE_SIZE);
         
-        memcpy(req.treeCts[levels - i - 1], h->cts[totalTraveled + currIndex], CT_LEN);
-        totalTraveled += currInterval;
-        currInterval /= 2;
-        currIndex /= 2;
+            memcpy(req.treeCts[levels - j - 1], h->cts[totalTraveled + currIndex], CT_LEN);
+            totalTraveled += currInterval;
+            currInterval /= 2;
+            currIndex /= 2;
+        }
+
+        IBE_MarshalCt(req.ibeCt, msgLen, c[i]);
+        req.index = indexes[i];
+    
+        memcpy(req.pinHash, pinHash, SHA256_DIGEST_LENGTH);
+
+        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_AUTH_DECRYPT, 0, 0,
+                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+
+        memcpy(&resp, resp_str.data(), resp_str.size());
+   
+        /* Check if valid decryption. */ 
+        if (memcmp(zeros, resp.msg, msgLen) != 0) {
+            printf("Got valid decryption\n");
+            memcpy(msg, resp.msg, msgLen);
+        }
     }
-
-    IBE_MarshalCt(req.ibeCt, msgLen, c);
-    req.index = index;
-    memcpy(req.pinHash, pinHash, SHA256_DIGEST_LENGTH);
-
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_AUTH_DECRYPT, 0, 0,
-                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-
-    memcpy(&resp, resp_str.data(), resp_str.size());
-    memcpy(msg, resp.msg, msgLen);
 
     printf("finished retrieving auth decryption\n");
 cleanup:

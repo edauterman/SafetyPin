@@ -279,7 +279,7 @@ void setMsk(uint8_t newMsk[KEY_LEN]) {
 }
 
 /* Look up leaf in the tree given ciphertexts along the path to that leaf. */
-void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t leaf[CT_LEN]) {
+int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t leaf[CT_LEN]) {
     int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
     int levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
     uint8_t currKey[KEY_LEN];
@@ -303,6 +303,7 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
         /* Decrypt current ciphertext. */
         if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[i]) == ERROR) {
             printf("ERROR IN DECRYPTION OF INNER NODE\n");
+            return ERROR;
         }
         //crypto_aes256_init(currKey, NULL);
         //crypto_aes256_decrypt_sep(leftKey, cts[i], KEY_LEN);
@@ -336,14 +337,11 @@ void PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t l
     /* Set final leaf value. */
     if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[levels - 1]) == ERROR) {
         printf("ERROR IN LEAF DECRYPTION\n");
+        return ERROR;
     }
     memcpy(leaf, leftKey, KEY_LEN);
     memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);
-    //crypto_aes256_init(currKey, NULL);
-    //crypto_aes256_decrypt_sep(leaf, cts[LEVELS -  1], CT_LEN);
-    
-    //memcpy(leaf, leftKey, KEY_LEN);
-    //memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);
+    return OKAY;
 }
 
 /* Puncture a leaf. Given ciphertexts along the path to the leaf corresponding

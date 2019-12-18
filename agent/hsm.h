@@ -1,22 +1,12 @@
-// Copyright 2018 Google Inc. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file or at
-// https://developers.google.com/open-source/licenses/bsd
-
-/**
- * This header provides definitions for the protocol layer for deterministically
- * seeded U2F. Official FIDO-compliant definitions located in "u2f.h".
- */
 #ifndef __HSM_H_INCLUDED__
 #define __HSM_H_INCLUDED__
 
 #include <openssl/sha.h>
 #include <pthread.h>
 
-#include "hsm.h"
 #include "ibe.h"
 #include "bls12_381/bls12_381.h"
+#include "params.h"
 #include "u2f.h"
 
 #ifdef __cplusplus
@@ -26,6 +16,8 @@ extern "C" {
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32)
+
+#define PUNC_ENC_REPL 10
 
 #define RESPONSE_BUFFER_SIZE 4096
 
@@ -122,6 +114,7 @@ typedef struct {
 
 typedef struct {
     struct U2Fob *device;
+    Params *params;
     uint8_t cts[TREE_SIZE][CT_LEN];
     embedded_pairing_bls12_381_g2_t mpk;
     pthread_mutex_t m;
@@ -136,9 +129,9 @@ int HSM_SmallSetup(HSM *h);
 int HSM_TestSetup(HSM *h);
 int HSM_Retrieve(HSM *h, uint16_t index);
 int HSM_Puncture(HSM *h, uint16_t index);
-int HSM_Encrypt(HSM *h, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c);
-int HSM_Decrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msgLen);
-int HSM_AuthDecrypt(HSM *h, uint16_t index, IBE_ciphertext *c, uint8_t *msg, int msgLen, uint8_t *pinHash);
+int HSM_Encrypt(HSM *h, uint16_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]);
+int HSM_Decrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen);
+int HSM_AuthDecrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash);
 
 #ifdef __cplusplus
 }

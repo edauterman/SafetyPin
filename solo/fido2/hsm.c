@@ -61,8 +61,9 @@ int HSM_Retrieve(struct hsm_retrieve_request *req) {
         }
         printf("\n");
     }
-
-    PuncEnc_RetrieveLeaf(req->cts, req->index, leaf);
+    if (PuncEnc_RetrieveLeaf(req->cts, req->index, leaf) == ERROR) {
+        memset(leaf, 0, CT_LEN);
+    }
 
     u2f_response_writeback(leaf, CT_LEN);
 
@@ -91,7 +92,12 @@ int HSM_Decrypt(struct hsm_decrypt_request *req) {
     embedded_pairing_bls12_381_g1_t sk;
     uint8_t msg[IBE_MSG_LEN];
 
-    PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf);
+    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
+        printf("Couldn't retrieve leaf\n");
+        memset(msg, 0, IBE_MSG_LEN);
+        u2f_response_writeback(msg, IBE_MSG_LEN);
+        return U2F_SW_NO_ERROR;
+    }
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
     IBE_UnmarshalSk(leaf, &sk);
 //    IBE_Extract(req->index, &sk);
@@ -113,7 +119,12 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req) {
     embedded_pairing_bls12_381_g1_t sk;
     uint8_t msg[IBE_MSG_LEN];
 
-    PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf);
+    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
+        printf("Couldn't retrieve leaf\n");
+        memset(msg, 0, IBE_MSG_LEN);
+        u2f_response_writeback(msg, IBE_MSG_LEN);
+        return U2F_SW_NO_ERROR;
+    }
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
     IBE_UnmarshalSk(leaf, &sk);
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);

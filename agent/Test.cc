@@ -36,7 +36,10 @@ int main(int argc, char *argv[]) {
 
     uint8_t msg[IBE_MSG_LEN];
     uint8_t msg_test[IBE_MSG_LEN];
-    IBE_ciphertext *c = IBE_ciphertext_new(IBE_MSG_LEN);
+    IBE_ciphertext *c[PUNC_ENC_REPL];
+    for (int i = 0; i < PUNC_ENC_REPL; i++)  {
+        c[i] = IBE_ciphertext_new(IBE_MSG_LEN);
+    }
     memset(msg, 0xff, IBE_MSG_LEN);
     HSM_Encrypt(d->hsms[i], 1, msg, IBE_MSG_LEN, c);
     HSM_Decrypt(d->hsms[i], 1, c, msg_test, IBE_MSG_LEN);
@@ -50,12 +53,14 @@ int main(int argc, char *argv[]) {
     } else {
         printf("Decryption successful.\n");
     }
-    IBE_ciphertext_free(c);
+    for (int i = 0; i < PUNC_ENC_REPL; i++) {
+        IBE_ciphertext_free(c[i]);
+    }
   }
 
   Datacenter_free(d);
 
-  printf("Initialization completed. \n");
+  printf("Test completed. \n");
 
   return 0;
 }
