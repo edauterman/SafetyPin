@@ -30,6 +30,7 @@ extern "C"{
 typedef struct {
     BIGNUM *prime;
     BIGNUM *numHsms;
+    BIGNUM *numLeaves;
     BN_CTX *bn_ctx;
 } Params;
 

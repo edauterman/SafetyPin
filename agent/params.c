@@ -37,12 +37,18 @@ Params *Params_new() {
     CHECK_A (params = (Params *)malloc(sizeof(Params)));
     CHECK_A (params->prime = BN_new());
     CHECK_A (params->numHsms = BN_new());
+    CHECK_A (params->numLeaves = BN_new());
     CHECK_A (params->bn_ctx = BN_CTX_new());
 
     char numHsmsBuf[4];
     printf("NUM_HSMS: %d\n", NUM_HSMS);
     sprintf(numHsmsBuf, "%d", NUM_HSMS);
     BN_dec2bn(&params->numHsms, numHsmsBuf);
+
+    char numLeavesBuf[4];
+    printf("NUM_LEAVES: %d\n", NUM_LEAVES);
+    sprintf(numLeavesBuf, "%d", NUM_LEAVES);
+    BN_dec2bn(&params->numLeaves, numLeavesBuf);
 
     // TODO: choose prime closer to 2^128
     BN_hex2bn(&params->prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
@@ -51,13 +57,14 @@ cleanup:
     if (rv == ERROR) {
         Params_free(params);
         return NULL;
-    } 
+    }
     return params;
 }
 
 void Params_free(Params *params) {
     BN_free(params->prime);
     BN_free(params->numHsms);
+    BN_free(params->numLeaves);
     BN_CTX_free(params->bn_ctx);
     free(params);
 }

@@ -158,6 +158,19 @@ cleanup:
     return rv;
 }
 
+int Datacenter_TestSetup(Datacenter *d) {
+    int rv;
+    for (int i = 0; i < NUM_HSMS; i++) {
+        CHECK_C (HSM_GetMpk(d->hsms[i]));
+        CHECK_C (HSM_TestSetup(d->hsms[i]));
+        printf("Done with setup  for %d/%d\n", i, NUM_HSMS);
+    }
+cleanup:
+    return rv;
+}
+
+
+
 int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *saltHashes[HSM_GROUP_SIZE], BIGNUM *salt, uint8_t pin[PIN_LEN]) {
     int rv = ERROR;
     BIGNUM *hsm;
@@ -309,7 +322,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     ShamirShare *transportKeyShares[HSM_GROUP_SIZE];
     BIGNUM *transportKey = NULL;
     uint8_t transportKeyBuf[AES128_KEY_LEN];
-    uint8_t innerCtBuf[HSM_GROUP_SIZE * IBE_CT_LEN];
+    uint8_t innerCtBuf[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];
     IBE_ciphertext *innerCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     ShamirShare *saveKeyShares[HSM_GROUP_SIZE];
     thread t1[HSM_GROUP_SIZE];
