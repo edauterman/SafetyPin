@@ -102,7 +102,8 @@ int HSM_TestSetup(HSM *h) {
     pthread_mutex_lock(&h->m);
 
     printf("going to run test setup\n");
-    PuncEnc_BuildTree(h->cts, req.msk, req.hmacKey, &h->mpk);
+    PuncEnc_BuildTree((uint8_t *)h->cts, req.msk, req.hmacKey, &h->mpk);
+    //PuncEnc_BuildTree((uint8_t *)h->cts, req.msk, req.hmacKey, &h->mpk);
 
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_TEST_SETUP, 0, 0,
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
@@ -114,7 +115,30 @@ cleanup:
     return rv;
 }
 
+int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk) {
+    int rv = ERROR;
+    HSM_TEST_SETUP_REQ req;
+    string resp_str;
 
+    isSmall = false;
+
+    pthread_mutex_lock(&h->m);
+
+    printf("going to run test setup\n");
+    memcpy(h->cts, cts, TREE_SIZE * CT_LEN);
+    memcpy(req.msk, msk, KEY_LEN);
+    memcpy(req.hmacKey, hmacKey, KEY_LEN);
+    memcpy(&h->mpk, mpk, sizeof(embedded_pairing_bls12_381_g2_t));
+
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_TEST_SETUP, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+
+    printf("done with test setup\n");
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("TEST SETUP ERROR\n");
+    return rv;
+}
 
 int HSM_SmallSetup(HSM *h) {
     int rv = ERROR;
@@ -219,7 +243,7 @@ int HSM_Retrieve(HSM *h, uint32_t index) {
     for (int i = 0; i < levels; i++) {
         printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
-        memcpy(req.cts[levels - i - 1], h->cts[totalTraveled + currIndex], CT_LEN);
+        memcpy(req.cts[levels - i - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
         totalTraveled += currInterval;
         currInterval /= 2;
         currIndex /= 2;
@@ -260,7 +284,7 @@ int puncture_noLock(HSM *h, uint32_t index) {
     for (int i = 0; i < keyLevels; i++) {
         printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
-        memcpy(req.cts[keyLevels - i - 1], h->cts[totalTraveled + currIndex], CT_LEN);
+        memcpy(req.cts[keyLevels - i - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
         indexes[i] = totalTraveled + currIndex;
         totalTraveled += currInterval;
         currInterval /= 2;
@@ -276,7 +300,7 @@ int puncture_noLock(HSM *h, uint32_t index) {
 
     for (int i = 0; i < keyLevels; i++) {
         printf("setting index %d for ct[%d]: ", indexes[i], i);
-        memcpy(h->cts[indexes[i]], resp.cts[i], CT_LEN);
+        memcpy(h->cts + indexes[i] * CT_LEN, resp.cts[i], CT_LEN);
     }
 
     h->isPunctured[index] = true;
@@ -343,7 +367,7 @@ int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t 
         for (int j = 0; j < levels; j++) {
             printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
-            memcpy(req.treeCts[levels - j - 1], h->cts[totalTraveled + currIndex], CT_LEN);
+            memcpy(req.treeCts[levels - j - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
             totalTraveled += currInterval;
             currInterval /= 2;
             currIndex /= 2;
@@ -407,7 +431,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
         for (int j = 0; j < levels; j++) {
             printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
-            memcpy(req.treeCts[levels - j - 1], h->cts[totalTraveled + currIndex], CT_LEN);
+            memcpy(req.treeCts[levels - j - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
             ctIndexes[j] = totalTraveled + currIndex;
             totalTraveled += currInterval;
             currInterval /= 2;
@@ -430,7 +454,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
         h->isPunctured[indexes[i]] = true;
 
         for (int j = 0; j < levels - 1; j++) {
-            memcpy(h->cts[ctIndexes[j]], resp.newCts[j], CT_LEN);
+            memcpy(h->cts + (ctIndexes[j] * CT_LEN), resp.newCts[j], CT_LEN);
         }
         printf("finished ciphertexts %d/%d\n", i, PUNC_ENC_REPL);
     }

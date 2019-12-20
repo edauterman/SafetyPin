@@ -67,16 +67,17 @@ void setIBELeaves(embedded_pairing_core_bigint_256_t *ibeMsk, uint8_t *leaves) {
         embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
         memcpy(leaves + i * LEAF_LEN, buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
         //memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
-        //printf("leaf %d: ", i);
-        //for (int j = 0; j < 48; j++) {
-        //    printf("%x ", buf[j]);
-        //}
-        //printf("\n");
+        printf("leaf %d: ", i);
+        for (int j = 0; j < 48; j++) {
+            printf("%x ", buf[j]);
+        }
+        printf("\n");
         //memset(leaves[i], 0xff, CT_LEN);
     }
 }
 
-void PuncEnc_BuildTree(uint8_t cts[TREE_SIZE][CT_LEN], uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk) {
+// cts of size TREE_SIZE * CT_LEN
+void PuncEnc_BuildTree(uint8_t *cts, uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk) {
     /* For each level in subtree, choose random key, encrypt two children keys or leaf */
     printf("building tree at host\n");
 
@@ -111,7 +112,8 @@ void PuncEnc_BuildTree(uint8_t cts[TREE_SIZE][CT_LEN], uint8_t msk[KEY_LEN],  ui
             RAND_bytes(keys + index * KEY_LEN, KEY_LEN);
             //RAND_bytes(keys[index], KEY_LEN);
             /* Encrypt leaf. */
-            encryptKeysAndCreateTag(keys + index * KEY_LEN, hmacKey, currLeaves, currLeaves + KEY_LEN, cts[index]);
+            encryptKeysAndCreateTag(keys + index * KEY_LEN, hmacKey, currLeaves, currLeaves + KEY_LEN, cts + index * CT_LEN);
+            //encryptKeysAndCreateTag(keys + index * KEY_LEN, hmacKey, currLeaves, currLeaves + KEY_LEN, cts[index]);
             currLeaves += LEAF_LEN;
             /* Next index. */
             printf("index = %d/%d\n", index, TREE_SIZE);
@@ -128,6 +130,8 @@ void PuncEnc_BuildTree(uint8_t cts[TREE_SIZE][CT_LEN], uint8_t msk[KEY_LEN],  ui
     //memcpy(msk, keys[TREE_SIZE - 1], KEY_LEN);
 
     printf("done building tree\n");
+    free(leaves);
+    free(keys);
 }
 
 int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC_ENC_REPL]) {

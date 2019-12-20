@@ -4,11 +4,13 @@
 #include <openssl/sha.h>
 #include <thread>
 
+#include "bls12_381/bls12_381.h"
 #include "common.h"
 #include "datacenter.h"
 #include "hidapi.h"
 #include "hsm.h"
 #include "params.h"
+#include "punc_enc.h"
 #include "shamir.h"
 #include "u2f_util.h"
 #include "punc_enc.h"
@@ -162,12 +164,22 @@ cleanup:
 
 int Datacenter_TestSetup(Datacenter *d) {
     int rv;
+    uint8_t *cts;
+    uint8_t msk[KEY_LEN];
+    uint8_t hmacKey[KEY_LEN];
+    embedded_pairing_bls12_381_g2_t mpk;
+
+    CHECK_A (cts = (uint8_t *)malloc(TREE_SIZE * CT_LEN));
+
+    printf("going to build tree\n");
+    PuncEnc_BuildTree(cts, msk, hmacKey, &mpk);
     for (int i = 0; i < NUM_HSMS; i++) {
         CHECK_C (HSM_GetMpk(d->hsms[i]));
-        CHECK_C (HSM_TestSetup(d->hsms[i]));
-        printf("Done with setup  for %d/%d\n", i, NUM_HSMS);
+        CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, &mpk));
+        printf("Done with setup for %d/%d\n", i, NUM_HSMS);
     }
 cleanup:
+    if (cts) free(cts);
     return rv;
 }
 

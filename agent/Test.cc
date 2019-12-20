@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < PUNC_ENC_REPL; i++) {
         IBE_ciphertext_free(c[i]);
     }
-  }
+  }  
 
   Datacenter_free(d);
 

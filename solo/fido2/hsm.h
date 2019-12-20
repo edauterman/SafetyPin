@@ -50,18 +50,18 @@ struct hsm_setup {
 };
 
 struct hsm_retrieve_request {
-    uint16_t index;
+    uint32_t index;
     uint8_t cts[LEVELS][CT_LEN];
     //uint16_t index;
 };
 
 struct hsm_puncture_request  {
-    uint16_t index;
+    uint32_t index;
     uint8_t cts[KEY_LEVELS][CT_LEN];
 };
 
 struct hsm_decrypt_request {
-    uint16_t index;
+    uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
 };
@@ -71,7 +71,7 @@ struct hsm_decrypt_response {
 };
 
 struct hsm_auth_decrypt_request {
-    uint16_t index;
+    uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
     uint8_t pinHash[SHA256_DIGEST_LEN];

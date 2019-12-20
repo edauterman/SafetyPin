@@ -17,7 +17,7 @@ extern "C" {
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32)
 
-#define PUNC_ENC_REPL 3 
+#define PUNC_ENC_REPL 80 
 
 #define RESPONSE_BUFFER_SIZE 4096
 
@@ -122,7 +122,8 @@ typedef struct {
 typedef struct {
     struct U2Fob *device;
     Params *params;
-    uint8_t cts[TREE_SIZE][CT_LEN];
+    uint8_t cts[TREE_SIZE * CT_LEN];
+    //uint8_t cts[TREE_SIZE][CT_LEN];
     bool isPunctured[NUM_LEAVES];
     embedded_pairing_bls12_381_g2_t mpk;
     pthread_mutex_t m;
@@ -136,6 +137,7 @@ int HSM_GetMpk(HSM *h);
 int HSM_Setup(HSM *h);
 int HSM_SmallSetup(HSM *h);
 int HSM_TestSetup(HSM *h);
+int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk);
 
 /* Testing tree. */
 int HSM_Retrieve(HSM *h, uint32_t index);
