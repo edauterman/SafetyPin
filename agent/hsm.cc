@@ -414,4 +414,18 @@ cleanup:
     return rv;
 }
 
+int HSM_MicroBench(HSM *h) {
+    int rv =  ERROR;
+    string resp_str;
+    pthread_mutex_lock(&h->m);
+
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_MICROBENCH, 0, 0,
+                "", &resp_str));
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("MICROBENCH ERROR\n");
+    return rv;
+}
+
 

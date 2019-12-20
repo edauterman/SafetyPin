@@ -42,6 +42,7 @@ extern "C" {
 #define HSM_SMALL_SETUP     0x75
 #define HSM_AUTH_DECRYPT    0x76
 #define HSM_TEST_SETUP      0x77
+#define HSM_MICROBENCH      0x78
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -138,6 +139,9 @@ int HSM_Puncture(HSM *h, uint16_t index);
 int HSM_Encrypt(HSM *h, uint16_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]);
 int HSM_Decrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen);
 int HSM_AuthDecrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash);
+
+/* Run microbenchmarks. */
+int HSM_MicroBench(HSM *h);
 
 #ifdef __cplusplus
 }

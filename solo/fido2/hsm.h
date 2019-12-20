@@ -36,6 +36,7 @@
 #define HSM_SMALL_SETUP     0x75
 #define HSM_AUTH_DECRYPT    0x76
 #define HSM_TEST_SETUP      0x77
+#define HSM_MICROBENCH      0x78
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -91,5 +92,6 @@ int HSM_Retrieve(struct hsm_retrieve_request *req);
 int HSM_Puncture(struct hsm_puncture_request *req);
 int HSM_Decrypt(struct hsm_decrypt_request *req);
 int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req);
+int HSM_MicroBench();
 
 #endif
