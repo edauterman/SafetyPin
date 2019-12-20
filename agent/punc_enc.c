@@ -147,13 +147,22 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
         CHECK_C (hash_to_bytes(bufOut, SHA256_DIGEST_LENGTH, bufIn, 8));
         CHECK_A (rawIndexBn = BN_bin2bn(bufOut, SHA256_DIGEST_LENGTH, NULL));
         CHECK_C (BN_mod(modIndexBn, rawIndexBn, params->numLeaves, params->bn_ctx));
-        uint8_t buf[4];
-        memset(buf, 0, 4);
-        BN_bn2bin(modIndexBn, buf);
-        memcpy((uint8_t *)&indexes[i], buf + 3, 1);
-        memcpy((uint8_t *)&indexes[i] + 1, buf + 2, 1);
-        memcpy((uint8_t *)&indexes[i] + 2, buf + 1, 1);
-        memcpy((uint8_t *)&indexes[i] + 3, buf, 1);
+        if (BN_num_bytes(modIndexBn) == 3) {
+            uint8_t buf[3];
+            memset(buf, 0, 3);
+            BN_bn2bin(modIndexBn, buf);
+            memcpy((uint8_t *)&indexes[i], buf + 2, 1);
+            memcpy((uint8_t *)&indexes[i] + 1, buf + 1, 1);
+            memcpy((uint8_t *)&indexes[i] + 2, buf, 1);
+        } else if (BN_num_bytes(modIndexBn) == 2) {
+            uint8_t buf[2];
+            memset(buf, 0, 2);
+            BN_bn2bin(modIndexBn, buf);
+            memcpy((uint8_t *)&indexes[i], buf + 1, 1);
+            memcpy((uint8_t *)&indexes[i] + 1, buf, 1);
+        } else {
+            BN_bn2bin(modIndexBn, (uint8_t *)&indexes[i]);
+        }
 
         printf("numLeaves: %s, tag: %s, num bytes: %d\n", BN_bn2hex(params->numLeaves), BN_bn2hex(modIndexBn), BN_num_bytes(modIndexBn));
         printf("%d -> %d (%d/%d)\n", tag, indexes[i], i, PUNC_ENC_REPL);

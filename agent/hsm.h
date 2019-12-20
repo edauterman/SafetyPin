@@ -123,6 +123,7 @@ typedef struct {
     struct U2Fob *device;
     Params *params;
     uint8_t cts[TREE_SIZE][CT_LEN];
+    bool isPunctured[NUM_LEAVES];
     embedded_pairing_bls12_381_g2_t mpk;
     pthread_mutex_t m;
 } HSM;

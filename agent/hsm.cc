@@ -42,6 +42,9 @@ HSM *HSM_new() {
     CHECK_A (h = (HSM *)malloc(sizeof(HSM)));
     pthread_mutex_init(&h->m, NULL);
     CHECK_A (h->params = Params_new());
+    for (int i = 0; i < NUM_LEAVES; i++) {
+        h->isPunctured[i] = false;
+    }
 
 cleanup:
     return h;
@@ -242,7 +245,7 @@ cleanup:
     return rv;
 }
 
-int HSM_Puncture(HSM *h, uint32_t index) {
+int puncture_noLock(HSM *h, uint32_t index) {
     int rv = ERROR;
     HSM_PUNCTURE_REQ req;
     HSM_PUNCTURE_RESP resp;
@@ -253,8 +256,6 @@ int HSM_Puncture(HSM *h, uint32_t index) {
     uint32_t totalTraveled = numLeaves;
     uint32_t currInterval = numLeaves / 2;
     size_t indexes[keyLevels];
-
-    pthread_mutex_lock(&h->m);
 
     for (int i = 0; i < keyLevels; i++) {
         printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
@@ -278,7 +279,20 @@ int HSM_Puncture(HSM *h, uint32_t index) {
         memcpy(h->cts[indexes[i]], resp.cts[i], CT_LEN);
     }
 
+    h->isPunctured[index] = true;
+
     printf("finished puncturing leaf\n");
+cleanup:
+    if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
+    return rv;
+}
+
+int HSM_Puncture(HSM *h, uint32_t index) {
+    int rv = ERROR;
+
+    pthread_mutex_lock(&h->m);
+
+    CHECK_C (puncture_noLock(h, index));
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
@@ -368,6 +382,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
     uint32_t currInterval;
     uint32_t indexes[PUNC_ENC_REPL];
     uint8_t zeros[msgLen];
+    bool gotPlaintext = false;
 
     pthread_mutex_lock(&h->m);
 
@@ -376,6 +391,11 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
     memset(zeros, 0, msgLen);
 
     for (int i = 0; i < PUNC_ENC_REPL; i++) {
+
+        if (gotPlaintext || h->isPunctured[indexes[i]]) {
+            CHECK_C (puncture_noLock(h, indexes[i]));
+            continue;
+        }
 
         numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
         levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
@@ -404,11 +424,10 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
 
         memcpy(&resp, resp_str.data(), resp_str.size());
    
-        /* Check if valid decryption. */ 
-        if (memcmp(zeros, resp.msg, msgLen) != 0) {
-            printf("Got valid decryption\n");
-            memcpy(msg, resp.msg, msgLen);
-        }
+        memcpy(msg, resp.msg, msgLen);
+
+        gotPlaintext =  true;
+        h->isPunctured[indexes[i]] = true;
 
         for (int j = 0; j < levels - 1; j++) {
             memcpy(h->cts[ctIndexes[j]], resp.newCts[j], CT_LEN);
