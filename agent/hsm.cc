@@ -98,6 +98,7 @@ int HSM_TestSetup(HSM *h) {
 
     pthread_mutex_lock(&h->m);
 
+    printf("going to run test setup\n");
     PuncEnc_BuildTree(h->cts, req.msk, req.hmacKey, &h->mpk);
 
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_TEST_SETUP, 0, 0,
@@ -140,14 +141,14 @@ int HSM_Setup(HSM *h) {
     HSM_SETUP_RESP resp;
     string resp_str;
     int currLevel = LEVEL_0;
-    int ctr[3] = {0, 0, 0};
+    int ctr[4] = {0, 0, 0, 0};
 
     isSmall = false;
 
     pthread_mutex_lock(&h->m);
 
     while (currLevel != LEVEL_DONE) {
-        printf("currLevel = %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
+        printf("currLevel = %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d, ctr[3] = %d\n", currLevel, ctr[0], ctr[1], ctr[2], ctr[3]);
         CHECK_C(EXPECTED_RET_VAL ==  U2Fob_apdu(h->device, 0, HSM_SETUP, 0, 0,
                     "", &resp_str));
 
@@ -169,7 +170,15 @@ int HSM_Setup(HSM *h) {
            }
         } else if (currLevel == LEVEL_2) {
             copySubTree((uint8_t *)h->cts + LEVEL_2_OFFSET, (uint8_t *)resp.cts, LEVEL_2_NUM_LEAVES, NUM_SUB_LEAVES, ctr[2]);
-            ctr[2]++;
+           ctr[2]++;
+           if (ctr[0] == 2 * LEVEL_2_NUM_LEAVES) {
+                currLevel = LEVEL_3;
+           } else {
+                currLevel = LEVEL_0;
+           }
+        } else if (currLevel == LEVEL_3) {
+            copySubTree((uint8_t *)h->cts + LEVEL_3_OFFSET, (uint8_t *)resp.cts, LEVEL_3_NUM_LEAVES, NUM_SUB_LEAVES, ctr[3]);
+            ctr[3]++;
             currLevel = LEVEL_DONE;
         }
         
@@ -191,16 +200,16 @@ cleanup:
     return rv;
 }
 
-int HSM_Retrieve(HSM *h, uint16_t index) {
+int HSM_Retrieve(HSM *h, uint32_t index) {
     int rv = ERROR;
     int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
     int levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
     HSM_RETRIEVE_REQ req;
     HSM_RETRIEVE_RESP resp;
     string resp_str;
-    uint16_t currIndex = index;
-    uint16_t totalTraveled = 0;
-    uint16_t currInterval = numLeaves;
+    uint32_t currIndex = index;
+    uint32_t totalTraveled = 0;
+    uint32_t currInterval = numLeaves;
 
     pthread_mutex_lock(&h->m);
 
@@ -233,16 +242,16 @@ cleanup:
     return rv;
 }
 
-int HSM_Puncture(HSM *h, uint16_t index) {
+int HSM_Puncture(HSM *h, uint32_t index) {
     int rv = ERROR;
     HSM_PUNCTURE_REQ req;
     HSM_PUNCTURE_RESP resp;
     string resp_str;
     int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
     int keyLevels = isSmall ? SUB_TREE_LEVELS - 1 : KEY_LEVELS;
-    uint16_t currIndex = index;
-    uint16_t totalTraveled = numLeaves;
-    uint16_t currInterval = numLeaves / 2;
+    uint32_t currIndex = index;
+    uint32_t totalTraveled = numLeaves;
+    uint32_t currInterval = numLeaves / 2;
     size_t indexes[keyLevels];
 
     pthread_mutex_lock(&h->m);
@@ -276,9 +285,9 @@ cleanup:
     return rv;
 }
 
-int HSM_Encrypt(HSM *h, uint16_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]) {
+int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]) {
     int rv;
-    uint16_t indexes[PUNC_ENC_REPL];
+    uint32_t indexes[PUNC_ENC_REPL];
 
     pthread_mutex_lock(&h->m);
     
@@ -292,17 +301,17 @@ cleanup:
     return rv;
 }
 
-int HSM_Decrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen) {
+int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen) {
     int rv = ERROR;
     HSM_DECRYPT_REQ req;
     HSM_DECRYPT_RESP resp;
     string resp_str;
     int numLeaves;
     int levels;
-    uint16_t currIndex;
-    uint16_t totalTraveled;
-    uint16_t currInterval;
-    uint16_t indexes[PUNC_ENC_REPL];
+    uint32_t currIndex;
+    uint32_t totalTraveled;
+    uint32_t currInterval;
+    uint32_t indexes[PUNC_ENC_REPL];
     uint8_t zeros[msgLen];
 
     pthread_mutex_lock(&h->m);
@@ -347,17 +356,17 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthDecrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash) {
+int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash) {
     int rv = ERROR;
     HSM_AUTH_DECRYPT_REQ req;
     HSM_AUTH_DECRYPT_RESP resp;
     string resp_str;
     int numLeaves;
     int levels;
-    uint16_t currIndex;
-    uint16_t totalTraveled;
-    uint16_t currInterval;
-    uint16_t indexes[PUNC_ENC_REPL];
+    uint32_t currIndex;
+    uint32_t totalTraveled;
+    uint32_t currInterval;
+    uint32_t indexes[PUNC_ENC_REPL];
     uint8_t zeros[msgLen];
 
     pthread_mutex_lock(&h->m);

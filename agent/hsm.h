@@ -21,10 +21,12 @@ extern "C" {
 
 #define RESPONSE_BUFFER_SIZE 4096
 
-#define NUM_LEAVES 16384
+#define NUM_LEAVES 524288
+//#define NUM_LEAVES 16384
 //#define NUM_LEAVES NUM_SUB_LEAVES
 //#define NUM_LEAVES 256
-#define LEVELS 15 // log2(NUM_LEAVES) + 1
+#define LEVELS 20 // log2(NUM_LEAVES) + 1
+//#define LEVELS 15 // log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES) + 1
 #define SUB_TREE_LEVELS 5
 //#define LEVELS 16 // log2(NUM_LEAVES)
@@ -47,13 +49,16 @@ extern "C" {
 #define LEVEL_0 0
 #define LEVEL_1 1
 #define LEVEL_2 2
+#define LEVEL_3 3
 #define LEVEL_DONE -1
 
-#define LEVEL_1_OFFSET ((16384 + 8192 + 4096 + 2048 + 1024) * CT_LEN)
-#define LEVEL_2_OFFSET (LEVEL_1_OFFSET + ((512 + 256 + 128 + 64 + 32) * CT_LEN))
-#define LEVEL_1_NUM_LEAVES 512
+#define LEVEL_1_OFFSET ((524288 + 262144 + 131072 + 65536 + 32768) * CT_LEN)
+#define LEVEL_2_OFFSET (LEVEL_1_OFFSET + ((16384 + 8192 + 4096 + 2048 + 1024) * CT_LEN))
+#define LEVEL_3_OFFSET (LEVEL_1_OFFSET + LEVEL_2_OFFSET +  ((512 + 256 + 128 + 64 + 32) * CT_LEN))
+#define LEVEL_1_NUM_LEAVES 16384 
+#define LEVEL_2_NUM_LEAVES 512
 //#define LEVEL_1_NUM_LEAVES 1024 
-#define LEVEL_2_NUM_LEAVES 16
+#define LEVEL_3_NUM_LEAVES 16
 //#define LEVEL_2_NUM_LEAVES 32
 
 using namespace std;
@@ -67,7 +72,7 @@ typedef struct{
 } HSM_SETUP_RESP;
 
 typedef struct{
-    uint16_t index;
+    uint32_t index;
     uint8_t cts[LEVELS][CT_LEN];
     //uint16_t index;
 } HSM_RETRIEVE_REQ;
@@ -77,7 +82,7 @@ typedef struct{
 } HSM_RETRIEVE_RESP;
 
 typedef struct {
-    uint16_t index;
+    uint32_t index;
     uint8_t cts[KEY_LEVELS][CT_LEN];
 } HSM_PUNCTURE_REQ;
 
@@ -86,7 +91,7 @@ typedef struct {
 } HSM_PUNCTURE_RESP;
 
 typedef struct {
-    uint16_t index;
+    uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
 } HSM_DECRYPT_REQ;
@@ -96,7 +101,7 @@ typedef struct {
 } HSM_DECRYPT_RESP;
 
 typedef struct {
-    uint16_t index;
+    uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
     uint8_t pinHash[SHA256_DIGEST_LENGTH];
@@ -132,13 +137,13 @@ int HSM_SmallSetup(HSM *h);
 int HSM_TestSetup(HSM *h);
 
 /* Testing tree. */
-int HSM_Retrieve(HSM *h, uint16_t index);
-int HSM_Puncture(HSM *h, uint16_t index);
+int HSM_Retrieve(HSM *h, uint32_t index);
+int HSM_Puncture(HSM *h, uint32_t index);
 
 /* Encryption/decryption. Decrypt only for testing. Only use AuthDecrypt. */
-int HSM_Encrypt(HSM *h, uint16_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]);
-int HSM_Decrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen);
-int HSM_AuthDecrypt(HSM *h, uint16_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash);
+int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]);
+int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen);
+int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash);
 
 /* Run microbenchmarks. */
 int HSM_MicroBench(HSM *h);

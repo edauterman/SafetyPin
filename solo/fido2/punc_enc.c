@@ -21,7 +21,8 @@ static bool isSmall;
 //static uint8_t newCachedLeaves[NUM_LEAVES / NUM_SUB_LEAVES][KEY_LEN];
 static uint8_t levelOneLeaves[NUM_INTERMEDIATE_KEYS][KEY_LEN];
 static uint8_t levelTwoLeaves[NUM_INTERMEDIATE_KEYS][KEY_LEN];
-static int ctr[3] = {0, 0, 0};
+static uint8_t levelThreeLeaves[NUM_INTERMEDIATE_KEYS][KEY_LEN];
+static int ctr[4] = {0, 0, 0, 0};
 static int ibeLeafCtr = 0;
 static int currLevel = LEVEL_0;
 
@@ -104,7 +105,7 @@ void setIBELeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], int start) {
         uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
         embedded_pairing_bls12_381_g1_t sk;
         embedded_pairing_bls12_381_g1affine_t sk_affine;
-        uint16_t index = i + start;
+        uint32_t index = i + start;
         IBE_Extract(index, &sk);
         embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
         embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
@@ -135,8 +136,16 @@ void increment() {
             currLevel = LEVEL_0;
             ctr[1]++;
         }
+    } else if (currLevel == LEVEL_2) {
+        if (ctr[2] == NUM_INTERMEDIATE_KEYS - 1) {
+            currLevel = LEVEL_3;
+            ctr[2] = 0;
+        } else {
+            currLevel = LEVEL_0;
+            ctr[2]++;
+        }
     }
-    /* When LEVEL_2, no rounds left. */
+    /* When LEVEL_3, no rounds left. */
 }
 
 void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN]) {
@@ -146,7 +155,10 @@ void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN]) {
         memcpy(leaves, levelOneLeaves, NUM_INTERMEDIATE_KEYS * KEY_LEN);
     } else if (currLevel == LEVEL_2) {
         memcpy(leaves, levelTwoLeaves, NUM_INTERMEDIATE_KEYS * KEY_LEN);
+    } else if (currLevel == LEVEL_3) {
+        memcpy(leaves, levelThreeLeaves, NUM_INTERMEDIATE_KEYS * KEY_LEN);
     }
+
 }
 
 void processSubTreeRoot(uint8_t root[KEY_LEN]) {
@@ -154,6 +166,8 @@ void processSubTreeRoot(uint8_t root[KEY_LEN]) {
         memcpy(levelOneLeaves[ctr[0]], root, KEY_LEN);
     } else if (currLevel == LEVEL_1) {
         memcpy(levelTwoLeaves[ctr[1]], root, KEY_LEN);
+    } else if (currLevel == LEVEL_2) {
+        memcpy(levelThreeLeaves[ctr[2]], root, KEY_LEN);
     } else {
         setMsk(root);
     }
@@ -168,7 +182,7 @@ void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], uint8_t cts[
     isSmall = false;
     printf1(TAG_GREEN, "in build subtree\n");
 
-    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
+    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d ctr[3] = %d\n", currLevel, ctr[0], ctr[1], ctr[2], ctr[3]);
 
     int index = 0;
     int currNumLeaves = NUM_SUB_LEAVES;
@@ -220,8 +234,6 @@ void PuncEnc_BuildSmallTree(uint8_t cts[SUB_TREE_SIZE][CT_LEN]) {
     
     /* For each level in subtree, choose random key, encrypt two children keys or leaf */
     printf1(TAG_GREEN, "in build subtree\n");
-
-    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
 
     uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN];
     int index = 0;
@@ -279,15 +291,15 @@ void setMsk(uint8_t newMsk[KEY_LEN]) {
 }
 
 /* Look up leaf in the tree given ciphertexts along the path to that leaf. */
-int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t leaf[CT_LEN]) {
+int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t leaf[CT_LEN]) {
     int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
     int levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
     uint8_t currKey[KEY_LEN];
     uint8_t leftKey[KEY_LEN];
     uint8_t rightKey[KEY_LEN];
-    uint16_t currCmp = numLeaves / 2;
+    uint32_t currCmp = numLeaves / 2;
     //uint16_t currCmp = NUM_LEAVES / 2;
-    uint16_t currIndex = index;
+    uint32_t currIndex = index;
    
     memcpy(currKey, msk, KEY_LEN);
 
@@ -346,7 +358,7 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint16_t index, uint8_t le
 
 /* Puncture a leaf. Given ciphertexts along the path to the leaf corresponding
  * to index, output a new set of ciphertexts. Also updates msk. */
-void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint16_t index, uint8_t newCts[KEY_LEVELS][CT_LEN]) {
+void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, uint8_t newCts[KEY_LEVELS][CT_LEN]) {
     int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
     int keyLevels = isSmall ? SUB_TREE_LEVELS - 1 : KEY_LEVELS;
     uint8_t currKey[KEY_LEN];
@@ -354,8 +366,8 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint16_t index, ui
     uint8_t rightKeys[keyLevels][KEY_LEN];
     uint8_t pathKeys[keyLevels][KEY_LEN];
     uint8_t pathDirs[keyLevels];
-    uint16_t currCmp = numLeaves / 2;
-    uint16_t currIndex = index;
+    uint32_t currCmp = numLeaves / 2;
+    uint32_t currIndex = index;
     
     memcpy(currKey, msk, KEY_LEN);
 

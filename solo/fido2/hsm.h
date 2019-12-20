@@ -12,11 +12,13 @@
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32) 
 
-#define NUM_LEAVES 16384 
+#define NUM_LEAVES 524288
+//#define NUM_LEAVES 16384 
 //#define NUM_LEAVES 65536 
 //#define NUM_LEAVES NUM_SUB_LEAVES
 //#define LEVELS 5    //log2(NUM_LEAVES) + 1
-#define LEVELS 15    //log2(NUM_LEAVES) + 1
+#define LEVELS 20    //log2(NUM_LEAVES) + 1
+//#define LEVELS 15    //log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1)
 #define SUB_TREE_LEVELS 5
 // SUB_TREE_SIZE before had CT_LEN instead of 4 * KEY_LEN, but then CT_LEN changed to have tag
@@ -27,6 +29,7 @@
 #define LEVEL_0 0
 #define LEVEL_1 1
 #define LEVEL_2 2
+#define LEVEL_3 3
 
 #define HSM_SETUP           0x70
 #define HSM_RETRIEVE        0x71

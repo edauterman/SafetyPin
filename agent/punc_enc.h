@@ -5,6 +5,6 @@
 #include "hsm.h"
 
 void PuncEnc_BuildTree(uint8_t cts[TREE_SIZE][CT_LEN], uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk);
-int PuncEnc_GetIndexesForTag(Params *params, uint16_t tag, uint16_t indexes[PUNC_ENC_REPL]);
+int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC_ENC_REPL]);
 
 #endif
