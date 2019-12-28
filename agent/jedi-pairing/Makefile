@@ -21,8 +21,9 @@ ifeq ($(CXX),clang++)
 endif
 
 # Try to autodetect the target architecture and set ARCHDIR accordingly
-ARCH = $(shell uname -m)
-ARCHDIR = src/core/arch/$(ARCH)
+#ARCH=x86_64 
+#ARCH = $(shell uname -m)
+#ARCHDIR = src/core/arch/$(ARCH)
 
 # Comment out the above and uncomment the below for embedded build
 
@@ -37,7 +38,7 @@ ARCHDIR = src/core/arch/$(ARCH)
 CXXFLAGS += -DDISABLE_ASM
 
 PAIRING_CPP_SOURCES = $(wildcard src/core/*.cpp) $(wildcard src/bls12_381/*.cpp) $(wildcard src/wkdibe/*.cpp) $(wildcard src/lqibe/*.cpp) $(wildcard $(ARCHDIR)/*.cpp)
-#PAIRING_ASM_SOURCES = $(wildcard $(ARCHDIR)/*.s)
+PAIRING_ASM_SOURCES = $(wildcard $(ARCHDIR)/*.s)
 
 CPP_SOURCES = $(PAIRING_CPP_SOURCES)
 ASM_SOURCES = $(PAIRING_ASM_SOURCES)

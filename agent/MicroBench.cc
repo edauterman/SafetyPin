@@ -27,7 +27,15 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  HSM_MicroBench(d->hsms[0]);
+  struct timeval t1, t2;
+  
+  gettimeofday(&t1, NULL);
+  HSM_LongMsg(d->hsms[0]);
+  gettimeofday(&t2, NULL);
+
+  printf("long msg time: %ld sec, %d micros\n", t2.tv_sec - t1.tv_sec, t2.tv_usec - t1.tv_usec);
+
+  //HSM_MicroBench(d->hsms[0]);
 
   Datacenter_free(d);
 

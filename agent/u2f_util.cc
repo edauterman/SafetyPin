@@ -278,7 +278,8 @@ int U2Fob_send(struct U2Fob* device, uint8_t cmd,
   memset(frame.init.data, 0xEE, sizeof(frame.init.data));
   memcpy(frame.init.data, pData, frameLen);
 
-  do {
+  hid_write(device->dev, (const uint8_t *)data, size);
+  /*do {
     res = U2Fob_sendHidFrame(device, &frame);
     if (res != 0) return res;
 
@@ -290,7 +291,7 @@ int U2Fob_send(struct U2Fob* device, uint8_t cmd,
     memset(frame.cont.data, 0xEE, sizeof(frame.cont.data));
     memcpy(frame.cont.data, pData, frameLen);
   } while (size);
-
+*/
   return 0;
 }
 
