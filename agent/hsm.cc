@@ -480,4 +480,20 @@ cleanup:
     return rv;
 }
 
+int HSM_LongMsg(HSM *h) {
+    int rv =  ERROR;
+    HSM_LONG_REQ req;
+    string resp_str;
+    pthread_mutex_lock(&h->m);
+
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_LONGMSG, 0, 0,
+                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("LONG MSG ERROR\n");
+    return rv;
+}
+
 

@@ -371,8 +371,6 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, ui
     
     memcpy(currKey, msk, KEY_LEN);
 
-    printf1(TAG_GREEN, "trying to puncture %d\n", index);
-
     /* Walk down to the leaf, recording information to create new set of cts. */
     for (int i = 0; i < keyLevels; i++) {
         memcpy(pathKeys[i], currKey, KEY_LEN);
@@ -387,28 +385,16 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, ui
 
         /* Decide to go left or right. */
         if (currIndex < currCmp) {
-            printf("going left at %d\n", i);
+            //printf("going left at %d\n", i);
             memcpy(currKey, leftKeys[i], KEY_LEN);
             pathDirs[i] = 0;
         } else {
-            printf("going right at %d\n", i);
+            //printf("going right at %d\n", i);
             memcpy(currKey, rightKeys[i], KEY_LEN);
             currIndex -= currCmp;
             pathDirs[i] = 1;
         }
        
-        printf("left key at %d: ", i);
-        for (int j = 0; j < KEY_LEN; j++) {
-            printf("%x ", leftKeys[i][j]);
-        }
-        printf("\n");
-
-        printf("right key at %d: ", i);
-        for (int j = 0; j < KEY_LEN; j++) {
-            printf("%x ", rightKeys[i][j]);
-        }
-        printf("\n");
-
         currCmp /= 2;
     }
 
@@ -421,12 +407,6 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, ui
         uint8_t plaintext[CT_LEN];
         /* Decide which key to leave and which to replace. */
         if (pathDirs[i] == 0) {
-            printf("***keep right key: ");
-            for (int j = 0; j < KEY_LEN; j++) {
-                printf("%x ", rightKeys[i][j]);
-            }
-            printf("\n");
-
             memcpy(plaintext, newKey, KEY_LEN);
             memcpy((uint8_t *)plaintext + KEY_LEN, rightKeys[i], KEY_LEN);
         } else {
@@ -436,29 +416,12 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, ui
 
         /* Generate replacement key. */
         ctap_generate_rng(newKey,  KEY_LEN);
-        printf("--- new key: ");
-        for (int j = 0; j < KEY_LEN; j++) {
-            printf("%x ", newKey[j]);
-        }
-        printf("\n");
-
-        printf("--- PLAINTEXT: ");
-        for (int j = 0; j < CT_LEN; j++) {
-            printf("%x ", plaintext[j]);
-        }
-        printf("\n");
    
         /* Encrypt original key and replacement key. */
         encryptKeysAndCreateTag(newKey, hmacKey, plaintext, plaintext + KEY_LEN, newCts[keyLevels - i - 1]);
         //crypto_aes256_init(newKey, NULL);
         //crypto_aes256_encrypt_sep(newCts[KEY_LEVELS - i - 1], plaintext, KEY_LEN);
         //crypto_aes256_encrypt_sep((uint8_t *)newCts[KEY_LEVELS - i - 1] + KEY_LEN, (uint8_t *)plaintext +  KEY_LEN, KEY_LEN);
-
-        printf("newCts[%d]: ", i);
-        for (int j = 0; j < KEY_LEN; j++) {
-            printf("%x ", newCts[i][j]);
-        }
-        printf("\n");
     }
 
     memcpy(msk, newKey, KEY_LEN);

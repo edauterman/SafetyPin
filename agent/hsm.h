@@ -45,6 +45,7 @@ extern "C" {
 #define HSM_AUTH_DECRYPT    0x76
 #define HSM_TEST_SETUP      0x77
 #define HSM_MICROBENCH      0x78
+#define HSM_LONGMSG         0x79
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -117,6 +118,17 @@ typedef struct {
     uint8_t hmacKey[KEY_LEN];
 } HSM_TEST_SETUP_REQ;
 
+typedef struct {
+    uint8_t buf[RESPONSE_BUFFER_SIZE  - 16];
+} HSM_LONG_REQ;
+
+typedef struct {
+    uint8_t buf[RESPONSE_BUFFER_SIZE - 16];
+} HSM_LONG_RESP;
+
+
+
+
 /* ---------------------------------- */
 
 typedef struct {
@@ -150,6 +162,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
 
 /* Run microbenchmarks. */
 int HSM_MicroBench(HSM *h);
+int HSM_LongMsg(HSM *h);
 
 #ifdef __cplusplus
 }

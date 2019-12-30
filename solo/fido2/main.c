@@ -25,10 +25,9 @@
 
 #if !defined(TEST)
 
-
 int main(int argc, char *argv[])
 {
-    uint8_t hidmsg[64];
+    uint8_t msg[64];
     uint32_t t1 = 0;
 
     set_logging_mask(
@@ -56,15 +55,20 @@ int main(int argc, char *argv[])
 
     device_init(argc, argv);
 
-    memset(hidmsg,0,sizeof(hidmsg));
+    memset(msg,0,64);
 
     IBE_Setup();
     PuncEnc_Init();
 
     printf1(TAG_GREEN, "starting!\n");
 
+    uint32_t t_old = millis();
+    uint32_t t_new = millis();
+
     while(1)
     {
+        t_old = t_new;
+        t_new = millis();
         if (millis() - t1 > HEARTBEAT_PERIOD)
         {
             heartbeat();
@@ -98,10 +102,25 @@ int main(int argc, char *argv[])
 
         device_manage();
 
-        if (usbhid_recv(hidmsg) > 0)
+        uint32_t t0 = millis();
+        if (usbhid_recv(msg) > 0)
         {
-            ctaphid_handle_packet(hidmsg);
-            memset(hidmsg, 0, sizeof(hidmsg));
+            /*if ((msg[0] == CMD_DEC) || (msg[0] == CMD_PUNC)) {
+                /* Custom commands. */
+                /*usb_handle_packet(msg);
+                memset(msg, 0, sizeof(msg));
+            } else {*/
+                /* Legacy HID. */
+                uint32_t t1 = millis();
+                ctaphid_handle_packet(msg);
+                uint32_t t2 = millis();
+                printf1(TAG_GREEN, "handle packet time: %d ms\n", t2 - t1);
+                printf1(TAG_GREEN, "receive packet time: %d ms\n", t1 - t0);
+                printf1(TAG_GREEN, "loop time: %d ms\n", t_new - t_old);
+//                for (int i = 0;  i < sizeof(msg); i++) if (msg[i] != 0) printf("%x", msg[i]);
+//                printf("\n");
+                memset(msg, 0, sizeof(msg));
+                //}
         }
         else
         {

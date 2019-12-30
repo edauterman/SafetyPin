@@ -104,8 +104,15 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
 
             case HSM_MICROBENCH:
                 printf1(TAG_GREEN, "starting microbenchmarks\n");
+                //rcode = U2F_SW_NO_ERROR;
                 rcode = HSM_MicroBench();
                 printf1(TAG_GREEN, "finished microbenchmarks\n");
+                break;
+
+            case HSM_LONGMSG:
+                printf1(TAG_GREEN, "starting long msg\n");
+                rcode = HSM_LongMsg((struct hsm_long_request *)payload);
+                printf1(TAG_GREEN, "finished long msg\n");
                 break;
 
             case U2F_REGISTER:

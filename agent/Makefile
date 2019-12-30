@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://developers.google.com/open-source/licenses/bsd
 
-all: list Test CryptoTest TreeTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench TreeBuildBench
+all: list Test CryptoTest TreeTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench TreeBuildBench UsbTest
 
 #CC ?= gcc
 #CXX ?= g++
@@ -90,6 +90,9 @@ MicroBench: MicroBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.
 
 RecoveryTest: RecoveryTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
+
+UsbTest: UsbTest.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -I/usr/local/include -I/usr/local/Cellar/libusb/1.0.23/include/ jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto -lusb-1.0
 
 RecoveryBench: RecoveryBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto

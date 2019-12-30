@@ -179,6 +179,7 @@ static int is_cont_pkt(CTAPHID_PACKET * pkt)
 
 static int buffer_packet(CTAPHID_PACKET * pkt)
 {
+    printf1(TAG_GREEN, "packet len: %d\n", ctaphid_packet_len(pkt));
     if (pkt->pkt.init.cmd & TYPE_INIT)
     {
         ctap_buffer_bcnt = ctaphid_packet_len(pkt);
@@ -667,8 +668,11 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 
             wb.bcnt = (ctap_resp.length);
 
+            uint32_t t1 = millis();
             ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
             ctaphid_write(&wb, NULL, 0);
+            uint32_t t2 = millis();
+            printf1(TAG_GREEN, "writeback time: %d ms\n", t2 - t1);
             is_busy = 0;
             break;
         case CTAPHID_CANCEL:

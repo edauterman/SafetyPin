@@ -11,4 +11,6 @@ void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN]);
 int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t leaf[CT_LEN]);
 void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, uint8_t newCts[KEY_LEVELS][CT_LEN]);
 
+void crypto_hmac(uint8_t *key, uint8_t *out, uint8_t *in, int inLen);
+
 #endif
