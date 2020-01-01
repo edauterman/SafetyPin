@@ -96,14 +96,16 @@ struct hsm_long_response {
     uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
 };
 
-int HSM_GetMpk();
-int HSM_Setup();
-int HSM_SmallSetup();
-int HSM_TestSetup(struct hsm_test_setup_request *req);
-int HSM_Retrieve(struct hsm_retrieve_request *req);
-int HSM_Puncture(struct hsm_puncture_request *req);
-int HSM_Decrypt(struct hsm_decrypt_request *req);
-int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req);
-int HSM_MicroBench();
-int HSM_LongMsg(struct hsm_long_request *req);
+void HSM_Handle(uint8_t *in, uint8_t *out, int *outLen);
+
+int HSM_GetMpk(uint8_t *out, int *outLen);
+int HSM_Setup(uint8_t *out, int *outLen);
+int HSM_SmallSetup(uint8_t *out, int *outLen);
+int HSM_TestSetup(struct hsm_test_setup_request *req, uint8_t *out, int *outLen);
+int HSM_Retrieve(struct hsm_retrieve_request *req, uint8_t *out, int *outLen);
+int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen);
+int HSM_Decrypt(struct hsm_decrypt_request *req, uint8_t *out, int *outLen);
+int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *outLen);
+int HSM_MicroBench(uint8_t *out, int *outLen);
+int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen);
 #endif

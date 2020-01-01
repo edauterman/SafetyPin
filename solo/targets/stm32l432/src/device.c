@@ -380,8 +380,31 @@ void usbhid_send(uint8_t * msg)
     while (PCD_GET_EP_TX_STATUS(USB, HID_EPIN_ADDR & 0x0f) == USB_EP_TX_VALID)
         ;
     USBD_LL_Transmit(&Solo_USBD_Device, HID_EPIN_ADDR, msg, HID_PACKET_SIZE);
+}
 
+void usbcdc_send(uint8_t *msg, int len) {
+    printf("transmit of len %d\n", len);
+    // getting an error here and putting it in a loop doesn't help
+    int res = CDC_Transmit_FS(msg, len);
+    /*if (res == USBD_OK) {
+        printf("ok transmit\n");
+    } else if (res == USBD_FAIL) {
+        printf("fail transmit\n");
+    } else if (res == USBD_BUSY) {
+        printf("busy for transmit\n");
+    } else {
+        printf("some other error\n");
+    }*/
+    printf("done with send: %d\n", res);
+}
 
+// packet size will be <= 64, later make this bigger
+int usbcdc_recv(uint8_t *msg) {
+    if (fifo_cdcmsg_size()) {
+        fifo_cdcmsg_take(msg);
+        return 64;
+    }
+    return 0;
 }
 
 void ctaphid_write_block(uint8_t * data)

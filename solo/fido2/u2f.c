@@ -56,62 +56,62 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
 
             case HSM_MPK:
                 printf1(TAG_GREEN, "starting get mpk\n");
-                rcode = HSM_GetMpk();
+                rcode = HSM_GetMpk(NULL, NULL);
                 printf1(TAG_GREEN, "finished get mpk\n");
                 break;
 
             case HSM_SETUP:
                 printf1(TAG_GREEN, "starting setup\n");
-                rcode = HSM_Setup();
+                rcode = HSM_Setup(NULL, NULL);
                 printf1(TAG_GREEN, "finished setup\n");
                 break;
 
            case HSM_SMALL_SETUP:
                 printf1(TAG_GREEN, "starting small setup\n");
-                rcode = HSM_SmallSetup();
+                rcode = HSM_SmallSetup(NULL, NULL);
                 printf1(TAG_GREEN, "finished small setup\n");
                 break;
 
            case HSM_TEST_SETUP:
                 printf1(TAG_GREEN, "starting test setup\n");
-                rcode = HSM_TestSetup((struct hsm_test_setup_request *)payload);
+                rcode = HSM_TestSetup((struct hsm_test_setup_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished test setup\n");
                 break;
 
             case HSM_RETRIEVE:
                 printf1(TAG_GREEN, "starting retrieve\n");
-                rcode = HSM_Retrieve((struct hsm_retrieve_request *)payload);
+                rcode = HSM_Retrieve((struct hsm_retrieve_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished retrieve\n");
                 break;
 
             case HSM_PUNCTURE:
                 printf1(TAG_GREEN, "starting puncture\n");
-                rcode = HSM_Puncture((struct hsm_puncture_request *)payload);
+                rcode = HSM_Puncture((struct hsm_puncture_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished puncture\n");
                 break;
 
             case HSM_AUTH_DECRYPT:
                 printf1(TAG_GREEN, "starting auth decrypt\n");
-                rcode = HSM_AuthDecrypt((struct hsm_auth_decrypt_request *)payload);
+                rcode = HSM_AuthDecrypt((struct hsm_auth_decrypt_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished auth decrypt\n");
                 break;
 
             case HSM_DECRYPT:
                 printf1(TAG_GREEN, "starting decrypt\n");
-                rcode = HSM_Decrypt((struct hsm_decrypt_request *)payload);
+                rcode = HSM_Decrypt((struct hsm_decrypt_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished decrypt\n");
                 break;
 
             case HSM_MICROBENCH:
                 printf1(TAG_GREEN, "starting microbenchmarks\n");
                 //rcode = U2F_SW_NO_ERROR;
-                rcode = HSM_MicroBench();
+                rcode = HSM_MicroBench(NULL, NULL);
                 printf1(TAG_GREEN, "finished microbenchmarks\n");
                 break;
 
             case HSM_LONGMSG:
                 printf1(TAG_GREEN, "starting long msg\n");
-                rcode = HSM_LongMsg((struct hsm_long_request *)payload);
+                rcode = HSM_LongMsg((struct hsm_long_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished long msg\n");
                 break;
 

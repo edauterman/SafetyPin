@@ -24,6 +24,10 @@ int usbhid_recv(uint8_t * msg);
 
 void usbhid_send(uint8_t * msg);
 
+int usbcdc_recv(uint8_t * msg);
+
+void usbcdc_send(uint8_t * msg, int len);
+
 void usbhid_close();
 
 void main_loop_delay();

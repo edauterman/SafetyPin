@@ -69,6 +69,8 @@ uint32_t fifo_##NAME##_whead();\
 
 FIFO_CREATE_H(hidmsg)
 
+FIFO_CREATE_H(cdcmsg)
+
 FIFO_CREATE_H(debug)
 
 FIFO_CREATE_H(test)

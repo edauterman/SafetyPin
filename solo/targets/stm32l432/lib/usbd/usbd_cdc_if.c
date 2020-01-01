@@ -50,6 +50,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc_if.h"
 
+#include "fifo.h"
+
 /* USER CODE BEGIN INCLUDE */
 
 /* USER CODE END INCLUDE */
@@ -292,6 +294,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 6 */
   USBD_CDC_SetRxBuffer(&Solo_USBD_Device, &Buf[0]);
   USBD_CDC_ReceivePacket(&Solo_USBD_Device);
+  fifo_cdcmsg_add(Buf); // assuming 64 bytes...
   return (USBD_OK);
   /* USER CODE END 6 */
 }

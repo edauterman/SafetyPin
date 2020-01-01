@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "cbor.h"
+#include "cdc.h"
 #include "device.h"
 #include "ctaphid.h"
 //#include "bsp.h"
@@ -29,6 +30,7 @@ int main(int argc, char *argv[])
 {
     uint8_t msg[64];
     uint32_t t1 = 0;
+//    uint8_t cdc_msg[CDC_MAX_PACKET_SZ];
 
     set_logging_mask(
 		/*0*/
@@ -56,6 +58,7 @@ int main(int argc, char *argv[])
     device_init(argc, argv);
 
     memset(msg,0,64);
+//    memset(cdc_msg, 0, sizeof(cdc_msg));
 
     IBE_Setup();
     PuncEnc_Init();
@@ -65,6 +68,14 @@ int main(int argc, char *argv[])
     uint32_t t_old = millis();
     uint32_t t_new = millis();
 
+#ifndef IS_BOOTLOADER
+    printf("not is bootloader\n");
+#else
+    printf("is bootloader\n");
+#endif
+
+    printf("after\n");
+
     while(1)
     {
         t_old = t_new;
@@ -73,31 +84,6 @@ int main(int argc, char *argv[])
         {
             heartbeat();
             t1 = millis();
-
-/*            uint8_t pubkey[32];
-            uint8_t privkey[64];
-            uint8_t shared_secret[32];
-            uint32_t before1 = millis();
-            crypto_ecc256_make_key_pair(pubkey, privkey);
-            uint32_t before2 = millis();
-            printf1(TAG_GREEN, "key pair: %d\n", before2 - before1);
-            crypto_ecc256_shared_secret(pubkey, privkey, shared_secret);
-            uint32_t after = millis();
-            printf1(TAG_GREEN, "shared secret: %d\n", after - before2);
-            uint32_t before3 = millis();
-            //embedded_pairing_bls12_381_g1_t result;
-            //embedded_pairing_bls12_381_g1_add(&result, embedded_pairing_bls12_381_g1_zero, embedded_pairing_bls12_381_g1_zero);
-
-            //embedded_pairing_bls12_381_g1_t a;
-            //embedded_pairing_bls12_381_g1affine_t a_affine;
-            //embedded_pairing_bls12_381_g2_t b;
-            //embedded_pairing_bls12_381_g2affine_t b_affine;
-            embedded_pairing_bls12_381_fq12_t c_affine;
-            embedded_pairing_bls12_381_pairing(&c_affine, embedded_pairing_bls12_381_g1affine_zero, embedded_pairing_bls12_381_g2affine_zero);
-            uint32_t after3 = millis();
-            printf1(TAG_GREEN, "pairing: %d\n", after3 - before3);
-            printf1(TAG_GREEN, "wheeeeep\n");
-  */
         }
 
         device_manage();
@@ -105,26 +91,26 @@ int main(int argc, char *argv[])
         uint32_t t0 = millis();
         if (usbhid_recv(msg) > 0)
         {
-            /*if ((msg[0] == CMD_DEC) || (msg[0] == CMD_PUNC)) {
-                /* Custom commands. */
-                /*usb_handle_packet(msg);
-                memset(msg, 0, sizeof(msg));
-            } else {*/
-                /* Legacy HID. */
-                uint32_t t1 = millis();
-                ctaphid_handle_packet(msg);
-                uint32_t t2 = millis();
-                printf1(TAG_GREEN, "handle packet time: %d ms\n", t2 - t1);
-                printf1(TAG_GREEN, "receive packet time: %d ms\n", t1 - t0);
-                printf1(TAG_GREEN, "loop time: %d ms\n", t_new - t_old);
-//                for (int i = 0;  i < sizeof(msg); i++) if (msg[i] != 0) printf("%x", msg[i]);
-//                printf("\n");
-                memset(msg, 0, sizeof(msg));
+            uint32_t t1 = millis();
+            ctaphid_handle_packet(msg);
+            uint32_t t2 = millis();
+            printf1(TAG_GREEN, "handle packet time: %d ms\n", t2 - t1);
+            printf1(TAG_GREEN, "receive packet time: %d ms\n", t1 - t0);
+            printf1(TAG_GREEN, "loop time: %d ms\n", t_new - t_old);
+            memset(msg, 0, sizeof(msg));
                 //}
         }
-        else
-        {
+        if (usbcdc_recv(msg) > 0) {
+            printf("received via cdc\n");
+        //if (usbcdc_recv(cdc_msg) > 0) {
+            cdc_handle_packet(msg);
+        //    cdc_handle_packet(cdc_msg);
+            memset(msg, 0, sizeof(msg));
+            printf("sending back msg for test\n");
+            usbcdc_send(msg, sizeof(msg));
+            //    memset(cdc_msg, 0, sizeof(cdc_msg));
         }
+
         ctaphid_check_timeouts();
 
     }
