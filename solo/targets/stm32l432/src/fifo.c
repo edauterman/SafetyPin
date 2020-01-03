@@ -15,7 +15,8 @@ FIFO_CREATE(debug,4096,1)
 
 FIFO_CREATE(hidmsg,50,64)
 
-FIFO_CREATE(cdcmsg,50,64)
+FIFO_CREATE(cdcmsg,3,1024)
+//FIFO_CREATE(cdcmsg,50,64)
 //FIFO_CREATE(cdcmsg,100,64)
 
 #if TEST_FIFO

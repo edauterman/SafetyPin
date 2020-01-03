@@ -61,10 +61,13 @@ int main(int argc, char *argv[]) {
     if (fd == -1) {
         printf("ERROR OPENING\n");
     }
-    uint8_t msg[64];
+    uint8_t msg[1024];
     memset(msg, 0xff, sizeof(msg));
-    if (write(fd, msg, sizeof(msg)) == -1)  {
-        printf("error with write\n");
+    int bytesWritten = 0;
+    while (bytesWritten < sizeof(msg)) {
+        int res = write(fd, msg + bytesWritten, sizeof(msg) - bytesWritten);
+        printf("wrote %d bytes\n", res);
+        bytesWritten += res;
     }
     fd_set fds;
     struct timeval timeout;
@@ -75,10 +78,14 @@ int main(int argc, char *argv[]) {
     FD_SET(fd, &fds);
 //    sleep(5);
     int selectRes =  select(fd + 1, &fds, NULL, NULL, &timeout);
+    int bytesRead = 0;
     printf("selectRes = %d\n", selectRes);
     if (selectRes > 0) {
-        int res = read(fd, msg, sizeof(msg));
-        printf("res = %d\n", res);
+        while (bytesRead < sizeof(msg)) {
+            int res = read(fd, msg + bytesRead, sizeof(msg) - bytesRead);
+            printf("res = %d\n", res);
+            bytesRead += res;
+        }
     } else {
         printf("ERROR - timeout in read\n");
     }

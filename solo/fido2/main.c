@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 {
     uint8_t msg[64];
     uint32_t t1 = 0;
-//    uint8_t cdc_msg[CDC_MAX_PACKET_SZ];
+    uint8_t cdc_msg[CDC_MAX_PACKET_SZ];
 
     set_logging_mask(
 		/*0*/
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     device_init(argc, argv);
 
     memset(msg,0,64);
-//    memset(cdc_msg, 0, sizeof(cdc_msg));
+    memset(cdc_msg, 0, sizeof(cdc_msg));
 
     IBE_Setup();
     PuncEnc_Init();
@@ -100,14 +100,14 @@ int main(int argc, char *argv[])
             memset(msg, 0, sizeof(msg));
                 //}
         }
-        if (usbcdc_recv(msg) > 0) {
+        if (usbcdc_recv(cdc_msg) > 0) {
             printf("received via cdc\n");
         //if (usbcdc_recv(cdc_msg) > 0) {
-            cdc_handle_packet(msg);
+            cdc_handle_packet(cdc_msg);
         //    cdc_handle_packet(cdc_msg);
-            memset(msg, 0, sizeof(msg));
+            memset(cdc_msg, 0, sizeof(cdc_msg));
             printf("sending back msg for test\n");
-            usbcdc_send(msg, sizeof(msg));
+            usbcdc_send(cdc_msg, sizeof(cdc_msg));
             //    memset(cdc_msg, 0, sizeof(cdc_msg));
         }
 

@@ -402,7 +402,8 @@ void usbcdc_send(uint8_t *msg, int len) {
 int usbcdc_recv(uint8_t *msg) {
     if (fifo_cdcmsg_size()) {
         fifo_cdcmsg_take(msg);
-        return 64;
+        return 1024;
+        //return 64;
     }
     return 0;
 }
