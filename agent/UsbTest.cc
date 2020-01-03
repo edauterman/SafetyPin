@@ -56,7 +56,7 @@ void libusbSend() {
 }
 
 int main(int argc, char *argv[]) {
-    const char *device = "/dev/cu.usbmodem2052338246482";
+    const char *device = "/dev/cu.usbmodem208532CA31412";
     int fd =  open(device, O_RDWR |  O_NOCTTY);
     if (fd == -1) {
         printf("ERROR OPENING\n");
@@ -73,13 +73,15 @@ int main(int argc, char *argv[]) {
     timeout.tv_usec =  0;
     FD_ZERO(&fds);
     FD_SET(fd, &fds);
-    sleep(5);
-    //    if (select(fd, &fds, NULL, NULL, &timeout) > 0) {
+//    sleep(5);
+    int selectRes =  select(fd + 1, &fds, NULL, NULL, &timeout);
+    printf("selectRes = %d\n", selectRes);
+    if (selectRes > 0) {
         int res = read(fd, msg, sizeof(msg));
         printf("res = %d\n", res);
-//    } else {
-//        printf("ERROR - timeout in read\n");
-//    }
+    } else {
+        printf("ERROR - timeout in read\n");
+    }
 
     printf("msg received: ");
     for (int i = 0; i < sizeof(msg); i++) {

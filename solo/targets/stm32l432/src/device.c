@@ -383,7 +383,7 @@ void usbhid_send(uint8_t * msg)
 }
 
 void usbcdc_send(uint8_t *msg, int len) {
-    printf("transmit of len %d\n", len);
+    //printf("transmit of len %d\n", len);
     // getting an error here and putting it in a loop doesn't help
     int res = CDC_Transmit_FS(msg, len);
     /*if (res == USBD_OK) {
@@ -395,7 +395,7 @@ void usbcdc_send(uint8_t *msg, int len) {
     } else {
         printf("some other error\n");
     }*/
-    printf("done with send: %d\n", res);
+    //printf("done with send: %d\n", res);
 }
 
 // packet size will be <= 64, later make this bigger
