@@ -89,5 +89,22 @@ int main(int argc, char *argv[]) {
     }
     printf("\n");
 
+/*    selectRes =  select(fd + 1, &fds, NULL, NULL, &timeout);
+    printf("selectRes = %d\n", selectRes);
+    if (selectRes > 0) {
+        int res = read(fd, msg, sizeof(msg));
+        printf("res = %d\n", res);
+    } else {
+        printf("ERROR - timeout in read\n");
+    }
+
+    printf("msg received: ");
+    for (int i = 0; i < sizeof(msg); i++) {
+        printf("%x", msg[i]);
+    }
+    printf("\n");
+*/
+
+
     printf("done\n");
 }
