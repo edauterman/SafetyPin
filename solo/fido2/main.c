@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
     uint8_t msg[64];
     uint32_t t1 = 0;
     uint8_t cdc_msg[CDC_MAX_PACKET_SZ];
+    uint8_t output_msg[CDC_MAX_PACKET_SZ];
 
     set_logging_mask(
 		/*0*/
@@ -76,6 +77,16 @@ int main(int argc, char *argv[])
 
     printf("after\n");
 
+    /*for (int i = 0; i < sizeof(cdc_msg); i++) {
+        if (i % 4 == 0) output_msg[i] = 0x11;
+        else if (i % 4 == 1) output_msg[i] = 0x22;
+        else if (i % 4 == 2) output_msg[i] = 0x33;
+        else output_msg[i] = 0x44;
+    }*/
+    memset(output_msg, 0x11, sizeof(output_msg));
+
+
+
     while(1)
     {
         t_old = t_new;
@@ -103,10 +114,20 @@ int main(int argc, char *argv[])
         if (usbcdc_recv(cdc_msg) > 0) {
             printf("received via cdc\n");
         //if (usbcdc_recv(cdc_msg) > 0) {
-            cdc_handle_packet(cdc_msg);
+            //cdc_handle_packet(cdc_msg);
         //    cdc_handle_packet(cdc_msg);
-            memset(cdc_msg, 0, sizeof(cdc_msg));
             printf("sending back msg for test\n");
+            //for (int i = 0; i < sizeof(cdc_msg); i++) {
+            //    if (i % 4 == 0) cdc_msg[i] = 0x11;
+            //    else if (i % 4 == 1) cdc_msg[i] = 0x22;
+            //    else if (i % 4 == 2) cdc_msg[i] = 0x33;
+            //    else cdc_msg[i] = 0x44;
+            //}
+
+            asm volatile("" ::: "memory");
+            //for (int i = 0; i < 16; i++) {
+            //    usbcdc_send(output_msg + i * 64, 64);
+            //}
             usbcdc_send(cdc_msg, sizeof(cdc_msg));
             //    memset(cdc_msg, 0, sizeof(cdc_msg));
         }

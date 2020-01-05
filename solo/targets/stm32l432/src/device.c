@@ -385,7 +385,7 @@ void usbhid_send(uint8_t * msg)
 void usbcdc_send(uint8_t *msg, int len) {
     //printf("transmit of len %d\n", len);
     // getting an error here and putting it in a loop doesn't help
-    int res = CDC_Transmit_FS(msg, len);
+    while (CDC_Transmit_FS(msg, len) != USBD_OK);
     /*if (res == USBD_OK) {
         printf("ok transmit\n");
     } else if (res == USBD_FAIL) {
@@ -402,8 +402,8 @@ void usbcdc_send(uint8_t *msg, int len) {
 int usbcdc_recv(uint8_t *msg) {
     if (fifo_cdcmsg_size()) {
         fifo_cdcmsg_take(msg);
-        return 1024;
-        //return 64;
+        //return 1024;
+        return 64;
     }
     return 0;
 }
@@ -635,9 +635,9 @@ void device_manage(void)
         if (fifo_debug_size())
         {
             fifo_debug_take(&c);
-            while (! LL_USART_IsActiveFlag_TXE(DEBUG_UART))
-                ;
-            LL_USART_TransmitData8(DEBUG_UART,c);
+            //while (! LL_USART_IsActiveFlag_TXE(DEBUG_UART))
+            //    ;
+            //LL_USART_TransmitData8(DEBUG_UART,c);
         }
         else
         {
