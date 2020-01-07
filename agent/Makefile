@@ -69,36 +69,40 @@ punc_enc.o: punc_enc.c punc_enc.h
 datacenter.o: datacenter.cc datacenter.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o datacenter.o datacenter.cc -lssl -lcrypto
 
+usb.o: usb.cc usb.h
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o usb.o usb.cc -lssl -lcrypto
+
+
 # simple hidapi tool to list devices to see paths.
 list: list.c $(HIDAPI)
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
 
-TreeTest: TreeTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o $(HIDAPI)
+TreeTest: TreeTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
-TreeBench: TreeBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o $(HIDAPI)
+TreeBench: TreeBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
-TreeBuildBench: TreeBuildBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o $(HIDAPI)
+TreeBuildBench: TreeBuildBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
-PuncEncBench: PuncEncBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o $(HIDAPI)
+PuncEncBench: PuncEncBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
-MicroBench: MicroBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o $(HIDAPI)
+MicroBench: MicroBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
-RecoveryTest: RecoveryTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o $(HIDAPI)
+RecoveryTest: RecoveryTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o usb.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
 UsbTest: UsbTest.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -I/usr/local/include -I/usr/local/Cellar/libusb/1.0.23/include/ jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto -lusb-1.0
 
-RecoveryBench: RecoveryBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o $(HIDAPI)
+RecoveryBench: RecoveryBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o usb.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
-Test: Test.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o $(HIDAPI)
+Test: Test.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
 
-CryptoTest: CryptoTest.cc params.o ibe.o shamir.o
+CryptoTest: CryptoTest.cc params.o ibe.o shamir.o usb.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto

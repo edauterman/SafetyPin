@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
 
     uint8_t msg[1024];
     //uint8_t msg[1024];
-    memset(msg, 0xff, sizeof(msg));
+//    memset(msg, 0xff, sizeof(msg));
 
     memset(msg, 0x11, 256);
     memset(msg + 256, 0x22, 256);
@@ -123,7 +123,9 @@ int main(int argc, char *argv[]) {
 
     printf("outgoing msg: ");
     for (int i = 0; i < sizeof(msg); i++) {
-        if (i % 64 == 0) msg[i] = i/64;
+        if (i % 64 == 0) msg[i] = 0xff;
+        if (i % 64 == 1) msg[i] = 0xff;
+        if (i % 64 == 2) msg[i] = i/64;
         printf("%x", msg[i]);
     }
     printf("\n");
@@ -131,13 +133,14 @@ int main(int argc, char *argv[]) {
     int bytesWritten = 0;
     struct timeval t1, t2, t3, t4, t5;
     while (bytesWritten < sizeof(msg)) {
-        gettimeofday(&t1, NULL);
+        //gettimeofday(&t1, NULL);
         int res = write(fd, msg + bytesWritten, sizeof(msg) - bytesWritten < 64 ? sizeof(msg) - bytesWritten : 64);
-        usleep(400);
-        gettimeofday(&t2, NULL);
-        printf("wrote %d bytes in %ld seconds, %d micros\n", res, t2.tv_sec - t1.tv_sec, t2.tv_usec - t1.tv_usec);
+//        usleep(400);
+        //gettimeofday(&t2, NULL);
+        //printf("wrote %d bytes in %ld seconds, %d micros\n", res, t2.tv_sec - t1.tv_sec, t2.tv_usec - t1.tv_usec);
         bytesWritten += res;
     }
+//    write(fd, msg, sizeof(msg));
     fd_set fds;
     struct timeval timeout;
 
@@ -166,7 +169,7 @@ int main(int argc, char *argv[]) {
 
     printf("msg received: ");
     for (int i = 0; i < sizeof(msg); i++) {
-        printf("%x", msg[i]);
+        if ((i % 64 != 0) && (i % 64 != 1)) printf("%x", msg[i]);
     }
     printf("\n");
 

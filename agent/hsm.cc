@@ -64,10 +64,14 @@ int HSM_GetMpk(HSM *h) {
     pthread_mutex_lock(&h->m);
     printf("locked\n");
 
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_MPK, 0, 0,
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MPK, 0, 0,
                 "", &resp_str));
-
     memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MPK, NULL, 0, (uint8_t *)&resp,
+                sizeof(resp)));
+#endif
 
     IBE_UnmarshalMpk(resp.mpk, &h->mpk);
 
@@ -105,8 +109,13 @@ int HSM_TestSetup(HSM *h) {
     PuncEnc_BuildTree((uint8_t *)h->cts, req.msk, req.hmacKey, &h->mpk);
     //PuncEnc_BuildTree((uint8_t *)h->cts, req.msk, req.hmacKey, &h->mpk);
 
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_TEST_SETUP, 0, 0,
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_TEST_SETUP, 0, 0,
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_TEST_SETUP, (uint8_t *)&req,
+                sizeof(req), NULL, 0));
+#endif
 
     printf("done with test setup\n");
 cleanup:
@@ -130,8 +139,13 @@ int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmac
     memcpy(req.hmacKey, hmacKey, KEY_LEN);
     memcpy(&h->mpk, mpk, sizeof(embedded_pairing_bls12_381_g2_t));
 
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_TEST_SETUP, 0, 0,
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_TEST_SETUP, 0, 0,
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_TEST_SETUP, (uint8_t *)&req,
+                sizeof(req), NULL, 0));
+#endif
 
     printf("done with test setup\n");
 cleanup:
@@ -149,10 +163,14 @@ int HSM_SmallSetup(HSM *h) {
 
     pthread_mutex_lock(&h->m);
 
-    CHECK_C (EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_SMALL_SETUP, 0,
+#ifdef HID
+    CHECK_C (EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_SMALL_SETUP, 0,
                 0, "", &resp_str));
-
     memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SMALL_SETUP, NULL, 0,
+                (uint8_t *)&resp, sizeof(resp)));
+#endif
 
     memcpy(h->cts, resp.cts, SUB_TREE_SIZE * CT_LEN);
 
@@ -176,11 +194,15 @@ int HSM_Setup(HSM *h) {
 
     while (currLevel != LEVEL_DONE) {
         printf("currLevel = %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d, ctr[3] = %d\n", currLevel, ctr[0], ctr[1], ctr[2], ctr[3]);
-        CHECK_C(EXPECTED_RET_VAL ==  U2Fob_apdu(h->device, 0, HSM_SETUP, 0, 0,
-                    "", &resp_str));
 
-        printf("just received\n");
+#ifdef HID 
+        CHECK_C(EXPECTED_RET_VAL ==  U2Fob_apdu(h->hidDevice, 0, HSM_SETUP, 0, 0,
+                    "", &resp_str));
         memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SETUP, NULL, 0, 
+                    (uint8_t *)&resp, sizeof(resp)));
+#endif
         if (currLevel ==  LEVEL_0) {
             copySubTree((uint8_t *)h->cts, (uint8_t *)resp.cts, NUM_LEAVES, NUM_SUB_LEAVES, ctr[0]);
             ctr[0]++;
@@ -251,11 +273,14 @@ int HSM_Retrieve(HSM *h, uint32_t index) {
 
     req.index = index;
 
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_RETRIEVE, 0, 0,
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_RETRIEVE, 0, 0,
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-
-    printf("retrieved\n");
     memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_RETRIEVE, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
 
     printf("leaf: ");
     for (int i = 0; i < LEAF_LEN; i++) {
@@ -293,10 +318,14 @@ int puncture_noLock(HSM *h, uint32_t index) {
     
     req.index = index;
 
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_PUNCTURE, 0, 0,
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_PUNCTURE, 0, 0,
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-
     memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_PUNCTURE, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
 
     for (int i = 0; i < keyLevels; i++) {
         printf("setting index %d for ct[%d]: ", indexes[i], i);
@@ -376,11 +405,15 @@ int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t 
         IBE_MarshalCt(req.ibeCt, msgLen, c[i]);
         req.index = indexes[i];
 
-        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_DECRYPT, 0, 0,
+#ifdef HID
+        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_DECRYPT, 0, 0,
                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-
         memcpy(&resp, resp_str.data(), resp_str.size());
-        
+#else
+        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_DECRYPT, (uint8_t *)&req,
+                    sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+
         if (memcmp(resp.msg, zeros, msgLen) != 0) {
             printf("Got valid decryption\n");
             memcpy(msg, resp.msg, msgLen);
@@ -443,11 +476,14 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
     
         memcpy(req.pinHash, pinHash, SHA256_DIGEST_LENGTH);
 
-        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_AUTH_DECRYPT, 0, 0,
+#ifdef HID
+        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_DECRYPT, 0, 0,
                     string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-
         memcpy(&resp, resp_str.data(), resp_str.size());
-   
+#else
+        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_DECRYPT, (uint8_t *)&req,
+                    sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
         memcpy(msg, resp.msg, msgLen);
 
         gotPlaintext =  true;
@@ -471,8 +507,12 @@ int HSM_MicroBench(HSM *h) {
     string resp_str;
     pthread_mutex_lock(&h->m);
 
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_MICROBENCH, 0, 0,
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MICROBENCH, 0, 0,
                 "", &resp_str));
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MICROBENCH, NULL, 0, NULL, 0));
+#endif
 
 cleanup:
     pthread_mutex_unlock(&h->m);
@@ -483,12 +523,27 @@ cleanup:
 int HSM_LongMsg(HSM *h) {
     int rv =  ERROR;
     HSM_LONG_REQ req;
+    HSM_LONG_RESP resp;
     string resp_str;
     pthread_mutex_lock(&h->m);
 
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->device, 0, HSM_LONGMSG, 0, 0,
-                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memset(req.buf, 0xff, 1024);
+    //memset(req.buf, 0xff, RESPONSE_BUFFER_SIZE - 16);
 
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LONGMSG, 0, 0,
+                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LONGMSG, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+
+    printf("received: ");
+    for (int i = 0; i < 1024; i++) {
+    //for (int i = 0; i < RESPONSE_BUFFER_SIZE  - 16; i++) {
+        printf("%x", req.buf[i]);
+    }
+    printf("\n");
 
 cleanup:
     pthread_mutex_unlock(&h->m);

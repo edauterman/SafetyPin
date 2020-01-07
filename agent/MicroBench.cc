@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 
   printf("long message time: %ld sec, %d micros\n", t2.tv_sec - t1.tv_sec, t2.tv_usec - t1.tv_usec);
 
-  HSM_MicroBench(d->hsms[0]);
+//  HSM_MicroBench(d->hsms[0]);
 
   Datacenter_free(d);
 

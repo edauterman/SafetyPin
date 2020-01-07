@@ -8,6 +8,7 @@
 #include "bls12_381/bls12_381.h"
 #include "params.h"
 #include "u2f.h"
+#include "usb.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -119,11 +120,13 @@ typedef struct {
 } HSM_TEST_SETUP_REQ;
 
 typedef struct {
-    uint8_t buf[RESPONSE_BUFFER_SIZE  - 16];
+    uint8_t buf[1024];
+    //uint8_t buf[RESPONSE_BUFFER_SIZE  - 16];
 } HSM_LONG_REQ;
 
 typedef struct {
-    uint8_t buf[RESPONSE_BUFFER_SIZE - 16];
+    uint8_t buf[1024];
+    //uint8_t buf[RESPONSE_BUFFER_SIZE - 16];
 } HSM_LONG_RESP;
 
 
@@ -132,7 +135,8 @@ typedef struct {
 /* ---------------------------------- */
 
 typedef struct {
-    struct U2Fob *device;
+    struct U2Fob *hidDevice;
+    UsbDevice *usbDevice;
     Params *params;
     uint8_t cts[TREE_SIZE * CT_LEN];
     //uint8_t cts[TREE_SIZE][CT_LEN];

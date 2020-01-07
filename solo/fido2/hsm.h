@@ -89,14 +89,17 @@ struct hsm_test_setup_request {
 };
 
 struct hsm_long_request {
-    uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE- 16];
+    uint8_t buf[1024];
+    //uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE- 16];
 };
 
 struct hsm_long_response {
-    uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
+    uint8_t buf[1024];
+    //uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
 };
 
-void HSM_Handle(uint8_t *in, uint8_t *out, int *outLen);
+void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen);
+int HSM_GetReqLenFromMsgType(uint8_t msgType);
 
 int HSM_GetMpk(uint8_t *out, int *outLen);
 int HSM_Setup(uint8_t *out, int *outLen);

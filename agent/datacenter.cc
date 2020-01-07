@@ -14,11 +14,14 @@
 #include "shamir.h"
 #include "u2f_util.h"
 #include "punc_enc.h"
+#include "usb.h"
 
 #define VENDOR_ID 0x0483
 #define PRODUCT_ID 0xa2ca
 
 using namespace std;
+
+const char *HANDLES[] = {"/dev/cu.usbmodem208532CA31412"};
 
 RecoveryCiphertext *RecoveryCiphertext_new() {
     int rv = ERROR;
@@ -69,7 +72,11 @@ cleanup:
 
 void Datacenter_free(Datacenter *d) {
     for (int i = 0; i < NUM_HSMS; i++) {
-        U2Fob_destroy(d->hsms[i]->device);
+#ifdef HID
+        U2Fob_destroy(d->hsms[i]->hidDevice);
+#else
+        UsbDevice_free(d->hsms[i]->usbDevice);
+#endif
         HSM_free(d->hsms[i]);
     }
     free(d);
@@ -79,12 +86,12 @@ void Datacenter_free(Datacenter *d) {
 int create_hsm(HSM *h, char *deviceName, int i) {
   int rv = ERROR;
 
-  CHECK_A (h->device = U2Fob_create());
+  CHECK_A (h->hidDevice = U2Fob_create());
 
   printf("going to create\n");
-  CHECK_C (!U2Fob_open(h->device, deviceName));
+  CHECK_C (!U2Fob_open(h->hidDevice, deviceName));
   printf("opened\n");
-  CHECK_C (!U2Fob_init(h->device));
+  CHECK_C (!U2Fob_init(h->hidDevice));
   printf("finished creating\n");
 
 cleanup:
@@ -100,6 +107,7 @@ int Datacenter_init(Datacenter *d) {
   struct hid_device_info *devs, *cur_dev;
   int i = 0;
 
+#ifdef HID
   hid_init();
   //devs = hid_enumerate(0x0, 0x0);
   devs = hid_enumerate(VENDOR_ID, PRODUCT_ID);
@@ -116,6 +124,11 @@ int Datacenter_init(Datacenter *d) {
     //}
     cur_dev = cur_dev->next;
   }
+#else
+    for (int i = 0; i < NUM_HSMS; i++) {
+        CHECK_A (d->hsms[i]->usbDevice = UsbDevice_new(HANDLES[i]));
+    }
+#endif
 
 cleanup:
   hid_exit();

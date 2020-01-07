@@ -385,8 +385,8 @@ void usbhid_send(uint8_t * msg)
 void usbcdc_send(uint8_t *msg, int len) {
     //printf("transmit of len %d\n", len);
     // getting an error here and putting it in a loop doesn't help
-    CDC_Transmit_FS(msg, len);
-    //while (CDC_Transmit_FS(msg, len) != USBD_OK);
+    //CDC_Transmit_FS(msg, len);
+    while (CDC_Transmit_FS(msg, len) != USBD_OK);
     /*if (res == USBD_OK) {
         printf("ok transmit\n");
     } else if (res == USBD_FAIL) {

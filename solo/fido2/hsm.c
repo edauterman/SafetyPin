@@ -10,19 +10,19 @@
 #include "punc_enc.h"
 #include "u2f.h"
 
-void HSM_Handle(uint8_t *in, uint8_t *out, int *outLen) {
-    switch (in[0]) {
+void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
+    switch (msgType) {
         case HSM_SETUP: 
             HSM_Setup(out, outLen);
             break;
         case HSM_RETRIEVE:
-            HSM_Retrieve((struct hsm_retrieve_request *)(in + 1), out, outLen);
+            HSM_Retrieve((struct hsm_retrieve_request *)(in), out, outLen);
             break;
         case HSM_PUNCTURE:
-            HSM_Puncture((struct hsm_puncture_request *)(in + 1), out, outLen);
+            HSM_Puncture((struct hsm_puncture_request *)(in), out, outLen);
             break;
         case HSM_DECRYPT:
-            HSM_Decrypt((struct hsm_decrypt_request *)(in + 1), out, outLen);
+            HSM_Decrypt((struct hsm_decrypt_request *)(in), out, outLen);
             break;
         case HSM_MPK:
             HSM_GetMpk(out, outLen);
@@ -31,19 +31,47 @@ void HSM_Handle(uint8_t *in, uint8_t *out, int *outLen) {
             HSM_SmallSetup(out, outLen);
             break;
         case HSM_AUTH_DECRYPT:
-            HSM_AuthDecrypt((struct hsm_auth_decrypt_request *)(in + 1), out, outLen);
+            HSM_AuthDecrypt((struct hsm_auth_decrypt_request *)(in), out, outLen);
             break;
         case HSM_TEST_SETUP:
-            HSM_TestSetup((struct hsm_test_setup_request *)(in + 1), out, outLen);
+            HSM_TestSetup((struct hsm_test_setup_request *)(in), out, outLen);
             break;
         case HSM_MICROBENCH:
             HSM_MicroBench(out, outLen);
             break;
         case HSM_LONGMSG:
-            HSM_LongMsg((struct hsm_long_request *)(in + 1), out, outLen);
+            HSM_LongMsg((struct hsm_long_request *)(in), out, outLen);
             break;
         default:
-            printf1(TAG_GREEN, "ERROR: Unknown request type %x", in[0]);
+            printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
+    }
+}
+
+int HSM_GetReqLenFromMsgType(uint8_t msgType) {
+    switch (msgType) {
+        case HSM_SETUP: 
+            return 0;
+        case HSM_RETRIEVE:
+            return sizeof(struct hsm_retrieve_request);
+        case HSM_PUNCTURE:
+            return sizeof(struct hsm_puncture_request);
+        case HSM_DECRYPT:
+            return sizeof(struct hsm_decrypt_request);
+        case HSM_MPK:
+            return 0;
+        case HSM_SMALL_SETUP:
+            return 0;
+        case HSM_AUTH_DECRYPT:
+            return sizeof(struct hsm_auth_decrypt_request);
+        case HSM_TEST_SETUP:
+            return sizeof(struct hsm_test_setup_request);
+        case HSM_MICROBENCH:
+            return 0;
+        case HSM_LONGMSG:
+            return sizeof(struct hsm_long_request);
+        default:
+            printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
+            return 0;
     }
 }
 
@@ -312,10 +340,14 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
 }
 
 int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen) {
-    uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
+    uint8_t buf[1024];
+    //uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
+    memset(buf, 0xff, 1024);
     if (out) {
-        memcpy(out, buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
-        *outLen = CTAP_RESPONSE_BUFFER_SIZE - 16;
+        memcpy(out, buf, 1024);
+        //memcpy(out, buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
+        *outLen = 1024;
+        //*outLen = CTAP_RESPONSE_BUFFER_SIZE - 16;
     } else {
         u2f_response_writeback(buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
     }
