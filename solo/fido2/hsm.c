@@ -340,14 +340,15 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
 }
 
 int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen) {
-    uint8_t buf[1024];
-    //uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
-    memset(buf, 0xff, 1024);
+//    uint8_t buf[1024];
+    uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
+    memset(buf, 0xff, CTAP_RESPONSE_BUFFER_SIZE - 16);
+    //memset(buf, 0xff, 1024);
     if (out) {
-        memcpy(out, buf, 1024);
-        //memcpy(out, buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
-        *outLen = 1024;
-        //*outLen = CTAP_RESPONSE_BUFFER_SIZE - 16;
+        //memcpy(out, buf, 1024);
+        memcpy(out, buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
+        //*outLen = 1024;
+        *outLen = CTAP_RESPONSE_BUFFER_SIZE - 16;
     } else {
         u2f_response_writeback(buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
     }

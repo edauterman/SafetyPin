@@ -120,13 +120,13 @@ typedef struct {
 } HSM_TEST_SETUP_REQ;
 
 typedef struct {
-    uint8_t buf[1024];
-    //uint8_t buf[RESPONSE_BUFFER_SIZE  - 16];
+    //uint8_t buf[1024];
+    uint8_t buf[RESPONSE_BUFFER_SIZE  - 16];
 } HSM_LONG_REQ;
 
 typedef struct {
-    uint8_t buf[1024];
-    //uint8_t buf[RESPONSE_BUFFER_SIZE - 16];
+    //uint8_t buf[1024];
+    uint8_t buf[RESPONSE_BUFFER_SIZE - 16];
 } HSM_LONG_RESP;
 
 

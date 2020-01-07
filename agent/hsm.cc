@@ -527,8 +527,8 @@ int HSM_LongMsg(HSM *h) {
     string resp_str;
     pthread_mutex_lock(&h->m);
 
-    memset(req.buf, 0xff, 1024);
-    //memset(req.buf, 0xff, RESPONSE_BUFFER_SIZE - 16);
+    //memset(req.buf, 0xff, 1024);
+    memset(req.buf, 0xff, RESPONSE_BUFFER_SIZE - 16);
 
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LONGMSG, 0, 0,
@@ -538,12 +538,12 @@ int HSM_LongMsg(HSM *h) {
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
 
-    printf("received: ");
-    for (int i = 0; i < 1024; i++) {
-    //for (int i = 0; i < RESPONSE_BUFFER_SIZE  - 16; i++) {
-        printf("%x", req.buf[i]);
-    }
-    printf("\n");
+//    printf("received: ");
+//    for (int i = 0; i < 1024; i++) {
+//    for (int i = 0; i < RESPONSE_BUFFER_SIZE  - 16; i++) {
+//        printf("%x", req.buf[i]);
+//    }
+//    printf("\n");
 
 cleanup:
     pthread_mutex_unlock(&h->m);

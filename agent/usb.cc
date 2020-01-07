@@ -18,9 +18,7 @@ UsbDevice *UsbDevice_new(const char *handle) {
 
     CHECK_A (dev = (UsbDevice *)malloc(sizeof(UsbDevice)));
     dev->fd = open(handle, O_RDWR | O_NOCTTY);
-    printf("fd =  %d\n", dev->fd);
     CHECK_C (dev->fd != -1);
-    printf("got past open\n");
 
     struct termios tty;
     tcgetattr(dev->fd, &tty);
@@ -33,7 +31,6 @@ UsbDevice *UsbDevice_new(const char *handle) {
     tty.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
 
     CHECK_C (tcsetattr(dev->fd, TCSANOW, &tty) == 0);
-    printf("got past set attr\n");
     tcflush(dev->fd, TCOFLUSH);
     tcflush(dev->fd, TCIFLUSH);
 
@@ -60,8 +57,8 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     int bytesWritten = 0;
     int i = 0;
     uint8_t sessionNum = dev->sessionCtr;
-    printf("sessionNum = %d\n", sessionNum);
-    printf("req len = %d\n", reqLen);
+    //printf("sessionNum = %d\n", sessionNum);
+    //printf("req len = %d\n", reqLen);
     while (bytesWritten < reqLen) {
         CDCFrame frame;
         int bytesToWrite = reqLen - bytesWritten < CDC_PAYLOAD_SZ ? reqLen - bytesWritten : CDC_PAYLOAD_SZ;
@@ -72,11 +69,11 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
         frame.msgType = msgType;
         frame.seqNo = i;
         frame.sessionNum = sessionNum;
-        printf("sending frame: ");
-        for (int i = 0; i < CDC_FRAME_SZ; i++) {
-            printf("%x", ((uint8_t *)&frame)[i]);
-        }
-        printf("\n");
+        //printf("sending frame: ");
+        //for (int i = 0; i < CDC_FRAME_SZ; i++) {
+        //    printf("%x", ((uint8_t *)&frame)[i]);
+        //}
+        //printf("\n");
         int numSent = 0;
         while (numSent < CDC_FRAME_SZ) {
             numSent += write(dev->fd, (uint8_t *)&frame + numSent, CDC_FRAME_SZ);
@@ -99,11 +96,11 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
         while (framePointer < CDC_FRAME_SZ) {
             CHECK_C (select(dev->fd + 1, &fds, NULL, NULL, &timeout) > 0);
             int numBytes = read(dev->fd, (uint8_t *)&frame + framePointer, CDC_FRAME_SZ);
-            printf("current frame after receiving %d bytes: ", numBytes);
-            for (int i = 0; i < CDC_FRAME_SZ; i++) {
-                printf("%x", ((uint8_t *)&frame)[i]);
-            }
-            printf("\n");
+            //printf("current frame after receiving %d bytes: ", numBytes);
+            //for (int i = 0; i < CDC_FRAME_SZ; i++) {
+            //    printf("%x", ((uint8_t *)&frame)[i]);
+            //}
+            //printf("\n");
 
             framePointer += numBytes;
         }
@@ -113,7 +110,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
             memcpy(resp + frame.seqNo * CDC_PAYLOAD_SZ, frame.payload, bytesToCopy);
         }
         bytesRead = (frame.seqNo + 1) * CDC_PAYLOAD_SZ;
-        printf("finished frame %d, read %d bytes\n", frame.seqNo, bytesRead);
+        //printf("finished frame %d, read %d bytes\n", frame.seqNo, bytesRead);
     }
     dev->sessionCtr++;
 cleanup:
