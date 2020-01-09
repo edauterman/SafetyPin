@@ -13,18 +13,19 @@
 #include "hsm.h"
 
 uint8_t msgBuf[CDC_BUFFER_LEN];
-int currSessionNum;
+uint8_t currSessionNum = 0;
 
 static int ceil(double x) {
-    if ((int) x < x) return x + 1;
+    if ((int) x < x) return (int)x + 1;
     else return x;
 }
 
 // Buffer data and send in HID_MESSAGE_SIZE chunks
 // if len == 0, FLUSH
-static void cdc_write(uint8_t *data, int len)
+static void cdc_write(uint8_t *data, int len, uint8_t msgType)
 {
-    for (int i = 0; i < ceil((double)len / CDC_PAYLOAD_SZ); i++) {
+    int numRounds = len == 0 ? 1 : ceil((double)len / CDC_PAYLOAD_SZ);
+    for (int i = 0; i < numRounds; i++) {
         struct CDCFrame frame;
         frame.sessionNum = currSessionNum;
         /* Don't need to set msg type for responses. */
@@ -32,6 +33,7 @@ static void cdc_write(uint8_t *data, int len)
         int bytesToWrite = len - (i * CDC_PAYLOAD_SZ) < CDC_PAYLOAD_SZ ? len - (i * CDC_PAYLOAD_SZ) : CDC_PAYLOAD_SZ;
         memset(frame.payload, 0, CDC_PAYLOAD_SZ);
         memcpy(frame.payload, data + i * CDC_PAYLOAD_SZ, bytesToWrite);
+        frame.msgType = msgType;
         // Assume all messages <=  CDC_PACKET_SZ
         usbcdc_send((uint8_t *)&frame, CDC_FRAME_SZ);
     }
@@ -40,13 +42,38 @@ static void cdc_write(uint8_t *data, int len)
 
 void cdc_handle_packet(struct CDCFrame *frame)
 {
-    currSessionNum = frame->sessionNum;
+    if (frame->sessionNum < currSessionNum) return;
+    //currSessionNum = frame->sessionNum;
     memcpy(msgBuf + frame->seqNo * CDC_PAYLOAD_SZ, frame->payload, CDC_PAYLOAD_SZ);
     int reqLen = HSM_GetReqLenFromMsgType(frame->msgType);
-    if ((frame->seqNo + 1) * CDC_PAYLOAD_SZ >= reqLen) { 
+    if (frame->msgType == HSM_DECRYPT) {
+        uint8_t rsp[IBE_MSG_LEN];
+        memset(rsp, frame->seqNo, IBE_MSG_LEN);
+        int tmpSessionNum = currSessionNum;
+        currSessionNum = -1;
+        cdc_write(rsp, IBE_MSG_LEN, frame->msgType);
+        currSessionNum = tmpSessionNum;
+    }
+    if (frame->seqNo == 36) { 
+    //if (frame->seqNo == 36) { 
+    //if (frame->seqNo == 0) { 
+    //if ((frame->seqNo + 1) * CDC_PAYLOAD_SZ >= reqLen) { 
         int sendLen;
         uint8_t rsp[CDC_BUFFER_LEN];
-        HSM_Handle(frame->msgType, msgBuf, rsp, &sendLen);
-        cdc_write(rsp, sendLen);
+        //if (frame->msgType != HSM_DECRYPT) {
+        //HSM_Handle(frame->msgType, msgBuf, rsp, &sendLen);
+        if (frame->msgType == HSM_DECRYPT) {
+            memset(rsp, 0xff, IBE_MSG_LEN);
+            sendLen = IBE_MSG_LEN;
+        } else {
+            HSM_Handle(frame->msgType, msgBuf, rsp, &sendLen);
+        }
+        //HSM_Handle(frame->msgType, msgBuf, rsp, &sendLen);
+        cdc_write(rsp, sendLen, frame->msgType);
+        //cdc_write(rsp, sendLen, frame->msgType);
+        //}
+        currSessionNum++; /*else {
+            cdc_write(msgBuf, reqLen, frame->msgType);
+        }*/
     }
 }

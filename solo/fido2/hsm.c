@@ -174,7 +174,7 @@ int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen) {
 
     if (out) {
         memcpy(out, newCts, KEY_LEVELS * CT_LEN);
-        *outLen = CT_LEN;
+        *outLen = KEY_LEVELS * CT_LEN;
     }  else {
         u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
     }
@@ -192,9 +192,14 @@ int HSM_Decrypt(struct hsm_decrypt_request *req, uint8_t *out, int *outLen) {
     uint8_t msg[IBE_MSG_LEN];
 
     if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
-        printf("Couldn't retrieve leaf\n");
-        memset(msg, 0, IBE_MSG_LEN);
-        u2f_response_writeback(msg, IBE_MSG_LEN);
+        if (out) {
+            memset(out, 0, IBE_MSG_LEN);
+            *outLen = IBE_MSG_LEN;
+        } else {
+            printf("Couldn't retrieve leaf\n");
+            memset(msg, 0, IBE_MSG_LEN);
+            u2f_response_writeback(msg, IBE_MSG_LEN);
+        }
         return U2F_SW_NO_ERROR;
     }
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);

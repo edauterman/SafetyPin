@@ -413,7 +413,7 @@ int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t 
         CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_DECRYPT, (uint8_t *)&req,
                     sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
-
+        
         if (memcmp(resp.msg, zeros, msgLen) != 0) {
             printf("Got valid decryption\n");
             memcpy(msg, resp.msg, msgLen);
