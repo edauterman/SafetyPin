@@ -24,7 +24,7 @@ int usbhid_recv(uint8_t * msg);
 
 void usbhid_send(uint8_t * msg);
 
-int usbcdc_recv(uint8_t * msg);
+int usbcdc_recv(uint8_t * msg, int *remaining, int *rhead, int *lhead);
 
 void usbcdc_send(uint8_t * msg, int len);
 

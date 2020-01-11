@@ -18,7 +18,7 @@ UsbDevice *UsbDevice_new(const char *handle) {
     UsbDevice *dev;
 
     CHECK_A (dev = (UsbDevice *)malloc(sizeof(UsbDevice)));
-    dev->fd = open(handle, O_RDWR | O_NOCTTY);
+    dev->fd = open(handle, O_RDWR | O_NOCTTY | O_SYNC);
     CHECK_C (dev->fd != -1);
 
     struct termios tty;
@@ -33,9 +33,17 @@ UsbDevice *UsbDevice_new(const char *handle) {
 
     cfmakeraw(&tty);
 
+    tty.c_oflag &= ~OPOST;
+    tty.c_oflag &= ~ONLCR;
+
+    //tty.c_cc[VMIN] = 1;
+
     CHECK_C (tcsetattr(dev->fd, TCSANOW, &tty) == 0);
     tcflush(dev->fd, TCOFLUSH);
     tcflush(dev->fd, TCIFLUSH);
+
+    cfsetispeed(&tty, B9600);
+    cfsetospeed(&tty, B9600);
 
     dev->sessionCtr = 0;
 
@@ -91,12 +99,20 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
             FD_SET(dev->fd, &fds);
             timeout.tv_sec = 1;
             timeout.tv_usec = 0;
-            
-            int selectRes = select(dev->fd + 1, NULL, &fds, NULL, &timeout);
-            if (selectRes <= 0) continue;
-            numSent += write(dev->fd, (uint8_t *)&frame + numSent, CDC_FRAME_SZ - numSent);
-            printf("numSent =  %d\n", numSent);
            
+            printf("waiting to write seqno = %d\n", frame.seqNo); 
+            int selectRes = select(dev->fd + 1, NULL, &fds, NULL, &timeout);
+            if (selectRes > 0) {
+                numSent += write(dev->fd, (uint8_t *)&frame + numSent, CDC_FRAME_SZ - numSent);
+                //tcdrain(dev->fd);
+                printf("numSent =  %d\n", numSent);
+            }
+            if (selectRes <= 0) {
+                printf("going to flush\n");
+                tcflush(dev->fd, TCIOFLUSH);
+                printf("flushed\n");
+            }
+
             // this doesn't seem to actually  make a difference... 
             if (!isInitial) continue;
             FD_ZERO(&fds);
@@ -104,10 +120,11 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
             timeout.tv_sec = 0;
             timeout.tv_usec = 0;
             uint8_t buf[CDC_FRAME_SZ];
-            while (select(dev->fd + 1, &fds, NULL, NULL, &timeout) > 0) {
+            /*while (select(dev->fd + 1, &fds, NULL, NULL, &timeout) > 0) {
                 read(dev->fd, buf, CDC_FRAME_SZ);
-            }
-
+            }*/
+            //tcdrain(dev->fd);
+            tcflush(dev->fd, TCIFLUSH);
         }
         bytesWritten += CDC_PAYLOAD_SZ;
         i++;
@@ -121,6 +138,8 @@ cleanup:
 int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, uint8_t *resp, int respLen) {
     int rv = OKAY;
 
+    //usleep(500);
+    tcflush(dev->fd, TCIOFLUSH);
     /* Send. */
     send(dev, msgType, req, reqLen, true);
 
@@ -135,6 +154,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     uint8_t sessionNum = dev->sessionCtr;
     int bytesRead = 0;
     if (respLen == 0) rv = OKAY;
+    printf("respLen = %d\n", respLen);
     while (bytesRead < respLen) {
         CDCFrame frame;
         int framePointer = 0;
@@ -144,7 +164,12 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     
             printf("bytesRead = %d, framePointer = %d\n", bytesRead, framePointer);
             int selectRes = select(dev->fd + 1, &fds, NULL, NULL, &timeout);
-            if (selectRes <= 0) printf("*** SELECT ERR: %d\n", selectRes);
+            if (selectRes <= 0) {
+                printf("*** SELECT ERR: %d\n", selectRes);
+                tcflush(dev->fd, TCIOFLUSH);
+                send(dev, msgType, req, reqLen, false);
+                continue;
+            }
             //if (selectRes <= 0) send(dev, msgType, req, reqLen, false);
             //if (selectRes <= 0) printf("*** just resent\n");
             //CHECK_C (selectRes > 0);
@@ -184,6 +209,8 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     while (select(dev->fd + 1, &fds, NULL, NULL, &timeout) > 0) {
         read(dev->fd, buf, CDC_FRAME_SZ);
     }
+    //tcdrain(dev->fd);
+    //tcflush(dev->fd, TCIOFLUSH);
 
 cleanup:
     if (rv == ERROR) printf("Error in message exchange.\n");

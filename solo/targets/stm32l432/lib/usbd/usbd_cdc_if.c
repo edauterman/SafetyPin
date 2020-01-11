@@ -51,6 +51,7 @@
 #include "usbd_cdc_if.h"
 
 #include "fifo.h"
+#include "usbd_conf.h"
 
 /* USER CODE BEGIN INCLUDE */
 
@@ -294,8 +295,16 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 6 */
   USBD_CDC_SetRxBuffer(&Solo_USBD_Device, &Buf[0]);
   USBD_CDC_ReceivePacket(&Solo_USBD_Device);
-  fifo_cdcmsg_add(Buf); // assuming 64 bytes...
-  return (USBD_OK);
+  //USB_TypeDef *usbx = hpcd.Instance;
+  //int oldInterrupts = usbx->GINTMSK;
+  //usbx->GINTMSK = 0U;
+  uint32_t oldIntr = __get_PRIMASK();
+  __disable_irq();
+  int ret = fifo_cdcmsg_add(Buf); // assuming 64 bytes...
+  if (!oldIntr) __enable_irq();
+  //usbx->GINTMSK = oldInterrupts;
+  //return ret >= 0 ? USBD_OK : USBD_FAIL;
+  return USBD_OK;
   /* USER CODE END 6 */
 }
 

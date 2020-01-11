@@ -57,7 +57,7 @@
 void SystemClock_Config(void);
 
 
-PCD_HandleTypeDef hpcd;
+//PCD_HandleTypeDef hpcd;
 
 
 /**

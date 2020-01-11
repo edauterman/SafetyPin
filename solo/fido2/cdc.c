@@ -40,7 +40,7 @@ static void cdc_write(uint8_t *data, int len, uint8_t msgType)
 }
 
 
-void cdc_handle_packet(struct CDCFrame *frame)
+void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whead)
 {
     if (frame->sessionNum < currSessionNum) return;
     //currSessionNum = frame->sessionNum;
@@ -49,6 +49,9 @@ void cdc_handle_packet(struct CDCFrame *frame)
     if (frame->msgType == HSM_DECRYPT) {
         uint8_t rsp[IBE_MSG_LEN];
         memset(rsp, frame->seqNo, IBE_MSG_LEN);
+        rsp[0] = (uint8_t)remaining;
+        rsp[1] = (uint8_t)rhead;
+        rsp[2] = (uint8_t)whead;
         int tmpSessionNum = currSessionNum;
         currSessionNum = -1;
         cdc_write(rsp, IBE_MSG_LEN, frame->msgType);

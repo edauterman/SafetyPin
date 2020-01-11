@@ -126,8 +126,9 @@ int main(int argc, char *argv[])
                 offset = 0;
             }
         }*/
-        if (usbcdc_recv(cdc_msg) > 0) {
-            cdc_handle_packet((struct CDCFrame *)cdc_msg);
+        int remaining, rhead, whead;
+        if (usbcdc_recv(cdc_msg, &remaining, &rhead, &whead) > 0) {
+            cdc_handle_packet((struct CDCFrame *)cdc_msg, remaining, rhead, whead);
             memset(cdc_msg, 0, sizeof(cdc_msg));
         }
 

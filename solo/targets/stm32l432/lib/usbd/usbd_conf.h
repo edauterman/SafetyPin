@@ -55,5 +55,6 @@
 #define USBD_SELF_POWERED                     0
 #define USBD_DEBUG_LEVEL                      0
 
+PCD_HandleTypeDef hpcd;
 
 #endif

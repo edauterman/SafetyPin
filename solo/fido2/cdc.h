@@ -23,6 +23,6 @@ struct CDCFrame {
     uint8_t payload[CDC_PAYLOAD_SZ];
 };
 
-void cdc_handle_packet(struct CDCFrame *frame);
+void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whead);
 
 #endif

@@ -400,9 +400,15 @@ void usbcdc_send(uint8_t *msg, int len) {
 }
 
 // packet size will be <= 64, later make this bigger
-int usbcdc_recv(uint8_t *msg) {
+int usbcdc_recv(uint8_t *msg, int *remaining, int *rhead, int *whead) {
     if (fifo_cdcmsg_size()) {
+        uint32_t oldIntr =  __get_PRIMASK();
+        __disable_irq();
         fifo_cdcmsg_take(msg);
+        *remaining = fifo_cdcmsg_size();
+        *rhead = fifo_cdcmsg_rhead();
+        *whead = fifo_cdcmsg_whead();
+        if (!oldIntr) __enable_irq();
         //return 1024;
         return 64;
     }

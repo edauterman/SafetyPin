@@ -13,10 +13,10 @@
 
 FIFO_CREATE(debug,4096,1)
 
-FIFO_CREATE(hidmsg,30,64)
+FIFO_CREATE(hidmsg,20,64)
 
 //FIFO_CREATE(cdcmsg,3,1024)
-FIFO_CREATE(cdcmsg,210,64)
+FIFO_CREATE(cdcmsg,220,64)
 //FIFO_CREATE(cdcmsg,100,64)
 
 #if TEST_FIFO
