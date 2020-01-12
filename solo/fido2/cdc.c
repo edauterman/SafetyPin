@@ -54,7 +54,7 @@ void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whe
         rsp[2] = (uint8_t)whead;
         int tmpSessionNum = currSessionNum;
         currSessionNum = -1;
-        cdc_write(rsp, IBE_MSG_LEN, frame->msgType);
+//        cdc_write(rsp, IBE_MSG_LEN, frame->msgType);
         currSessionNum = tmpSessionNum;
     }
     if (frame->seqNo == 36) { 

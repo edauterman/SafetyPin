@@ -42,8 +42,10 @@ UsbDevice *UsbDevice_new(const char *handle) {
     tcflush(dev->fd, TCOFLUSH);
     tcflush(dev->fd, TCIFLUSH);
 
-    cfsetispeed(&tty, B9600);
-    cfsetospeed(&tty, B9600);
+    cfsetispeed(&tty, B115200);
+    //cfsetispeed(&tty, B9600);
+    cfsetospeed(&tty, B115200);
+    //cfsetospeed(&tty, B9600);
 
     dev->sessionCtr = 0;
 
@@ -101,17 +103,17 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
             timeout.tv_usec = 0;
            
             printf("waiting to write seqno = %d\n", frame.seqNo); 
-            int selectRes = select(dev->fd + 1, NULL, &fds, NULL, &timeout);
-            if (selectRes > 0) {
+//            int selectRes = select(dev->fd + 1, NULL, &fds, NULL, &timeout);
+    //        if (selectRes > 0) {
                 numSent += write(dev->fd, (uint8_t *)&frame + numSent, CDC_FRAME_SZ - numSent);
                 //tcdrain(dev->fd);
                 printf("numSent =  %d\n", numSent);
-            }
-            if (selectRes <= 0) {
-                printf("going to flush\n");
-                tcflush(dev->fd, TCIOFLUSH);
-                printf("flushed\n");
-            }
+         //   }
+ //           if (selectRes <= 0) {
+      //          printf("going to flush\n");
+     //           tcflush(dev->fd, TCIOFLUSH);
+        //        printf("flushed\n");
+   //         }
 
             // this doesn't seem to actually  make a difference... 
             if (!isInitial) continue;
@@ -129,7 +131,7 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
         bytesWritten += CDC_PAYLOAD_SZ;
         i++;
     }
-    tcdrain(dev->fd);
+    //tcdrain(dev->fd);
 cleanup:
     return rv;
 
@@ -138,7 +140,6 @@ cleanup:
 int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, uint8_t *resp, int respLen) {
     int rv = OKAY;
 
-    //usleep(500);
     tcflush(dev->fd, TCIOFLUSH);
     /* Send. */
     send(dev, msgType, req, reqLen, true);
