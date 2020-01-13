@@ -193,7 +193,7 @@ int HSM_Decrypt(struct hsm_decrypt_request *req, uint8_t *out, int *outLen) {
 
     if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
         if (out) {
-            memset(out, 0, IBE_MSG_LEN);
+            memset(out, 0xa, IBE_MSG_LEN);
             *outLen = IBE_MSG_LEN;
         } else {
             printf("Couldn't retrieve leaf\n");
@@ -324,7 +324,7 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     } else {
         printf("decryption matched\n");
     }
-    printf("key len: %d, aes256 = %d, aes128 = %d\n", AES_KEYLEN, AES256, AES128);
+    //printf("key len: %d, aes256 = %d, aes128 = %d\n", AES_KEYLEN, AES256, AES128);
 
     printf1(TAG_GREEN, "g_1^x (generator): %d ms\n", t2 - t1);
     printf1(TAG_GREEN, "g_2^x (generator): %d ms\n", t3 - t2);

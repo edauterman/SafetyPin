@@ -45,6 +45,7 @@ void encryptKeysAndCreateTag(uint8_t *encKey, uint8_t *hmacKey, uint8_t *key1, u
     
     enc_ctx = EVP_CIPHER_CTX_new();
     EVP_EncryptInit_ex(enc_ctx, EVP_aes_128_ecb(), NULL, encKey, NULL);
+    //EVP_EncryptInit_ex(enc_ctx, EVP_aes_128_ecb(), NULL, encKey, NULL);
     EVP_EncryptUpdate(enc_ctx, ct, &bytesFilled, key1, KEY_LEN);
     EVP_EncryptUpdate(enc_ctx, ct + KEY_LEN, &bytesFilled, key2, KEY_LEN);
 
@@ -62,11 +63,15 @@ void setIBELeaves(embedded_pairing_core_bigint_256_t *ibeMsk, uint8_t *leaves) {
         uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
         embedded_pairing_bls12_381_g1_t sk;
         embedded_pairing_bls12_381_g1affine_t sk_affine;
-        IBE_Extract(ibeMsk, i, &sk);
-        embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
-        embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
+        //IBE_Extract(ibeMsk, i, &sk);
+        //embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
+        //embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
+        memset(buf, 0xff, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
         memcpy(leaves + i * LEAF_LEN, buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
         //memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
+        /* DELETE THIS NEXT LINE */
+        //memset(leaves + i * LEAF_LEN, 0xff, LEAF_LEN);
+
         printf("leaf %d: ", i);
         for (int j = 0; j < 48; j++) {
             printf("%x ", buf[j]);

@@ -88,13 +88,11 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
         frame.seqNo = i;
         frame.sessionNum = sessionNum;
         printf("seqno =  %d\n", frame.seqNo);
-        if (msgType == HSM_DECRYPT) {
-            printf("sending frame: ");
-            for (int i = 0; i < CDC_FRAME_SZ; i++) {
-                printf("%x", ((uint8_t *)&frame)[i]);
-            }
-            printf("\n");
+        printf("sending frame: ");
+        for (int i = 0; i < CDC_FRAME_SZ; i++) {
+            printf("%x", ((uint8_t *)&frame)[i]);
         }
+        printf("\n");
         int numSent = 0;
         while (numSent < CDC_FRAME_SZ) {
             FD_ZERO(&fds);
@@ -156,7 +154,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     int bytesRead = 0;
     if (respLen == 0) rv = OKAY;
     printf("respLen = %d\n", respLen);
-    while (bytesRead < respLen) {
+    while (bytesRead < respLen || respLen == 0) {
         CDCFrame frame;
         int framePointer = 0;
         while (framePointer < CDC_FRAME_SZ) {
@@ -201,6 +199,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
         bytesRead = (frame.seqNo + 1) * CDC_PAYLOAD_SZ;
         printf("new bytes read = %d from seqno %d\n", bytesRead, frame.seqNo);
         //printf("finished frame %d, read %d bytes\n", frame.seqNo, bytesRead);
+        if (respLen == 0) break;
     }
     dev->sessionCtr++;
 

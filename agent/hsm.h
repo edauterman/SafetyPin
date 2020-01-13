@@ -14,6 +14,8 @@
 extern "C" {
 #endif
 
+//#define HID
+
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32)

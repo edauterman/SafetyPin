@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   }
 
   for (int i = 0; i < NUM_HSMS; i++) {
-//    HSM_GetMpk(d->hsms[i]);
+    HSM_GetMpk(d->hsms[i]);
 
     uint8_t msg[IBE_MSG_LEN];
     uint8_t msg_test[IBE_MSG_LEN];
@@ -36,15 +36,15 @@ int main(int argc, char *argv[]) {
     }
     memset(msg, 0xff, IBE_MSG_LEN);
 
-    //HSM_Encrypt(d->hsms[i], 1, msg, IBE_MSG_LEN, c);
-    //HSM_TestSetup(d->hsms[i]);
-    //HSM_SmallSetup(d->hsms[i]);
-//    HSM_Retrieve(d->hsms[i], 0);
+//    HSM_TestSetup(d->hsms[i]);
+    HSM_SmallSetup(d->hsms[i]);
+    HSM_Retrieve(d->hsms[i], 0);
 //    HSM_Retrieve(d->hsms[i], 1);
 //    HSM_Puncture(d->hsms[i], 0);
 //    HSM_Retrieve(d->hsms[i], 1);
 
-    HSM_Decrypt(d->hsms[i], 1, c, msg_test, IBE_MSG_LEN);
+//    HSM_Encrypt(d->hsms[i], 1, msg, IBE_MSG_LEN, c);
+//    HSM_Decrypt(d->hsms[i], 1, c, msg_test, IBE_MSG_LEN);
 
     if (memcmp(msg, msg_test, IBE_MSG_LEN) != 0) {
         printf("Decryption did not return correct plaintext: ");
