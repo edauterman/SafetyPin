@@ -61,12 +61,12 @@ void setIBELeaves(embedded_pairing_core_bigint_256_t *ibeMsk, uint8_t *leaves) {
         memset(leaves + i * LEAF_LEN, 0, LEAF_LEN);
         //memset(leaves[i], 0, LEAF_LEN);
         uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
-        embedded_pairing_bls12_381_g1_t sk;
+        /*embedded_pairing_bls12_381_g1_t sk;
         embedded_pairing_bls12_381_g1affine_t sk_affine;
-        //IBE_Extract(ibeMsk, i, &sk);
-        //embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
-        //embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
-        memset(buf, 0xff, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
+        IBE_Extract(ibeMsk, i, &sk);
+        embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
+        embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
+        */memset(buf, 0xff, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
         memcpy(leaves + i * LEAF_LEN, buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
         //memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
         /* DELETE THIS NEXT LINE */

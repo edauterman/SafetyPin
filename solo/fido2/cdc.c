@@ -13,6 +13,7 @@
 #include "hsm.h"
 
 uint8_t msgBuf[CDC_BUFFER_LEN];
+uint8_t rsp[500];
 uint8_t currSessionNum = 0;
 
 static int ceil(double x) {
@@ -46,15 +47,15 @@ void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whe
     //currSessionNum = frame->sessionNum;
     memcpy(msgBuf + frame->seqNo * CDC_PAYLOAD_SZ, frame->payload, CDC_PAYLOAD_SZ);
     int reqLen = HSM_GetReqLenFromMsgType(frame->msgType);
-/*    if (frame->msgType == HSM_DECRYPT) {
-        uint8_t rsp[IBE_MSG_LEN];
-        memset(rsp, frame->seqNo, IBE_MSG_LEN);
+/*    if (frame->msgType == HSM_RETRIEVE) {
+        uint8_t rsp[59];
+        memset(rsp, frame->seqNo, 59);
         rsp[0] = (uint8_t)remaining;
         rsp[1] = (uint8_t)rhead;
         rsp[2] = (uint8_t)whead;
         int tmpSessionNum = currSessionNum;
         currSessionNum = -1;
-//        cdc_write(rsp, IBE_MSG_LEN, frame->msgType);
+        cdc_write(rsp, 59, frame->msgType);
         currSessionNum = tmpSessionNum;
     }*/
     //if (frame->seqNo == 36) { 
@@ -62,7 +63,8 @@ void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whe
     //if (frame->seqNo == 0) { 
     if ((frame->seqNo + 1) * CDC_PAYLOAD_SZ >= reqLen) { 
         int sendLen;
-        uint8_t rsp[CDC_BUFFER_LEN];
+        //uint8_t rsp[500];
+        //uint8_t rsp[CDC_BUFFER_LEN];
         //if (frame->msgType != HSM_DECRYPT) {
         //HSM_Handle(frame->msgType, msgBuf, rsp, &sendLen);
    /*     if (frame->msgType == HSM_DECRYPT) {
@@ -71,8 +73,12 @@ void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whe
         } else {
             HSM_Handle(frame->msgType, msgBuf, rsp, &sendLen);
         }*/
+        //if (frame->msgType != HSM_RETRIEVE) {
         HSM_Handle(frame->msgType, msgBuf, rsp, &sendLen);
         cdc_write(rsp, sendLen, frame->msgType);
+        //} else {
+        //    cdc_write(msgBuf, reqLen, frame->msgType);
+        //}
         //cdc_write(rsp, sendLen, frame->msgType);
         //}
         currSessionNum++; /*else {

@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
   printf("size of puncture resp: %d\n", sizeof(HSM_PUNCTURE_RESP));
 
   gettimeofday(&t1, NULL);
-//  HSM_LongMsg(d->hsms[0]);
+  HSM_LongMsg(d->hsms[0]);
   gettimeofday(&t2, NULL);
 
   printf("long message time: %ld sec, %d micros\n", t2.tv_sec - t1.tv_sec, t2.tv_usec - t1.tv_usec);

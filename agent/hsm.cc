@@ -254,6 +254,7 @@ int HSM_Retrieve(HSM *h, uint32_t index) {
     int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
     int levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
     HSM_RETRIEVE_REQ req;
+    HSM_RETRIEVE_REQ req2;
     HSM_RETRIEVE_RESP resp;
     string resp_str;
     uint32_t currIndex = index;
@@ -280,8 +281,44 @@ int HSM_Retrieve(HSM *h, uint32_t index) {
 #else
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_RETRIEVE, (uint8_t *)&req,
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+    //CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_RETRIEVE, (uint8_t *)&req,
+    //            sizeof(req), (uint8_t *)&req2, sizeof(req2)));
 #endif
 
+    /*printf("sent: ");
+    for (int i = 0; i < sizeof(req); i++) {
+        printf("%x", ((uint8_t *)&req)[i]);
+    }
+    printf("\n");
+
+
+    printf("received: ");
+    for (int i = 0; i < sizeof(req2); i++) {
+        printf("%x", ((uint8_t *)&req2)[i]);
+    }
+    printf("\n");
+
+    printf("DIFF (out): ");
+    for (int i = 0; i < sizeof(req2); i++) {
+        if (((uint8_t *)&req)[i] != ((uint8_t *)&req2)[i]) printf("%x", ((uint8_t *)&req)[i]);
+    }
+    printf("\n");
+
+    printf("DIFF (in): ");
+    for (int i = 0; i < sizeof(req2); i++) {
+        if (((uint8_t *)&req)[i] != ((uint8_t *)&req2)[i]) printf("%x", ((uint8_t *)&req2)[i]);
+    }
+    printf("\n");
+
+    printf("Frame numbers OFF: ");
+    for (int i = 0; i < sizeof(req) / CDC_PAYLOAD_SZ; i++) {
+        if (memcmp((uint8_t *)&req + i * CDC_PAYLOAD_SZ, (uint8_t *)&req2 + i * CDC_PAYLOAD_SZ, CDC_PAYLOAD_SZ) != 0) printf("%d ", i);
+    }
+    printf("\n");
+
+
+    if (memcmp((uint8_t *)&req, (uint8_t *)&req2, sizeof(req)) != 0) printf("req doesn't match req2!!!\n");
+*/
     printf("leaf: ");
     for (int i = 0; i < LEAF_LEN; i++) {
         printf("%x ", resp.leaf[i]);
@@ -381,11 +418,12 @@ int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t 
     uint32_t indexes[PUNC_ENC_REPL];
     uint8_t zeros[msgLen];
 
+    int i = 0;
     pthread_mutex_lock(&h->m);
 
     CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
 
-    for (int i = 0; i < PUNC_ENC_REPL; i++) {
+    //for (int i = 0; i < PUNC_ENC_REPL; i++) {
 
         numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
         levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
@@ -418,7 +456,7 @@ int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t 
             printf("Got valid decryption\n");
             memcpy(msg, resp.msg, msgLen);
         }
-    }
+    //}
 
     printf("finished retrieving decryption\n");
 cleanup:

@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   }
 
   for (int i = 0; i < NUM_HSMS; i++) {
-    HSM_GetMpk(d->hsms[i]);
+    //HSM_GetMpk(d->hsms[i]);
 
     uint8_t msg[IBE_MSG_LEN];
     uint8_t msg_test[IBE_MSG_LEN];
@@ -36,8 +36,8 @@ int main(int argc, char *argv[]) {
     }
     memset(msg, 0xff, IBE_MSG_LEN);
 
-//    HSM_TestSetup(d->hsms[i]);
-    HSM_SmallSetup(d->hsms[i]);
+    HSM_TestSetup(d->hsms[i]);
+//    HSM_SmallSetup(d->hsms[i]);
     HSM_Retrieve(d->hsms[i], 0);
 //    HSM_Retrieve(d->hsms[i], 1);
 //    HSM_Puncture(d->hsms[i], 0);
