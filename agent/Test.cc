@@ -43,8 +43,8 @@ int main(int argc, char *argv[]) {
 //    HSM_Puncture(d->hsms[i], 0);
 //    HSM_Retrieve(d->hsms[i], 1);
 
-//    HSM_Encrypt(d->hsms[i], 1, msg, IBE_MSG_LEN, c);
-//    HSM_Decrypt(d->hsms[i], 1, c, msg_test, IBE_MSG_LEN);
+    HSM_Encrypt(d->hsms[i], 1, msg, IBE_MSG_LEN, c);
+    HSM_Decrypt(d->hsms[i], 1, c, msg_test, IBE_MSG_LEN);
 
     if (memcmp(msg, msg_test, IBE_MSG_LEN) != 0) {
         printf("Decryption did not return correct plaintext: ");

@@ -13,7 +13,7 @@
 #include "hsm.h"
 
 uint8_t msgBuf[CDC_BUFFER_LEN];
-uint8_t rsp[500];
+uint8_t rsp[CDC_BUFFER_LEN];
 uint8_t currSessionNum = 0;
 
 static int ceil(double x) {
