@@ -68,8 +68,8 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
     int bytesWritten = 0;
     int i = 0;
     uint8_t sessionNum = dev->sessionCtr;
-    printf("sessionNum = %d\n", sessionNum);
-    printf("req len = %d\n", reqLen);
+//    printf("sessionNum = %d\n", sessionNum);
+//    printf("req len = %d\n", reqLen);
     fd_set fds;
     struct timeval timeout;
     timeout.tv_sec = 1;
@@ -87,12 +87,12 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
         frame.msgType = msgType;
         frame.seqNo = i;
         frame.sessionNum = sessionNum;
-        printf("seqno =  %d\n", frame.seqNo);
-        printf("sending frame: ");
-        for (int i = 0; i < CDC_FRAME_SZ; i++) {
-            printf("%x", ((uint8_t *)&frame)[i]);
-        }
-        printf("\n");
+//        printf("seqno =  %d\n", frame.seqNo);
+//        printf("sending frame: ");
+//        for (int i = 0; i < CDC_FRAME_SZ; i++) {
+//            printf("%x", ((uint8_t *)&frame)[i]);
+//        }
+//        printf("\n");
         int numSent = 0;
         while (numSent < CDC_FRAME_SZ) {
             FD_ZERO(&fds);
@@ -100,12 +100,12 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
             timeout.tv_sec = 1;
             timeout.tv_usec = 0;
            
-            printf("waiting to write seqno = %d\n", frame.seqNo); 
+//            printf("waiting to write seqno = %d\n", frame.seqNo); 
 //            int selectRes = select(dev->fd + 1, NULL, &fds, NULL, &timeout);
     //        if (selectRes > 0) {
                 numSent += write(dev->fd, (uint8_t *)&frame + numSent, CDC_FRAME_SZ - numSent);
                 //tcdrain(dev->fd);
-                printf("numSent =  %d\n", numSent);
+//                printf("numSent =  %d\n", numSent);
          //   }
  //           if (selectRes <= 0) {
       //          printf("going to flush\n");
@@ -153,7 +153,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     uint8_t sessionNum = dev->sessionCtr;
     int bytesRead = 0;
     if (respLen == 0) rv = OKAY;
-    printf("respLen = %d\n", respLen);
+//    printf("respLen = %d\n", respLen);
     while (bytesRead < respLen || respLen == 0) {
         CDCFrame frame;
         int framePointer = 0;
@@ -161,10 +161,10 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
             FD_ZERO(&fds);
             FD_SET(dev->fd, &fds);
     
-            printf("bytesRead = %d, framePointer = %d\n", bytesRead, framePointer);
+//            printf("bytesRead = %d, framePointer = %d\n", bytesRead, framePointer);
             int selectRes = select(dev->fd + 1, &fds, NULL, NULL, &timeout);
             if (selectRes <= 0) {
-                printf("*** SELECT ERR: %d\n", selectRes);
+//                printf("*** SELECT ERR: %d\n", selectRes);
                 tcflush(dev->fd, TCIOFLUSH);
                 send(dev, msgType, req, reqLen, false);
                 continue;
@@ -172,9 +172,9 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
             //if (selectRes <= 0) send(dev, msgType, req, reqLen, false);
             //if (selectRes <= 0) printf("*** just resent\n");
             //CHECK_C (selectRes > 0);
-            printf("will read\n");
+//            printf("will read\n");
             int numBytes = read(dev->fd, (uint8_t *)&frame + framePointer, CDC_FRAME_SZ);
-            printf("num bytes read: %d\n", numBytes);
+//            printf("num bytes read: %d\n", numBytes);
             //printf("current frame after receiving %d bytes: ", numBytes);
             //for (int i = 0; i < CDC_FRAME_SZ; i++) {
             //    printf("%x", ((uint8_t *)&frame)[i]);
@@ -183,21 +183,21 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
 
             framePointer += numBytes;
         }
-        printf("received session num %d, should be %d\n", frame.sessionNum, sessionNum);
-        printf("received frame with msgType %x, sessionNum %d, seqno %d: ", frame.msgType, frame.sessionNum, frame.seqNo);
-        for (int i = 0; i < CDC_PAYLOAD_SZ; i++) {
-            printf("%x", frame.payload[i]);
-        }
-        printf("\n");
+//        printf("received session num %d, should be %d\n", frame.sessionNum, sessionNum);
+//        printf("received frame with msgType %x, sessionNum %d, seqno %d: ", frame.msgType, frame.sessionNum, frame.seqNo);
+//        for (int i = 0; i < CDC_PAYLOAD_SZ; i++) {
+//            printf("%x", frame.payload[i]);
+//        }
+//        printf("\n");
         if (frame.sessionNum != sessionNum) continue;
         if (respLen > 0) {
             int bytesToCopy = respLen - (frame.seqNo * CDC_PAYLOAD_SZ) < CDC_PAYLOAD_SZ ? respLen - (frame.seqNo * CDC_PAYLOAD_SZ) : CDC_PAYLOAD_SZ;
             memcpy(resp + frame.seqNo * CDC_PAYLOAD_SZ, frame.payload, bytesToCopy);
             //if (msgType != HSM_DECRYPT) memcpy(resp + frame.seqNo * CDC_PAYLOAD_SZ, frame.payload, bytesToCopy);
-            printf("copied %d bytes to %d seqno\n", bytesToCopy, frame.seqNo);
+//            printf("copied %d bytes to %d seqno\n", bytesToCopy, frame.seqNo);
         }
         bytesRead = (frame.seqNo + 1) * CDC_PAYLOAD_SZ;
-        printf("new bytes read = %d from seqno %d\n", bytesRead, frame.seqNo);
+//        printf("new bytes read = %d from seqno %d\n", bytesRead, frame.seqNo);
         //printf("finished frame %d, read %d bytes\n", frame.seqNo, bytesRead);
         if (respLen == 0) break;
     }
