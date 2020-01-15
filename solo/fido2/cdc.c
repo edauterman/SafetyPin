@@ -12,8 +12,8 @@
 #include "cdc.h"
 #include "hsm.h"
 
-uint8_t msgBuf[CDC_BUFFER_LEN];
-uint8_t rsp[CDC_BUFFER_LEN];
+uint8_t msgBuf[3000];
+uint8_t rsp[2048];
 uint8_t currSessionNum = 0;
 
 static int ceil(double x) {

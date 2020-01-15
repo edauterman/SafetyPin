@@ -30,6 +30,9 @@ extern "C"{
 #define OKAY 1
 #define ERROR 0
 
+#define DEBUG 0 
+#define debug_print(args ...) if (DEBUG) fprintf(stderr, args)
+
 /* Check a call that should return OKAY. */
 #define CHECK_C(expr) do {\
   (rv = (expr));\

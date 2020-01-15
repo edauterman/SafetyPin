@@ -307,11 +307,11 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
 
     /* Walk down the tree. */
     for (int i = 0; i < levels - 1; i++) {
-        printf("ct[%d]: ", i);
+        /*printf("ct[%d]: ", i);
         for (int j = 0; j < CT_LEN; j++) {
             printf("%x ", cts[i][j]);
         }
-        printf("\n");
+        printf("\n");*/
         /* Decrypt current ciphertext. */
         if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[i]) == ERROR) {
             printf("ERROR IN DECRYPTION OF INNER NODE\n");
@@ -323,15 +323,15 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
 
         /* Choose to go left or right. */
         if (currIndex < currCmp) {
-            printf("going left at %d\n", i);
+            //printf("going left at %d\n", i);
             memcpy(currKey, leftKey, KEY_LEN);
         } else {
-            printf("going right at %d\n", i);
+            //printf("going right at %d\n", i);
             memcpy(currKey, rightKey, KEY_LEN);
             currIndex -= currCmp;
         }
 
-        printf("left key at %d: ", i);
+        /*printf("left key at %d: ", i);
         for (int j = 0; j < KEY_LEN; j++) {
             printf("%x ", leftKey[j]);
         }
@@ -342,7 +342,7 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
             printf("%x ", rightKey[j]);
         }
         printf("\n");
-
+*/
         currCmp /= 2;
         //currIndex /= 2;
     }

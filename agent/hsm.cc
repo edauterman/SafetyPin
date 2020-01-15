@@ -589,4 +589,48 @@ cleanup:
     return rv;
 }
 
+// CURRENTLY NOT THREAD-SAFE
+int HSM_Mac(HSM *h1, HSM *h2, uint8_t *nonce, uint8_t *mac) {
+    int rv = ERROR;
+    HSM_GET_NONCE_RESP nonceResp;
+    HSM_MAC_REQ macReq;
+    HSM_MAC_RESP macResp;
+    HSM_RET_MAC_REQ retMacReq;
+    string resp_str;
 
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h1->hidDevice, 0, HSM_GET_NONCE, 0, 0,
+                   "", &resp_str));
+    memcpy(&nonceResp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h1->usbDevice, HSM_GET_NONCE, NULL,
+                0, (uint8_t *)&nonceResp, sizeof(nonceResp)));
+#endif
+
+    memcpy(nonce, nonceResp.nonce, NONCE_LEN);
+    memcpy(macReq.nonce, nonceResp.nonce, NONCE_LEN);
+ 
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h2->hidDevice, 0, HSM_MAC, 0, 0,
+                   string(reinterpret_cast<char*>(&macReq), sizeof(macReq)), &resp_str));
+    memcpy(&macResp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h2->usbDevice, HSM_MAC, (uint8_t *)&macReq,
+                sizeof(macReq), (uint8_t *)&macResp, sizeof(macResp)));
+#endif
+
+    memcpy(mac, macResp.mac, SHA256_DIGEST_LENGTH);
+    memcpy(retMacReq.mac, macResp.mac, SHA256_DIGEST_LENGTH);
+ 
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h1->hidDevice, 0, HSM_RET_MAC, 0, 0,
+                   string(reinterpret_cast<char*>(&retMacReq), sizeof(req)), &resp_str));
+#else
+    CHECK_C (UsbDevice_exchange(h1->usbDevice, HSM_RET_MAC, (uint8_t *)&retMacReq,
+                sizeof(retMacReq), NULL, 0));
+#endif
+
+cleanup:
+    if (rv == ERROR) printf("MAC MSG ERROR\n");
+    return rv;
+}

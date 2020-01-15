@@ -22,6 +22,7 @@
 #include "bls12_381/bls12_381.h"
 #include "ibe.h"
 #include "punc_enc.h"
+#include "hsm.h"
 #include APP_CONFIG
 
 #if !defined(TEST)
@@ -64,6 +65,7 @@ int main(int argc, char *argv[])
 
     IBE_Setup();
     PuncEnc_Init();
+    ctap_generate_rng(pingKey, KEY_LEN);
 
     printf1(TAG_GREEN, "starting!\n");
 
