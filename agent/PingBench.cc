@@ -36,6 +36,8 @@ int main(int argc, char *argv[]) {
   double mean = 0.0;
   double stddev = 0.0;
   double sum = 0.0;
+  long maxMicros = -1;
+  long minMicros = -1;
 
   struct timeval t1, t2;
   uint8_t nonce[NONCE_LEN];
@@ -78,6 +80,9 @@ int main(int argc, char *argv[]) {
         macMicrosArr[i * NUM_ITERS + j] = macMicros;
         mean += ((double)macMicros) / ((double)NUM_ROUNDS);
         printf("Current mean: %f\n", mean);
+    
+        if (maxMicros < 0 || maxMicros < macMicros) maxMicros = macMicros;
+        if (minMicros < 0 || minMicros > macMicros) minMicros = macMicros;  
     }
     Datacenter_free(d);
     printf("Unplug and replug and then enter char to continue...\n");
@@ -96,6 +101,8 @@ int main(int argc, char *argv[]) {
 
   printf("Mean: %f micros\n", mean);
   printf("Standard deviation: %f\n", stddev);
+  printf("Max latency: %ld micros\n", maxMicros);
+  printf("Min latency: %ld micros\n", minMicros);
 
 
   Datacenter_free(d);

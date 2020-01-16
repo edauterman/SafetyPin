@@ -29,7 +29,7 @@ RecoveryCiphertext *RecoveryCiphertext_new() {
     CHECK_A (c = (RecoveryCiphertext *)malloc(sizeof(RecoveryCiphertext)));
     for (int i = 0; i < HSM_GROUP_SIZE; i++)  {
         for (int j = 0; j < PUNC_ENC_REPL; j++) {
-            CHECK_A (c->transportKeyCts[i][j] = IBE_ciphertext_new(IBE_MSG_LEN));
+            CHECK_A (c->recoveryCts[i][j] = IBE_ciphertext_new(IBE_MSG_LEN));
             CHECK_A (c->saltCts[i][j] = IBE_ciphertext_new(IBE_MSG_LEN));
         }
     }
@@ -45,7 +45,7 @@ cleanup:
 void RecoveryCiphertext_free(RecoveryCiphertext *c) {
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         for (int j = 0; j < PUNC_ENC_REPL; j++) {
-            if (c && c->transportKeyCts[i] && c->transportKeyCts[i][j]) IBE_ciphertext_free(c->transportKeyCts[i][j]);
+            if (c && c->recoveryCts[i] && c->recoveryCts[i][j]) IBE_ciphertext_free(c->recoveryCts[i][j]);
             if (c && c->saltCts[i] && c->saltCts[i][j]) IBE_ciphertext_free(c->saltCts[i][j]);
         }
     }
@@ -276,21 +276,12 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     BIGNUM *r = NULL;
     BIGNUM *saltHashes[HSM_GROUP_SIZE];
     ShamirShare *saveKeyShares[HSM_GROUP_SIZE];
-    IBE_ciphertext *innerCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
-    BIGNUM *transportKey = NULL;
-    uint8_t transportKeyBuf[AES128_KEY_LEN];
-    ShamirShare *transportKeyShares[HSM_GROUP_SIZE];
     ShamirShare *saltShares[HSM_GROUP_SIZE];
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
-        CHECK_A (transportKeyShares[i] = ShamirShare_new());
         CHECK_A (saltShares[i] = ShamirShare_new());
-        for (int j = 0; j < PUNC_ENC_REPL; j++) {
-            CHECK_A (innerCts[i][j] = IBE_ciphertext_new(IBE_MSG_LEN));
-        }
     }
-    CHECK_A (transportKey = BN_new());
 
     printf("start save key: %s\n", BN_bn2hex(saveKey));
 
@@ -319,37 +310,8 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
         }
         printf("\n");
         
-        CHECK_C (HSM_Encrypt(d->hsms[h1[i]], userID, msg, IBE_MSG_LEN, innerCts[i]));
+        CHECK_C (HSM_Encrypt(d->hsms[h1[i]], userID, msg, IBE_MSG_LEN, c->recoveryCts[i]));
 
-    }
-
-    /* Encrypt all those ciphertexts with a transport key. */
-    uint8_t innerCtBuf[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];
-    memset(innerCtBuf, 0, HSM_GROUP_SIZE * IBE_CT_LEN);
-    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        for (int j = 0; j < PUNC_ENC_REPL; j++) {
-            IBE_MarshalCt(innerCtBuf + (i * PUNC_ENC_REPL + j) * IBE_CT_LEN, IBE_MSG_LEN, innerCts[i][j]);
-        }
-    }
-
-    CHECK_C (BN_rand_range(transportKey, params->prime));
-    printf("transport key: %s\n", BN_bn2hex(transportKey));
-    memset(transportKeyBuf, 0, AES128_KEY_LEN);
-    BN_bn2bin(transportKey, transportKeyBuf);
-    CHECK_C (aesGcmEncrypt(transportKeyBuf, innerCtBuf, HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN, c->iv, c->tag, c->ct));
-   
-    /* Make shares of transport key. */
-    CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, transportKey, params->prime, transportKeyShares));
-
-    /* Encrypt shares of transport key to recovery HSMs. */
-    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        /* Have an empty 16 bytes here, might want to fix. */
-        uint8_t msg[IBE_MSG_LEN];
-        memset(msg, 0, IBE_MSG_LEN);
-        Shamir_Marshal(msg, transportKeyShares[i]);
-        memset(msg + SHAMIR_MARSHALLED_SIZE, 0xff, SHA256_DIGEST_LENGTH);
-        CHECK_C (HSM_Encrypt(d->hsms[h1[i]], userID + 1, msg, IBE_MSG_LEN, c->transportKeyCts[i]));
-         
     }
 
     /* Choose HSMs to hide salt  r. */
@@ -372,11 +334,7 @@ cleanup:
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         if (saveKeyShares[i]) ShamirShare_free(saveKeyShares[i]);
-        if (transportKeyShares[i]) ShamirShare_free(transportKeyShares[i]);
         if (saltShares[i]) ShamirShare_free(saltShares[i]);
-        for (int j = 0; j < PUNC_ENC_REPL; j++) {
-            if (innerCts[i] && innerCts[i][j]) IBE_ciphertext_free(innerCts[i][j]);
-        }
     }
     return rv;
 }
@@ -386,12 +344,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     uint8_t h1[HSM_GROUP_SIZE];
     uint8_t h2[HSM_GROUP_SIZE];
     BIGNUM *saltHashes[HSM_GROUP_SIZE];
-    ShamirShare *transportKeyShares[HSM_GROUP_SIZE];
-    BIGNUM *transportKey = NULL;
     BIGNUM *r = NULL;
-    uint8_t transportKeyBuf[AES128_KEY_LEN];
-    uint8_t innerCtBuf[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];
-    IBE_ciphertext *innerCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     ShamirShare *saveKeyShares[HSM_GROUP_SIZE];
     ShamirShare *saltShares[HSM_GROUP_SIZE];
     thread t0[HSM_GROUP_SIZE];
@@ -399,14 +352,9 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     thread t2[HSM_GROUP_SIZE];
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        CHECK_A (transportKeyShares[i] = ShamirShare_new());
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
         CHECK_A (saltShares[i] = ShamirShare_new());
-        for (int j = 0; j < PUNC_ENC_REPL; j++) {
-            CHECK_A (innerCts[i][j] = IBE_ciphertext_new(IBE_MSG_LEN));
-        }
     }
-    CHECK_A (transportKey = BN_new());
     CHECK_A (r = BN_new());
 
     /* Hash meta-salt to find salt HSMs. */
@@ -431,45 +379,12 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     /* Hash salt and pin to find recovery HSMs. */
     chooseHsmsFromSaltAndPin(params, h1, saltHashes, r, pin);
     
-    /* Decrypt shares of transport key with HSMs. */
-    uint8_t transportKeyShareBufs[HSM_GROUP_SIZE][IBE_MSG_LEN];
-    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        t1[i] = thread(HSM_AuthDecrypt, d->hsms[h1[i]], userID + 1, c->transportKeyCts[i], transportKeyShareBufs[i], IBE_MSG_LEN, pinHashPlaceholder);
-        //CHECK_C (HSM_AuthDecrypt(d->hsms[h1[i]], userID, c->transportKeyCts[i], share, IBE_MSG_LEN, pinHashPlaceholder));
-        //Shamir_Unmarshal(share, transportKeyShares[i]);
-    }
-    for (int i = 0; i < HSM_GROUP_SIZE; i++)  {
-        t1[i].join();
-        printf("transport key share %d/%d: ", i, HSM_GROUP_SIZE);
-        for (int j = 0; j < HSM_GROUP_SIZE; j++) {
-            printf("%x ", transportKeyShareBufs[i][j]);
-        }
-        printf("\n");
-        Shamir_Unmarshal(transportKeyShareBufs[i], transportKeyShares[i]);
-    }
-
-    /* Reassemble transport key. */
-    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, transportKeyShares, params->prime, transportKey));
-
-    printf("transport key: %s\n", BN_bn2hex(transportKey));
-
-    /* Decrypt ct to get inner ciphertexts using transport key. */
-    memset(transportKeyBuf, 0, AES128_KEY_LEN);
-    printf("num bytes: %d\n", BN_num_bytes(transportKey));
-    BN_bn2bin(transportKey, transportKeyBuf);
-    CHECK_C (aesGcmDecrypt(transportKeyBuf, innerCtBuf, c->iv, c->tag, c->ct, HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN));
-    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        for (int j = 0; j < PUNC_ENC_REPL; j++) {
-            IBE_UnmarshalCt(innerCtBuf + (i * PUNC_ENC_REPL + j) * IBE_CT_LEN, IBE_MSG_LEN, innerCts[i][j]);
-        }
-    }
-
     /* Decrypt inner cts with HSMs. */
     uint8_t saveKeyShareBufs[HSM_GROUP_SIZE][IBE_MSG_LEN];
     uint8_t pinHashes[HSM_GROUP_SIZE][SHA256_DIGEST_LENGTH];
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         BN_bn2bin(saltHashes[i], pinHashes[i]);
-        t2[i] = thread(HSM_AuthDecrypt, d->hsms[h1[i]], userID, innerCts[i], saveKeyShareBufs[i], IBE_MSG_LEN, pinHashes[i]);
+        t2[i] = thread(HSM_AuthDecrypt, d->hsms[h1[i]], userID, c->recoveryCts[i], saveKeyShareBufs[i], IBE_MSG_LEN, pinHashes[i]);
         //CHECK_C (HSM_AuthDecrypt(d->hsms[h1[i]], userID, innerCts[i], share, IBE_MSG_LEN, pinHash));
         //Shamir_Unmarshal(share, saveKeyShares[i]);
     }
@@ -484,14 +399,9 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
 
 cleanup:
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        if (transportKeyShares[i]) ShamirShare_free(transportKeyShares[i]);
         if (saveKeyShares[i]) ShamirShare_free(saveKeyShares[i]);
         if (saltShares[i]) ShamirShare_free(saltShares[i]);
-        for (int j = 0; j < PUNC_ENC_REPL; j++) {
-            if (innerCts[i] && innerCts[i][j]) IBE_ciphertext_free(innerCts[i][j]);
-        }
     }
-    BN_free(transportKey);
     BN_free(r);
     return rv;
 }
