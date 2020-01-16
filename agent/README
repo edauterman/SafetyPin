@@ -1,10 +1,7 @@
-WHAT:
-Agent to check behavior of U2F running det2F protocol.
-
 DEPENDENCIES:
 git clone https://github.com/signal11/hidapi
 
-sudo apt-get install libudev-dev libcrypto++-dev nlohmann-json-dev
+sudo apt-get install libudev-dev libcrypto++-dev libssl-dev 
 
 BUILD:
 linux, mac: make
