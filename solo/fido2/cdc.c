@@ -43,7 +43,15 @@ static void cdc_write(uint8_t *data, int len, uint8_t msgType)
 
 void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whead)
 {
-    if (frame->sessionNum < currSessionNum) return;
+    if (frame->sessionNum != currSessionNum) {
+        //if ((currSessionNum != 0xff) && (frame->sessionNum != 0)) return;
+        return;
+    }
+    if (frame->msgType == HSM_RESET) {
+        cdc_write(rsp, 0, frame->msgType);
+        currSessionNum = 0;
+        return;
+    }
     //currSessionNum = frame->sessionNum;
     memcpy(msgBuf + frame->seqNo * CDC_PAYLOAD_SZ, frame->payload, CDC_PAYLOAD_SZ);
     int reqLen = HSM_GetReqLenFromMsgType(frame->msgType);
@@ -81,7 +89,7 @@ void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whe
         //}
         //cdc_write(rsp, sendLen, frame->msgType);
         //}
-        currSessionNum++; /*else {
+        currSessionNum = (currSessionNum + 1) % 256; /*else {
             cdc_write(msgBuf, reqLen, frame->msgType);
         }*/
     }

@@ -104,7 +104,7 @@ RecoveryBench: RecoveryBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
 
 PingBench: PingBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o usb.o $(HIDAPI)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o $@ $^ $(LDLIBS) -lssl -lcrypto
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
 
 Test: Test.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread

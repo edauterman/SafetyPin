@@ -52,6 +52,7 @@ extern "C" {
 #define HSM_MAC             0x7a
 #define HSM_GET_NONCE       0x7b
 #define HSM_RET_MAC         0x7c
+#define HSM_RESET           0x7d
 
 #define LEVEL_0 0
 #define LEVEL_1 1

@@ -46,6 +46,7 @@
 #define HSM_MAC             0x7a
 #define HSM_GET_NONCE       0x7b
 #define HSM_RET_MAC         0x7c
+#define HSM_RESET           0x7d
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
