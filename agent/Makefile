@@ -32,8 +32,8 @@ HIDAPI:=
 HIDAPI_CPPFLAGS:=$(shell $(PKG_CONFIG) --cflags-only-I $(HIDAPI_PKG))
 endif # hidapi library
 
-CPPFLAGS+=$(HIDAPI_CPPFLAGS) -D__OS_LINUX -Ijedi-pairing/include
-CFLAGS+=$(HIDAPI_CFLAGS) -D__OS_LINUX -Ijedi-pairing/include
+CPPFLAGS+=$(HIDAPI_CPPFLAGS) -D__OS_LINUX -Ijedi-pairing/include -fno-stack-protector
+CFLAGS+=$(HIDAPI_CFLAGS) -D__OS_LINUX -Ijedi-pairing/include -fno-stack-protector
 LDLIBS+=-lrt -ludev $(HIDAPI_LDLIBS) -Ljedi-pairing/pairing.a
 endif  # Linux
 

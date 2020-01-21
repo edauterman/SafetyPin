@@ -22,7 +22,8 @@
 
 using namespace std;
 
-const char *HANDLES[] = {"/dev/cu.usbmodem208532CA31412"};
+const char *HANDLES[] = {"/dev/ttyACM0"};
+//const char *HANDLES[] = {"/dev/cu.usbmodem208532CA31412"};
 
 RecoveryCiphertext *RecoveryCiphertext_new() {
     int rv = ERROR;
