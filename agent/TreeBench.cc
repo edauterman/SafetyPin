@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "datacenter.h"
 #include "hsm.h"
@@ -36,7 +37,8 @@ int main(int argc, char *argv[]) {
   HSM_TestSetup(d->hsms[0]);
   
   struct timeval t1, t2, t3;
-      
+
+  HSM_Retrieve(d->hsms[0], 0);
   gettimeofday(&t1, NULL);
   HSM_Retrieve(d->hsms[0], 0);
   gettimeofday(&t2, NULL);

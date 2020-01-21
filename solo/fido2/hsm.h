@@ -26,6 +26,8 @@
 #define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)
 #define NUM_INTERMEDIATE_KEYS (NUM_SUB_LEAVES * 2) 
 
+#define NONCE_LEN 16 
+
 #define LEVEL_0 0
 #define LEVEL_1 1
 #define LEVEL_2 2
@@ -41,6 +43,9 @@
 #define HSM_TEST_SETUP      0x77
 #define HSM_MICROBENCH      0x78
 #define HSM_LONGMSG         0x79
+#define HSM_MAC             0x7a
+#define HSM_GET_NONCE       0x7b
+#define HSM_RET_MAC         0x7c
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -98,6 +103,26 @@ struct hsm_long_response {
     uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
 };
 
+struct hsm_mac_request {
+    uint8_t nonce[NONCE_LEN];
+};
+
+struct hsm_mac_response {
+    uint8_t mac[SHA256_DIGEST_LEN];
+};
+
+struct hsm_get_nonce_response {
+    uint8_t nonce[NONCE_LEN];
+};
+
+struct hsm_ret_mac_request {
+    uint8_t mac[SHA256_DIGEST_LEN];
+};
+
+
+
+uint8_t pingKey[KEY_LEN];
+
 void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen);
 int HSM_GetReqLenFromMsgType(uint8_t msgType);
 
@@ -111,4 +136,7 @@ int HSM_Decrypt(struct hsm_decrypt_request *req, uint8_t *out, int *outLen);
 int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *outLen);
 int HSM_MicroBench(uint8_t *out, int *outLen);
 int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen);
+int HSM_Mac(struct hsm_mac_request *req, uint8_t *out, int *outLen);
+int HSM_GetNonce(uint8_t *out, int *outLen);
+int HSM_RetMac(struct hsm_ret_mac_request *req, uint8_t *out, int *outLen);
 #endif

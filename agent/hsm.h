@@ -49,6 +49,9 @@ extern "C" {
 #define HSM_TEST_SETUP      0x77
 #define HSM_MICROBENCH      0x78
 #define HSM_LONGMSG         0x79
+#define HSM_MAC             0x7a
+#define HSM_GET_NONCE       0x7b
+#define HSM_RET_MAC         0x7c
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -64,6 +67,8 @@ extern "C" {
 //#define LEVEL_1_NUM_LEAVES 1024 
 #define LEVEL_3_NUM_LEAVES 16
 //#define LEVEL_2_NUM_LEAVES 32
+
+#define NONCE_LEN 16 
 
 using namespace std;
 
@@ -131,7 +136,21 @@ typedef struct {
     uint8_t buf[RESPONSE_BUFFER_SIZE - 16];
 } HSM_LONG_RESP;
 
+typedef struct {
+    uint8_t nonce[NONCE_LEN];
+} HSM_MAC_REQ;
 
+typedef struct {
+    uint8_t mac[SHA256_DIGEST_LENGTH];
+} HSM_MAC_RESP;
+
+typedef struct {
+    uint8_t nonce[NONCE_LEN];
+} HSM_GET_NONCE_RESP;
+
+typedef struct {
+    uint8_t mac[SHA256_DIGEST_LENGTH];
+} HSM_RET_MAC_REQ;
 
 
 /* ---------------------------------- */
@@ -169,6 +188,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
 /* Run microbenchmarks. */
 int HSM_MicroBench(HSM *h);
 int HSM_LongMsg(HSM *h);
+int HSM_Mac(HSM *h1, HSM *h2, uint8_t *nonce, uint8_t *mac);
 
 #ifdef __cplusplus
 }

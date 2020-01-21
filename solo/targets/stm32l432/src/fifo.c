@@ -16,7 +16,11 @@ FIFO_CREATE(debug,4096,1)
 FIFO_CREATE(hidmsg,20,64)
 
 //FIFO_CREATE(cdcmsg,3,1024)
-FIFO_CREATE(cdcmsg,200,64)
+//FIFO_CREATE(cdcmsg,100,64)
+//FIFO_CREATE(cdcmsg,86,64)
+FIFO_CREATE(cdcmsg,100,64)
+//FIFO_CREATE(cdcmsg,150,64)
+//FIFO_CREATE(cdcmsg,200,64)
 //FIFO_CREATE(cdcmsg,220,64)
 //FIFO_CREATE(cdcmsg,100,64)
 

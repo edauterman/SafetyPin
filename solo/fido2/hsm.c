@@ -42,6 +42,15 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_LONGMSG:
             HSM_LongMsg((struct hsm_long_request *)(in), out, outLen);
             break;
+        case HSM_MAC:
+            HSM_Mac((struct hsm_mac_request *)(in), out, outLen);
+            break;
+        case HSM_GET_NONCE:
+            HSM_GetNonce(out, outLen);
+            break;
+        case HSM_RET_MAC:
+            HSM_RetMac((struct hsm_ret_mac_request *)(in), out, outLen);
+            break;
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
     }
@@ -69,6 +78,12 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return 0;
         case HSM_LONGMSG:
             return sizeof(struct hsm_long_request);
+        case HSM_MAC:
+            return sizeof(struct hsm_mac_request);
+        case HSM_GET_NONCE:
+            return 0;
+        case HSM_RET_MAC:
+            return sizeof(struct hsm_ret_mac_request);
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
             return 0;
@@ -139,13 +154,13 @@ int HSM_Retrieve(struct hsm_retrieve_request *req, uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "retrieving leaf\n");
     uint8_t leaf[CT_LEN];
 
-    for (int i = 0;  i < LEVELS; i++) {
+/*    for (int i = 0;  i < LEVELS; i++) {
         printf("ct[%d/%d]: ", i, LEVELS);
         for (int j = 0; j < CT_LEN;  j++) {
             printf("%x ", req->cts[i][j]);
         }
         printf("\n");
-    }
+    }*/
     if (PuncEnc_RetrieveLeaf(req->cts, req->index, leaf) == ERROR) {
         memset(leaf, 0, CT_LEN);
     }
@@ -168,9 +183,9 @@ int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen) {
     PuncEnc_PunctureLeaf(req->cts, req->index, newCts);
     uint32_t t2 = millis();
 
-    printf1(TAG_GREEN, "***** actual puncture time: %d ms\n", t2 - t1);
+    //printf1(TAG_GREEN, "***** actual puncture time: %d ms\n", t2 - t1);
 
-    printf1(TAG_GREEN, "finished puncturing leaf\n");
+    //printf1(TAG_GREEN, "finished puncturing leaf\n");
 
     if (out) {
         memcpy(out, newCts, KEY_LEVELS * CT_LEN);
@@ -231,8 +246,13 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
 
     if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
         printf("Couldn't retrieve leaf\n");
-        memset(msg, 0, IBE_MSG_LEN);
-        u2f_response_writeback(msg, IBE_MSG_LEN);
+        if (out) {
+            memset(msg, 0, IBE_MSG_LEN +  (KEY_LEVELS * CT_LEN));
+            *outLen = IBE_MSG_LEN + (KEY_LEVELS * CT_LEN);
+        } else {
+            memset(msg, 0, IBE_MSG_LEN + (KEY_LEVELS * CT_LEN));
+            u2f_response_writeback(msg, IBE_MSG_LEN  + (KEY_LEVELS * CT_LEN));
+        }
         return U2F_SW_NO_ERROR;
     }
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
@@ -254,7 +274,7 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
     if (out) {
         memcpy(out, msg, IBE_MSG_LEN);
         memcpy(out + IBE_MSG_LEN, newCts, KEY_LEVELS * CT_LEN);
-        *outLen = IBE_MSG_LEN + (KEY_LEVELS + CT_LEN);
+        *outLen = IBE_MSG_LEN + (KEY_LEVELS * CT_LEN);
     } else {
         u2f_response_writeback(msg, IBE_MSG_LEN);
         u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
@@ -356,6 +376,47 @@ int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen) {
         *outLen = CTAP_RESPONSE_BUFFER_SIZE - 16;
     } else {
         u2f_response_writeback(buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_Mac(struct hsm_mac_request *req, uint8_t *out, int *outLen) {
+//    uint8_t buf[1024];
+    uint8_t mac[SHA256_DIGEST_LEN];
+    crypto_hmac(pingKey, mac, req->nonce, NONCE_LEN);
+    //memset(buf, 0xff, 1024);
+    if (out) {
+        //memcpy(out, buf, 1024);
+        memcpy(out, mac, SHA256_DIGEST_LEN);
+        //*outLen = 1024;
+        *outLen = SHA256_DIGEST_LEN;
+    } else {
+        u2f_response_writeback(mac, SHA256_DIGEST_LEN);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_GetNonce(uint8_t *out, int *outLen) {
+//    uint8_t buf[1024];
+    uint8_t nonce[NONCE_LEN];
+    ctap_generate_rng(nonce, NONCE_LEN);
+    //memset(buf, 0xff, 1024);
+    if (out) {
+        //memcpy(out, buf, 1024);
+        memcpy(out, nonce, NONCE_LEN);
+        //*outLen = 1024;
+        *outLen = NONCE_LEN;
+    } else {
+        u2f_response_writeback(nonce, NONCE_LEN);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_RetMac(struct hsm_ret_mac_request *req, uint8_t *out, int *outLen) {
+//    uint8_t buf[1024];
+    //memset(buf, 0xff, 1024);
+    if (out) {
+        *outLen = 0;
     }
     return U2F_SW_NO_ERROR;
 }

@@ -115,6 +115,24 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished long msg\n");
                 break;
 
+           case HSM_MAC:
+                printf1(TAG_GREEN, "starting mac\n");
+                rcode = HSM_Mac((struct hsm_mac_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished mac\n");
+                break;
+
+           case HSM_GET_NONCE:
+                printf1(TAG_GREEN, "starting get nonce\n");
+                rcode = HSM_GetNonce(NULL, NULL);
+                printf1(TAG_GREEN, "finished get nonce\n");
+                break;
+
+          case HSM_RET_MAC:
+                printf1(TAG_GREEN, "starting ret mac\n");
+                rcode = HSM_RetMac((struct hsm_ret_mac_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished ret mac\n");
+                break;
+
             case U2F_REGISTER:
                 printf1(TAG_U2F, "U2F_REGISTER\n");
                 if (len != 64)
