@@ -59,6 +59,7 @@ cleanup:
 }
 
 void UsbDevice_free(UsbDevice *dev) {
+    if (dev->fd) UsbDevice_exchange(dev, HSM_RESET, NULL, 0, NULL, 0);
     if (dev->fd) close(dev->fd);
     free(dev);
 }

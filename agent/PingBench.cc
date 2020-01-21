@@ -44,11 +44,11 @@ int main(int argc, char *argv[]) {
   uint8_t mac[SHA256_DIGEST_LENGTH];
 
   for (int i = 0; i < NUM_ROUNDS / NUM_ITERS; i++) {
-      Datacenter *d = Datacenter_new();
-      if (Datacenter_init(d) != OKAY) {
-        printf("No device found. Exiting.\n");
-        return 0;
-      }
+//      Datacenter *d = Datacenter_new();
+//      if (Datacenter_init(d) != OKAY) {
+//        printf("No device found. Exiting.\n");
+//        return 0;
+//      }
  
       for (int j = 0; j < NUM_ITERS; j++) {
 
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
         if (maxMicros < 0 || maxMicros < macMicros) maxMicros = macMicros;
         if (minMicros < 0 || minMicros > macMicros) minMicros = macMicros;  
     }
-    Datacenter_free(d);
+    //Datacenter_free(d);
     printf("Unplug and replug and then enter char to continue...\n");
     int ch = getchar();
     printf("... continuing\n");
