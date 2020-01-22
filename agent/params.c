@@ -24,6 +24,8 @@
 #include "params.h"
 #include "datacenter.h"
 
+#define NID_ED25519 949
+
 int min(int a, int b); 
 
 inline int min (int a, int b) {
@@ -53,6 +55,10 @@ Params *Params_new() {
     // TODO: choose prime closer to 2^128
     BN_hex2bn(&params->prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
 
+//    CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_ED25519));
+//    CHECK_C (EC_GROUP_get_order(params->group, params->order, NULL));
+
+    printf("finished params\n");
 cleanup:
     if (rv == ERROR) {
         Params_free(params);
@@ -66,6 +72,8 @@ void Params_free(Params *params) {
     BN_free(params->numHsms);
     BN_free(params->numLeaves);
     BN_CTX_free(params->bn_ctx);
+    BN_free(params->order);
+    EC_GROUP_free(params->group);
     free(params);
 }
 

@@ -20,7 +20,8 @@ extern "C" {
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32)
 
-#define PUNC_ENC_REPL 80 
+#define PUNC_ENC_REPL 2
+//#define PUNC_ENC_REPL 80 
 
 #define RESPONSE_BUFFER_SIZE 4096
 

@@ -74,6 +74,8 @@ datacenter.o: datacenter.cc datacenter.h
 usb.o: usb.cc usb.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o usb.o usb.cc -lssl -lcrypto -lpthread
 
+mpc.o: mpc.cc mpc.h
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o mpc.o mpc.cc -lssl -lcrypto -lpthread
 
 # simple hidapi tool to list devices to see paths.
 list: list.c $(HIDAPI)

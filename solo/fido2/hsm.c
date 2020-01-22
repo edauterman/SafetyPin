@@ -262,7 +262,7 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
     printf1(TAG_GREEN, "finished decryption\n");
     if (memcmp(msg + 32, req->pinHash, SHA256_DIGEST_LEN) != 0) {
         printf("BAD PIN HASH -- WILL NOT DECRYPT\n");
-        memset(msg, 0xff, IBE_MSG_LEN);
+        //memset(msg, 0xaa, IBE_MSG_LEN);
     }  else {
         printf("Pin hash check passed.\n");
     }

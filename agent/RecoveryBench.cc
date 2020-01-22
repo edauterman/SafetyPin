@@ -28,17 +28,25 @@ int main(int argc, char *argv[]) {
   }
 
   //Datacenter_SmallSetup(d);
-  Datacenter_TestSetup(d);
+  //Datacenter_TestSetup(d);
 
   Params *params = Params_new(); 
+
+  printf("made params\n");
 
   uint8_t pin[PIN_LEN];
   BIGNUM *saveKey;
   BIGNUM *saveKeyTest;
   saveKey = BN_new();
   saveKeyTest = BN_new();
+  printf("before save key\n");
   BN_rand_range(saveKey, params->prime);
+  printf("made savekey\n");
   RecoveryCiphertext *c = RecoveryCiphertext_new();
+
+  printf("going to run test setup\n");
+
+  Datacenter_TestSetup(d);
 
   struct timeval t1, t2, t3;
   //clock_t t1 = clock();

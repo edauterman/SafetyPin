@@ -624,7 +624,7 @@ int HSM_Mac(HSM *h1, HSM *h2, uint8_t *nonce, uint8_t *mac) {
  
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h1->hidDevice, 0, HSM_RET_MAC, 0, 0,
-                   string(reinterpret_cast<char*>(&retMacReq), sizeof(req)), &resp_str));
+                   string(reinterpret_cast<char*>(&retMacReq), sizeof(retMacReq)), &resp_str));
 #else
     CHECK_C (UsbDevice_exchange(h1->usbDevice, HSM_RET_MAC, (uint8_t *)&retMacReq,
                 sizeof(retMacReq), NULL, 0));

@@ -12,7 +12,8 @@
 #include "cdc.h"
 #include "hsm.h"
 
-uint8_t msgBuf[3000];
+uint8_t msgBuf[2048];
+//uint8_t msgBuf[3000];
 uint8_t rsp[2048];
 uint8_t currSessionNum = 0;
 

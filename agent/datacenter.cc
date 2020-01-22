@@ -22,8 +22,7 @@
 
 using namespace std;
 
-const char *HANDLES[] = {"/dev/cu.usbmodem208436B555482"};
-//const char *HANDLES[] = {"/dev/cu.usbmodem208532CA31412"};
+const char *HANDLES[] = {"/dev/cu.usbmodem208532CA31412"};
 
 RecoveryCiphertext *RecoveryCiphertext_new() {
     int rv = ERROR;
@@ -328,6 +327,12 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
         memset(msg, 0, IBE_MSG_LEN);
         Shamir_Marshal(msg, saltShares[i]);
         memset(msg + SHAMIR_MARSHALLED_SIZE, 0xff, SHA256_DIGEST_LENGTH);
+        printf("saltShares[%d]: ", i);
+        for (int j = 0; j < IBE_MSG_LEN; j++) {
+            printf("%x", msg[j]);
+        }
+        printf("\n");
+ 
         CHECK_C (HSM_Encrypt(d->hsms[h2[i]], userID  + 2, msg, IBE_MSG_LEN, c->saltCts[i]));
     }
 
@@ -370,6 +375,11 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t0[i].join();
+        printf("saltShareBuf[%d] = ", i);
+        for (int j = 0; j < IBE_MSG_LEN; j++) {
+            printf("%x", saltShareBufs[i][j]);
+        }
+        printf("\n");
         Shamir_Unmarshal(saltShareBufs[i], saltShares[i]);
     }
 
