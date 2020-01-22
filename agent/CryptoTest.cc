@@ -70,7 +70,11 @@ void ShamirTest() {
     CHECK_C (BN_rand_range(secret, prime));
 
     CHECK_C (Shamir_CreateShares(t, n, secret, prime, shares));
+    CHECK_C (Shamir_ValidateShares(t, n, shares, prime));
     CHECK_C (Shamir_ReconstructShares(t, n, shares, prime, secret_test));
+    
+    CHECK_C (Shamir_CreateShares(1, 2, secret, prime, shares));
+    CHECK_C (Shamir_ValidateShares(t, n, shares, prime) == ERROR);
 
     if (BN_cmp(secret, secret_test) != 0) {
         printf("Shamir secret sharing FAILED\n");
@@ -81,6 +85,7 @@ void ShamirTest() {
     }
 
 cleanup:
+    if (rv == ERROR) printf("FAILED Shamir secret sharing tests\n");
     BN_free(prime);
     BN_free(secret);
     BN_free(secret_test);

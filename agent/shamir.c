@@ -122,6 +122,63 @@ cleanup:
     return rv;
 }
 
+int Shamir_ValidateShares(int t, int n, ShamirShare **shares, BIGNUM *prime) {
+    int rv;
+    BIGNUM *currTerm = NULL;
+    BIGNUM *numerator = NULL;
+    BIGNUM *denominator = NULL;
+    BIGNUM *denominatorInverse = NULL;
+    BIGNUM *lambda = NULL;
+    BIGNUM *currLambda = NULL;
+    BIGNUM *y = NULL;
+    BN_CTX *ctx = NULL;
+
+    CHECK_A (currTerm = BN_new());
+    CHECK_A (numerator = BN_new());
+    CHECK_A (denominator = BN_new());
+    CHECK_A (denominatorInverse = BN_new());
+    CHECK_A (lambda = BN_new());
+    CHECK_A (currLambda = BN_new());
+    CHECK_A (y = BN_new());
+    CHECK_A (ctx = BN_CTX_new());
+    BN_zero(y);
+
+    /* Check remaining points on same polynomial */
+    for (int checkPt = t; checkPt < n; checkPt++) {
+        BN_zero(y);
+        for (int i = 0; i < t; i++) {
+            BN_one(lambda);
+            for (int j = 0; j < t; j++) {
+                if (i == j) continue;
+                /* lambda = \prod_{j=1, j!=i}^t x - x_j / (x_i - x_j) */
+                CHECK_C (BN_mod_sub(numerator, shares[checkPt]->x, shares[j]->x, prime, ctx));
+                CHECK_C (BN_mod_sub(denominator, shares[i]->x, shares[j]->x, prime, ctx));
+                BN_mod_inverse(denominatorInverse, denominator, prime, ctx);
+                CHECK_C (BN_mod_mul(currLambda, numerator, denominatorInverse, prime, ctx));
+                CHECK_C (BN_mod_mul(lambda, lambda, currLambda, prime, ctx));
+            }
+            /* Add up lambda * y_i */
+            CHECK_C (BN_mod_mul(currTerm, lambda, shares[i]->y, prime, ctx));
+            CHECK_C (BN_mod_add(y, y, currTerm, prime, ctx));
+        }
+        /* Check if g(x_checkPt) = y_checkPt  */
+        CHECK_C (BN_cmp(y, shares[checkPt]->y) == 0);
+    }
+
+cleanup:
+    if (currTerm) BN_free(currTerm);
+    if (y) BN_free(y);
+    if (numerator) BN_free(numerator);
+    if (denominator) BN_free(denominator);
+    if (denominatorInverse) BN_free(denominatorInverse);
+    if (lambda) BN_free(lambda);
+    if (currLambda) BN_free(currLambda);
+    if (ctx) BN_CTX_free(ctx);
+    return rv;
+}
+
+
+
 /* Requires 32 bytes. */
 void Shamir_Marshal(uint8_t *buf, ShamirShare *share) {
     memset(buf, 0, 32);
