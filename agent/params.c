@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 
@@ -24,15 +25,14 @@
 #include "params.h"
 #include "datacenter.h"
 
-#define NID_ED25519 949
-
 int min(int a, int b); 
 
 inline int min (int a, int b) {
   return (a < b) ? a : b;
 }
 
-Params *Params_new() {
+Params *Params_new() 
+{
     int rv = ERROR;
 
     Params *params = NULL;
@@ -40,6 +40,7 @@ Params *Params_new() {
     CHECK_A (params->prime = BN_new());
     CHECK_A (params->numHsms = BN_new());
     CHECK_A (params->numLeaves = BN_new());
+    CHECK_A (params->order = BN_new());
     CHECK_A (params->bn_ctx = BN_CTX_new());
 
     char numHsmsBuf[4];
@@ -55,8 +56,8 @@ Params *Params_new() {
     // TODO: choose prime closer to 2^128
     BN_hex2bn(&params->prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
 
-//    CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_ED25519));
-//    CHECK_C (EC_GROUP_get_order(params->group, params->order, NULL));
+    CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_secp256k1));
+    CHECK_C (EC_GROUP_get_order(params->group, params->order, params->bn_ctx));
 
     printf("finished params\n");
 cleanup:

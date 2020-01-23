@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <openssl/bn.h>
+#include <openssl/ec.h>
 #include <openssl/rand.h>
 
 #include "hsm.h"
@@ -54,13 +55,15 @@ void ShamirTest() {
     BIGNUM *secret = NULL;
     BIGNUM *secret_test = NULL;
     ShamirShare *shares[n];
+    Params *params;
 
     printf("----- SHAMIR SECRET SHARING TEST -----\n");
 
     CHECK_A (prime = BN_new());
     CHECK_A (secret = BN_new());
     CHECK_A (secret_test = BN_new());
-   
+    CHECK_A (params = Params_new());
+    
     for (int i = 0; i < n; i++) {
         CHECK_A (shares[i] = ShamirShare_new());
     }
@@ -119,9 +122,35 @@ cleanup:
     }
 }
 
+void scratch() {
+    Params *params =  Params_new();
+    BIGNUM *x1 = BN_new();
+    EC_POINT *gx1 = EC_POINT_new(params->group);
+    BN_hex2bn(&x1, "6c59500ba1ee237e64059fd28ee5654f816d91a59cdae23581fab6f5852f794d");
+    EC_POINT_mul(params->group, gx1, NULL, EC_GROUP_get0_generator(params->group), x1, params->bn_ctx);
+    //EC_POINT_mul(params->group, gx, x, NULL, NULL, params->bn_ctx);
+    printf("gx1: %s\n", EC_POINT_point2hex(params->group, gx1, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+
+
+    BIGNUM *x2 = BN_new();
+    EC_POINT *gx2 = EC_POINT_new(params->group);
+    BN_hex2bn(&x2, "38e58a25f01feb8911b12f4b8cb192d0f175079b881c5eed647c106013e78956");
+    EC_POINT_mul(params->group, gx2, NULL, EC_GROUP_get0_generator(params->group), x2, params->bn_ctx);
+    //EC_POINT_mul(params->group, gx, x, NULL, NULL, params->bn_ctx);
+    printf("gx2: %s\n", EC_POINT_point2hex(params->group, gx2, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+ 
+    EC_POINT *gx3 = EC_POINT_new(params->group);
+    EC_POINT_add(params->group, gx3, gx1, gx2, params->bn_ctx);
+    printf("gx3: %s\n", EC_POINT_point2hex(params->group, gx3, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+
+    const EC_POINT *g = EC_GROUP_get0_generator(params->group);
+    printf("g: %s\n", EC_POINT_point2hex(params->group, g, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+}
+
 int main(int argc, char *argv[]) {
   IBETest();
   ShamirTest();
   AESGCMTest();
+  scratch();
   return 0;
 }

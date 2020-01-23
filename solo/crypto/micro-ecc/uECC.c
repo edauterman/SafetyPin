@@ -1631,4 +1631,23 @@ void uECC_point_mult(uECC_word_t *result,
     EccPoint_mult(result, point, p2[!carry], 0, curve->num_n_bits + 1, curve);
 }
 
+void uECC_point_add(uECC_word_t *result,
+                    const uECC_word_t *a, 
+                    const uECC_word_t *b, 
+                    uECC_Curve curve) {
+    uECC_word_t tx[uECC_MAX_WORDS];
+    uECC_word_t ty[uECC_MAX_WORDS];
+    uECC_word_t z[uECC_MAX_WORDS];
+    wordcount_t num_words = curve->num_words;
+    
+    uECC_vli_set(result, a, num_words);
+    uECC_vli_set(result + num_words, a + num_words, num_words);
+    uECC_vli_set(tx, b, num_words);
+    uECC_vli_set(ty, b + num_words, num_words);
+    uECC_vli_modSub(z, result, tx, curve->p, num_words); /* z = x2 - x1 */
+    XYcZ_add(tx, ty, result, result + num_words, curve);
+    uECC_vli_modInv(z, z, curve->p, num_words); /* z = 1/z */
+    apply_z(result, result + num_words, z, curve);
+}
+
 #endif /* uECC_ENABLE_VLI_API */

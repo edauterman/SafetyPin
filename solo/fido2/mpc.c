@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../crypto/cifra/src/arm/unacl/scalarmult.c"
+//#include "../crypto/cifra/src/arm/unacl/scalarmult.c"
+#include "fe25519.h"
 
 void add(fe25519 *res, fe25519 *y, fe25519 *z) {
     fe25519_add(res, y, z);

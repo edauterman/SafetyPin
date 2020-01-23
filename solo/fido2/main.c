@@ -23,6 +23,8 @@
 #include "ibe.h"
 #include "punc_enc.h"
 #include "hsm.h"
+#include "uECC.h"
+#include "../crypto/micro-ecc/uECC.h"
 #include APP_CONFIG
 
 #if !defined(TEST)
@@ -65,6 +67,7 @@ int main(int argc, char *argv[])
 
     IBE_Setup();
     PuncEnc_Init();
+    uECC_init();
     ctap_generate_rng(pingKey, KEY_LEN);
 
     printf1(TAG_GREEN, "starting!\n");
@@ -96,8 +99,80 @@ int main(int argc, char *argv[])
         t_new = millis();
         if (millis() - t1 > HEARTBEAT_PERIOD)
         {
+            printf1(TAG_GREEN, "heartbeat\n");
             heartbeat();
             t1 = millis();
+        
+            fieldElem x1;
+            fieldElem x2;
+            ecPoint gx1;
+            ecPoint gx2;
+            ecPoint gx3;
+            uint8_t x1Buf[32];
+            uint8_t x2Buf[32];
+            uint8_t gx1Buf[64];
+            uint8_t gx2Buf[64];
+            uint8_t gx3Buf[64];
+            
+            //uECC_bytesToNative(x, input, 32);
+            //printf("did bytes to native\n");
+            uECC_randInt(x1);
+            printf("did rand int\n");
+            uECC_fieldElemToBytes(x1Buf, x1);
+            uECC_basePointMult(gx1, x1);
+            printf("did base point mul\n");
+            uECC_pointToBytes(gx1Buf, gx1);
+            printf("did native to bytes\n");
+            printf("x1: ");
+            for (int i = 0; i < 32; i++) {
+                printf("%02x", x1Buf[i]);
+            }
+            printf("\n");
+            printf("g^x1: ");
+            for (int i = 0; i < 64; i++) {
+                printf("%02x", gx1Buf[i]);
+                if (i == 31) printf(" ");
+            }
+            printf("\n");
+            
+            //printf("did bytes to native\n");
+            uECC_randInt(x2);
+            printf("did rand int\n");
+            uECC_fieldElemToBytes(x2Buf, x2);
+            uECC_basePointMult(gx2, x2);
+            printf("did base point mul\n");
+            uECC_pointToBytes(gx2Buf, gx2);
+            printf("did native to bytes\n");
+            printf("x2: ");
+            for (int i = 0; i < 32; i++) {
+                printf("%02x", x2Buf[i]);
+            }
+            printf("\n");
+            printf("g^x2: ");
+            for (int i = 0; i < 64; i++) {
+                printf("%02x", gx2Buf[i]);
+                if (i == 31) printf(" ");
+            }
+            printf("\n");
+
+            uECC_pointAdd(gx3, gx1, gx2);
+            uECC_pointToBytes(gx3Buf, gx3);
+            printf("g^x3: ");
+            for (int i = 0; i < 64; i++) {
+                printf("%02x", gx3Buf[i]);
+                if (i == 31) printf(" ");
+            }
+            printf("\n");
+
+
+            /*uECC_compute_public_key(input, output, uECC_secp256k1());
+            printf("g^x1 other way: ");
+            for (int i = 0; i < 64; i++) {
+                printf("%02x", output[i]);
+                if (i == 31) printf(" ");
+            }
+            printf("\n");
+            */
         }
 
         device_manage();
@@ -114,20 +189,6 @@ int main(int argc, char *argv[])
             memset(msg, 0, sizeof(msg));
                 //}
         }
-        /*if (usbcdc_recv(cdc_msg) > 0) {
-            printf("received via cdc\n");
-            printf("sending back msg for test\n");
-
-            asm volatile("" ::: "memory");
-            memcpy(output_msg + offset, cdc_msg, 64);
-            offset += 64;
-            if (offset == sizeof(output_msg)) {
-                for (int i = 0; i < sizeof(output_msg) / 64; i++) {
-                    usbcdc_send(output_msg + i * 64, 64);
-                }
-                offset = 0;
-            }
-        }*/
         int remaining, rhead, whead;
         if (usbcdc_recv(cdc_msg, &remaining, &rhead, &whead) > 0) {
             cdc_handle_packet((struct CDCFrame *)cdc_msg, remaining, rhead, whead);

@@ -1,58 +1,45 @@
 /*                          =======================
   ============================ C/C++ HEADER FILE =============================
                             =======================                      
-
     Collection of all required submodules from naclM0 required for curve25519
     scalar multiplication  (not including randomization, etc.) alone.
-
     Library naclM0 largely bases on work avrNacl of M. Hutter and P. Schwabe.
-
     Will compile to the two functions
-
     int
     crypto_scalarmult_base_curve25519(
         unsigned char*       q,
         const unsigned char* n
     );
-
     int
     crypto_scalarmult_curve25519 (
         unsigned char*       r,
         const unsigned char* s,
         const unsigned char* p
     );
-
     Requires inttypes.h header and the four external assembly functions
-
     extern void
     fe25519_reduceTo256Bits_asm (
         fe25519              *res,
         const UN_512bitValue *in
     );
-
     extern void
     fe25519_mpyWith121666_asm (
         fe25519*       out,
         const fe25519* in
     );
-
     extern void
     multiply256x256_asm (
         UN_512bitValue*       result,
         const UN_256bitValue* x,
         const UN_256bitValue* y
     );
-
     extern void
     square256_asm (
         UN_512bitValue*       result,
         const UN_256bitValue* x
     );
-
     \file scalarmult.c
-
     \Author B. Haase, Endress + Hauser Conducta GmbH & Co. KG
-
     License: CC Common Creative license Attribution 4.0 International (CC BY 4.0)
     http://creativecommons.org/licenses/by/4.0/
   ============================================================================*/
@@ -453,17 +440,14 @@ swapPointersConditionally (void **p1, void **p2, uint8 condition)
     //     *p2 = *p1;
     //     *p1 = temp;
     // }
-
     uintptr mask = condition;
     uintptr val1 = (uintptr) *p1;
     uintptr val2 = (uintptr) *p2;
     uintptr temp = val2 ^ val1;
-
     mask = (uintptr)( - (intptr) mask );
     temp ^= mask & (temp ^ val1);
     val1 ^= mask & (val1 ^ val2);
     val2 ^= mask & (val2 ^ temp);
-
     *p1 = (void *) val1;
     *p2 = (void *) val2;
 }
