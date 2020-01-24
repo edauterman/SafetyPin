@@ -3,6 +3,8 @@
 #include "uECC.h"
 #include "uECC_vli.h"
 
+#define uECC_SUPPORT_COMPRESSED_POINT 1
+
 #ifndef uECC_RNG_MAX_TRIES
     #define uECC_RNG_MAX_TRIES 64
 #endif

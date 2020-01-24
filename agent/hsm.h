@@ -7,6 +7,7 @@
 #include "ibe.h"
 #include "bls12_381/bls12_381.h"
 #include "params.h"
+#include "elgamal.h"
 #include "u2f.h"
 #include "usb.h"
 
@@ -14,11 +15,16 @@
 extern "C" {
 #endif
 
-//#define HID
+#define HID
 
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32)
+
+#define COMPRESSED_PT_SZ 33
+#define ELGAMAL_CT_LEN (2 * COMPRESSED_PT_SZ)
+#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
+#define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
 #define PUNC_ENC_REPL 2
 //#define PUNC_ENC_REPL 80 
@@ -54,6 +60,8 @@ extern "C" {
 #define HSM_GET_NONCE       0x7b
 #define HSM_RET_MAC         0x7c
 #define HSM_RESET           0x7d
+#define HSM_ELGAMAL_PK      0x7e
+#define HSM_ELGAMAL_DECRYPT 0x7f
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -154,6 +162,18 @@ typedef struct {
     uint8_t mac[SHA256_DIGEST_LENGTH];
 } HSM_RET_MAC_REQ;
 
+typedef struct {
+    uint8_t pk[ELGAMAL_PK_LEN];
+} HSM_ELGAMAL_PK_RESP;
+
+typedef struct {
+    uint8_t ct[ELGAMAL_CT_LEN];
+} HSM_ELGAMAL_DECRYPT_REQ;
+
+typedef struct {
+    uint8_t msg[ELGAMAL_PT_LEN];
+} HSM_ELGAMAL_DECRYPT_RESP;
+
 
 /* ---------------------------------- */
 
@@ -165,6 +185,7 @@ typedef struct {
     //uint8_t cts[TREE_SIZE][CT_LEN];
     bool isPunctured[NUM_LEAVES];
     embedded_pairing_bls12_381_g2_t mpk;
+    EC_POINT *elGamalPk;
     pthread_mutex_t m;
 } HSM;
 
@@ -186,6 +207,10 @@ int HSM_Puncture(HSM *h, uint32_t index);
 int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]);
 int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen);
 int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash);
+
+int HSM_ElGamalGetPk(HSM *h);
+int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
+int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
 
 /* Run microbenchmarks. */
 int HSM_MicroBench(HSM *h);

@@ -15,12 +15,14 @@
 #endif
 
 #include <openssl/ec.h>
+#include <openssl/bn.h>
 #include <openssl/sha.h>
 
 #include "bls12_381/bls12_381.h"
 
 #include "hsm.h"
 #include "common.h"
+#include "elgamal.h"
 #include "hidapi.h"
 #include "hsm.h"
 #include "ibe.h"
@@ -45,6 +47,7 @@ HSM *HSM_new() {
     for (int i = 0; i < NUM_LEAVES; i++) {
         h->isPunctured[i] = false;
     }
+    CHECK_A (h->elGamalPk = EC_POINT_new(h->params->group));
 
 cleanup:
     return h;
@@ -632,5 +635,60 @@ int HSM_Mac(HSM *h1, HSM *h2, uint8_t *nonce, uint8_t *mac) {
 
 cleanup:
     if (rv == ERROR) printf("MAC MSG ERROR\n");
+    return rv;
+}
+
+int HSM_ElGamalGetPk(HSM *h) {
+    int rv;
+    HSM_ELGAMAL_PK_RESP resp;
+    string resp_str;
+
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_ELGAMAL_PK, 0, 0,
+                   "", &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_ELGAMAL_PK, NULL,
+                0, (uint8_t *)&resp, sizeof(resp)));
+#endif
+    Params_bytesToPoint(h->params, resp.pk, h->elGamalPk);
+
+cleanup:
+    if (rv == ERROR) printf("ERROR GETTING ELGAMAL PK\n");
+    return rv;
+}
+
+int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
+    int rv;
+    CHECK_C (ElGamal_Encrypt(h->params, msg, h->elGamalPk, c));
+
+cleanup:
+    if (rv == ERROR) printf("ERROR IN ENCRYPT\n");
+    return rv;
+}
+
+int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
+    int rv;
+    HSM_ELGAMAL_DECRYPT_REQ req;
+    HSM_ELGAMAL_DECRYPT_RESP resp;
+    string resp_str;
+
+    printf("starting decrypt\n");
+    ElGamal_Marshal(h->params, req.ct, c);
+    printf("did the marshal\n");
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_ELGAMAL_DECRYPT, 0, 0,
+                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_ELGAMAL_DECRYPT, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+    printf("got resp\n");
+    Params_bytesToPoint(h->params, resp.msg, msg);
+    printf("finished getting point\n");
+
+cleanup:
+    if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
     return rv;
 }

@@ -175,3 +175,13 @@ cleanup:
     if (ctx) EVP_CIPHER_CTX_free(ctx);
     return rv;
 }
+
+/* 33 bytes */
+void Params_bytesToPoint(Params *params, const uint8_t *bytes, EC_POINT *pt) {
+    EC_POINT_oct2point(params->group, pt, bytes, 33, params->bn_ctx);
+}
+
+/* 33 bytes */
+void Params_pointToBytes(Params *params, uint8_t *bytes, const EC_POINT *pt) {
+    EC_POINT_point2oct(params->group, pt, POINT_CONVERSION_COMPRESSED, bytes, 33, params->bn_ctx);
+}

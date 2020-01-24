@@ -12,6 +12,11 @@
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32) 
 
+#define COMPRESSED_PT_SZ 33
+#define ELGAMAL_CT_LEN (2 * COMPRESSED_PT_SZ)
+#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
+#define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
+
 #define NUM_LEAVES 524288
 //#define NUM_LEAVES 16384 
 //#define NUM_LEAVES 65536 
@@ -47,6 +52,8 @@
 #define HSM_GET_NONCE       0x7b
 #define HSM_RET_MAC         0x7c
 #define HSM_RESET           0x7d
+#define HSM_ELGAMAL_PK      0x7e
+#define HSM_ELGAMAL_DECRYPT 0x7f
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -120,7 +127,17 @@ struct hsm_ret_mac_request {
     uint8_t mac[SHA256_DIGEST_LEN];
 };
 
+struct hsm_elgamal_pk_response {
+    uint8_t pk[ELGAMAL_PK_LEN];
+};
 
+struct hsm_elgamal_decrypt_request {
+    uint8_t ct[ELGAMAL_CT_LEN];
+};
+
+struct hsm_elgamal_decrypt_response {
+    uint8_t msg[ELGAMAL_PT_LEN];
+};
 
 uint8_t pingKey[KEY_LEN];
 
@@ -140,4 +157,6 @@ int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen);
 int HSM_Mac(struct hsm_mac_request *req, uint8_t *out, int *outLen);
 int HSM_GetNonce(uint8_t *out, int *outLen);
 int HSM_RetMac(struct hsm_ret_mac_request *req, uint8_t *out, int *outLen);
+int HSM_ElGamalPk(uint8_t *out, int *outLen);
+int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, int *outLen);
 #endif

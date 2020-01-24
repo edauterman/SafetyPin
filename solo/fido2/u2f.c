@@ -132,6 +132,19 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 rcode = HSM_RetMac((struct hsm_ret_mac_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished ret mac\n");
                 break;
+ 
+          case HSM_ELGAMAL_PK:
+                printf1(TAG_GREEN, "starting el gamal pk\n");
+                rcode = HSM_ElGamalPk(NULL, NULL);
+                printf1(TAG_GREEN, "finished el gamal pk\n");
+                break;
+
+          case HSM_ELGAMAL_DECRYPT:
+                printf1(TAG_GREEN, "starting el gamal decrypt\n");
+                rcode = HSM_ElGamalDecrypt((struct hsm_elgamal_decrypt_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished el gamal decrypt\n");
+                break;
+
 
             case U2F_REGISTER:
                 printf1(TAG_U2F, "U2F_REGISTER\n");

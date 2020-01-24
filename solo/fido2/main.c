@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
     IBE_Setup();
     PuncEnc_Init();
     uECC_init();
+    ElGamal_Init();
     ctap_generate_rng(pingKey, KEY_LEN);
 
     printf1(TAG_GREEN, "starting!\n");
@@ -99,11 +100,10 @@ int main(int argc, char *argv[])
         t_new = millis();
         if (millis() - t1 > HEARTBEAT_PERIOD)
         {
-            printf1(TAG_GREEN, "heartbeat\n");
             heartbeat();
             t1 = millis();
         
-            fieldElem x1;
+/*            fieldElem x1;
             fieldElem x2;
             ecPoint gx1;
             ecPoint gx2;
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
             }
             printf("\n");
 
-
+*/
             /*uECC_compute_public_key(input, output, uECC_secp256k1());
             printf("g^x1 other way: ");
             for (int i = 0; i < 64; i++) {

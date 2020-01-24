@@ -32,6 +32,9 @@ void uECC_modMult(fieldElem result,
                     const fieldElem left,
                     const fieldElem right);
 
+void uECC_modNeg(fieldElem result,
+                     const fieldElem input);
+
 /* Computes result = (1 / input) % mod.*/
 void uECC_modInv(fieldElem result,
                     const uECC_word_t *input);

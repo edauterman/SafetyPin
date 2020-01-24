@@ -4,6 +4,7 @@
 
 #include "aes.h"
 #include "crypto.h"
+#include "elgamal.h"
 #include "hsm.h"
 #include "ibe.h"
 #include "log.h"
@@ -51,6 +52,12 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_RET_MAC:
             HSM_RetMac((struct hsm_ret_mac_request *)(in), out, outLen);
             break;
+        case HSM_ELGAMAL_PK:
+            HSM_ElGamalPk(out, outLen);
+            break;
+        case HSM_ELGAMAL_DECRYPT:
+            HSM_RetMac((struct hsm_elgamal_decrypt_request *)(in), out, outLen);
+            break;
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
     }
@@ -84,6 +91,10 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return 0;
         case HSM_RET_MAC:
             return sizeof(struct hsm_ret_mac_request);
+        case HSM_ELGAMAL_PK:
+            return 0;
+        case HSM_ELGAMAL_DECRYPT:
+            return sizeof(struct hsm_elgamal_decrypt_request);
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
             return 0;
@@ -417,6 +428,30 @@ int HSM_RetMac(struct hsm_ret_mac_request *req, uint8_t *out, int *outLen) {
     //memset(buf, 0xff, 1024);
     if (out) {
         *outLen = 0;
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_ElGamalPk(uint8_t *out, int *outLen) {
+    uint8_t buf[ELGAMAL_PK_LEN];
+    ElGamal_GetPk(buf);
+    if (out) {
+        memcpy(out, buf, ELGAMAL_PK_LEN);
+        *outLen = ELGAMAL_PK_LEN;
+    } else {
+        u2f_response_writeback(buf, ELGAMAL_PK_LEN);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, int *outLen) {
+    uint8_t buf[ELGAMAL_PT_LEN];
+    ElGamal_Decrypt(req->ct, buf);
+    if (out) {
+        memcpy(out, buf, ELGAMAL_PT_LEN);
+        *outLen = ELGAMAL_PT_LEN;
+    } else {
+        u2f_response_writeback(buf, ELGAMAL_PT_LEN);
     }
     return U2F_SW_NO_ERROR;
 }

@@ -14,7 +14,7 @@ SRC += ../../fido2/version.c
 SRC += ../../fido2/data_migration.c
 SRC += ../../fido2/extensions/extensions.c ../../fido2/extensions/solo.c
 SRC += ../../fido2/extensions/wallet.c
-SRC += ../../fido2/hsm.c ../../fido2/punc_enc.c ../../fido2/ibe.c ../../fido2/cdc.c ../../fido2/mpc.c  ../../fido2/shamir.c ../../crypto/cifra/src/arm/unacl/scalarmult.c ../../fido2/uECC.c
+SRC += ../../fido2/hsm.c ../../fido2/punc_enc.c ../../fido2/ibe.c ../../fido2/cdc.c ../../fido2/mpc.c  ../../fido2/shamir.c ../../crypto/cifra/src/arm/unacl/scalarmult.c ../../fido2/uECC.c ../../fido2/elgamal.c
 
 # Crypto libs
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c

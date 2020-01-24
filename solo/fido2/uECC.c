@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "../crypto/micro-ecc/uECC_vli.h"
 #include "../crypto/micro-ecc/uECC.h"
 #include "uECC.h"
@@ -30,7 +32,7 @@ uECC_word_t uECC_equal(const fieldElem left,
 void uECC_modAdd(fieldElem result,
                      const fieldElem left,
                      const fieldElem right) {
-    uECC_vli_modAdd(result, left, right, uECC_curve_p(curve), uECC_curve_num_n_words(curve));
+    uECC_vli_modAdd(result, left, right, uECC_curve_n(curve), uECC_curve_num_n_words(curve));
 }
 
 /* Computes result = (left - right) % mod.
@@ -38,7 +40,7 @@ void uECC_modAdd(fieldElem result,
 void uECC_modSub(fieldElem result,
                      const fieldElem left,
                      const fieldElem right) {
-    uECC_vli_modSub(result, left, right, uECC_curve_p(curve), uECC_curve_num_n_words(curve));
+    uECC_vli_modSub(result, left, right, uECC_curve_n(curve), uECC_curve_num_n_words(curve));
 }
 
 /* Computes result = (left * right) % mod.
@@ -49,10 +51,17 @@ void uECC_modMult(fieldElem result,
     uECC_vli_modMult_fast(result, left, right, curve);
 }
 
+void uECC_modNeg(fieldElem result,
+                     const fieldElem input) {
+    uECC_vli_modSub(result, uECC_curve_n(curve), input, uECC_curve_n(curve), uECC_curve_num_n_words(curve));
+}
+
 /* Computes result = (1 / input) % mod.*/
 void uECC_modInv(fieldElem result,
                      const fieldElem input) {
-    uECC_vli_modInv(result, input, uECC_curve_p(curve), uECC_curve_num_n_words(curve));
+    printf("---- in mod inv\n");
+    printf("num_n_words = %d\n", uECC_curve_num_n_words(curve));
+    uECC_vli_modInv(result, input, uECC_curve_n(curve), uECC_curve_num_n_words(curve));
 }
 
 /* Converts an integer in uECC native format to big-endian bytes. */
@@ -82,7 +91,7 @@ void uECC_bytesToPointUncompressed(ecPoint native, const uint8_t *bytes) {
     uint8_t tmp[64];
     memcpy(tmp + 32, bytes, 32);
     memcpy(tmp, bytes + 32, 32);
-    uECC_vli_bytesToNative(native, bytes, 64);
+    uECC_vli_bytesToNative(native, tmp, 64);
 }
 
 /* Converts an integer in uECC native format to big-endian bytes. */
@@ -90,14 +99,16 @@ void uECC_bytesToPointUncompressed(ecPoint native, const uint8_t *bytes) {
 void uECC_pointToBytesCompressed(uint8_t *bytes, const ecPoint native) {
     uint8_t tmp[64];
     uECC_pointToBytesUncompressed(tmp, native);
-    uECC_compress(bytes, tmp, curve);
+    //uECC_vli_nativeToBytes(tmp, 64, native);
+    uECC_compress(tmp, bytes, curve);
 }
 
 /* Converts big-endian bytes to an integer in uECC native format. */
 /* Buffer should be length 64. */
-void uECC_bytesToPointUncompressed(ecPoint native, const uint8_t *bytes) {
+void uECC_bytesToPointCompressed(ecPoint native, const uint8_t *bytes) {
     uint8_t tmp[64];
     uECC_decompress(bytes, tmp, curve);
+    //uECC_vli_bytesToNative(native, tmp, 64);
     uECC_bytesToPointUncompressed(native, tmp);
 }
 
@@ -124,5 +135,5 @@ void uECC_pointAdd(ecPoint result,
 }
 
 void uECC_randInt(fieldElem vli) {
-    uECC_generate_random_int(vli, uECC_curve_p(curve), uECC_curve_num_n_words(curve));
+    uECC_generate_random_int(vli, uECC_curve_n(curve), uECC_curve_num_n_words(curve));
 }

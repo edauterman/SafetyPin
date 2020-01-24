@@ -145,12 +145,41 @@ void scratch() {
 
     const EC_POINT *g = EC_GROUP_get0_generator(params->group);
     printf("g: %s\n", EC_POINT_point2hex(params->group, g, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+
+    BIGNUM *sk = BN_new();
+    BIGNUM *skInv = BN_new();
+    BN_hex2bn(&sk, "61b28db14fc7ca83ff4a26982f5ae16ffecaaf52087db27a57b55bc115971603");
+    BN_mod_inverse(skInv, sk, params->order, params->bn_ctx);
+    printf("skInv: %s\n", BN_bn2hex(skInv));
 }
+
+void ElGamalTest() {
+    printf("----- EL GAMAL TEST -----\n");
+    Params *params = Params_new();
+    BIGNUM *sk = BN_new();
+    EC_POINT *pk = EC_POINT_new(params->group);
+    ElGamal_ciphertext *c = ElGamalCiphertext_new(params);
+    BIGNUM *x = BN_new();
+    EC_POINT *msg = EC_POINT_new(params->group);
+    EC_POINT *msgTest = EC_POINT_new(params->group);
+
+    BN_rand_range(sk, params->order);
+    BN_rand_range(x, params->order);
+    EC_POINT_mul(params->group, pk, sk, NULL, NULL, params->bn_ctx);
+    EC_POINT_mul(params->group, msg, x, NULL, NULL, params->bn_ctx);
+
+    ElGamal_Encrypt(params, msg, pk, c);
+    ElGamal_Decrypt(params, msgTest, sk, c);
+
+    printf("msg: %s\n", EC_POINT_point2hex(params->group, msg, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+    printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+}    
 
 int main(int argc, char *argv[]) {
   IBETest();
   ShamirTest();
   AESGCMTest();
+  ElGamalTest();
   scratch();
   return 0;
 }

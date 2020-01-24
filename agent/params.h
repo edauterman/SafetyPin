@@ -39,6 +39,9 @@ typedef struct {
 Params *Params_new();
 void Params_free(Params *params);
 
+void Params_bytesToPoint(Params *params, const uint8_t *bytes, EC_POINT *pt);
+void Params_pointToBytes(Params *params, uint8_t *bytes, const EC_POINT *pt);
+
 int hash_to_bytes (uint8_t *bytes_out, int outlen,
     const uint8_t *bytes_in, int inlen);
 int aesGcmEncrypt(const void *key, const uint8_t *pt, int ptLen, uint8_t *iv, uint8_t *tag, uint8_t *ct);
