@@ -12,6 +12,8 @@
 #include <openssl/rand.h>
 
 #include "hsm.h"
+#include "elgamal.h"
+#include "elgamal_shamir.h"
 #include "params.h"
 #include "ibe.h"
 #include "common.h"
@@ -175,11 +177,57 @@ void ElGamalTest() {
     printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
 }    
 
+void ElGamalShamirTest() {
+    printf("----- EL GAMAL SHAMIR TEST ------ \n");
+    Params *params = Params_new();
+    int t = 3;
+    int n = 5;
+    BIGNUM *x = BN_new();
+    EC_POINT *msg = EC_POINT_new(params->group);
+    EC_POINT *msgTest = EC_POINT_new(params->group);
+    BIGNUM *sks[n];
+    EC_POINT *pks[n];
+    ElGamalCtShare *ctShares[n];
+    ElGamalMsgShare *msgShares[n];
+
+    for (int i = 0; i < n; i++) {
+        sks[i] = BN_new();
+        pks[i] = EC_POINT_new(params->group);
+        BN_rand_range(sks[i], params->order);
+        EC_POINT_mul(params->group, pks[i], sks[i], NULL, NULL, params->bn_ctx);
+        ctShares[i] = ElGamalCtShare_new(params);
+        msgShares[i] = ElGamalMsgShare_new(params);
+    }
+
+    BN_rand_range(x, params->order);
+    EC_POINT_mul(params->group, msg, x, NULL, NULL, params->bn_ctx);
+
+    printf("calling create shares\n");
+
+    ElGamalShamir_CreateShares(params, t, n, x, pks, ctShares);
+
+    printf("created shares\n");
+
+    for (int i = 0; i < n; i++) {
+        ElGamal_Decrypt(params, msgShares[i]->msg, sks[i], ctShares[i]->ct);
+        msgShares[i]->x = BN_dup(ctShares[i]->x);
+    }
+
+    printf("going to reconstruct\n");
+
+    ElGamalShamir_ReconstructShares(params, t, n, msgShares, msgTest);
+    
+    printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+    printf("msg: %s\n", EC_POINT_point2hex(params->group, msg, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+    //printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+}
+
 int main(int argc, char *argv[]) {
   IBETest();
   ShamirTest();
   AESGCMTest();
   ElGamalTest();
-  scratch();
+  ElGamalShamirTest();
+  //scratch();
   return 0;
 }

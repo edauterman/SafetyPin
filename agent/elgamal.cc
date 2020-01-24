@@ -53,11 +53,11 @@ int ElGamal_Encrypt(Params *params, EC_POINT *msg, EC_POINT *pk, ElGamal_ciphert
     CHECK_C (EC_POINT_mul(params->group, tmp, NULL, pk, r, params->bn_ctx));
     CHECK_C (EC_POINT_add(params->group, c->C, tmp, msg, params->bn_ctx));
 
-    printf("R compressed: %s\n", EC_POINT_point2hex(params->group, c->R, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
-    printf("C compressed: %s\n", EC_POINT_point2hex(params->group, c->C, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
-    printf("R: %s\n", EC_POINT_point2hex(params->group, c->R, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-    printf("C: %s\n", EC_POINT_point2hex(params->group, c->C, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-    printf("pk: %s\n", EC_POINT_point2hex(params->group, pk, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+//    printf("R compressed: %s\n", EC_POINT_point2hex(params->group, c->R, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
+//    printf("C compressed: %s\n", EC_POINT_point2hex(params->group, c->C, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
+//    printf("R: %s\n", EC_POINT_point2hex(params->group, c->R, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+//    printf("C: %s\n", EC_POINT_point2hex(params->group, c->C, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+//    printf("pk: %s\n", EC_POINT_point2hex(params->group, pk, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
 
 cleanup:
     if (r) BN_free(r);
