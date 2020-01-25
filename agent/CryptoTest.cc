@@ -51,8 +51,8 @@ void IBETest() {
 
 void ShamirTest() {
     int rv = ERROR;
-    int t = 5;
-    int n = 7;
+    int t = 3;
+    int n = 10;
     BIGNUM *prime = NULL;
     BIGNUM *secret = NULL;
     BIGNUM *secret_test = NULL;
@@ -182,7 +182,7 @@ void ElGamalShamirTest() {
     printf("----- EL GAMAL SHAMIR TEST ------ \n");
     Params *params = Params_new();
     int t = 3;
-    int n = 5;
+    int n = 10;
     BIGNUM *x = BN_new();
     EC_POINT *msg = EC_POINT_new(params->group);
     EC_POINT *msgTest = EC_POINT_new(params->group);

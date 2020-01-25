@@ -139,6 +139,7 @@ cleanup:
 
 int ElGamalShamir_ValidateShares(Params *params, int t, int n, ElGamalMsgShare **shares) {
     int rv = ERROR;
+    int ctr = 0;
     EC_POINT *currTerm = NULL;
     BIGNUM *numerator = NULL;
     BIGNUM *denominator = NULL;
@@ -180,10 +181,11 @@ int ElGamalShamir_ValidateShares(Params *params, int t, int n, ElGamalMsgShare *
                 CHECK_C (EC_POINT_copy(y, currTerm));    
             }
         }
-        printf("calc y: %s\n", EC_POINT_point2hex(params->group, y, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-        printf("actual y: %s\n", EC_POINT_point2hex(params->group, shares[checkPt]->msg, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-        CHECK_C (EC_POINT_cmp(params->group, y, shares[checkPt]->msg, params->bn_ctx) == 0);
+        if (EC_POINT_cmp(params->group, y, shares[checkPt]->msg, params->bn_ctx) == 0) {
+            ctr++;
+        }
     }
+    rv = ctr >= t ? OKAY : ERROR;
 
 cleanup:
     if (currTerm) EC_POINT_free(currTerm);
