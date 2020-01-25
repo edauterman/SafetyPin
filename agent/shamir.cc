@@ -2,9 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <openssl/bn.h>
+#include <string>
+#include <algorithm>
 
 #include "common.h"
 #include "shamir.h"
+
+using namespace std;
 
 ShamirShare *ShamirShare_new() {
     int rv;
@@ -177,7 +181,40 @@ cleanup:
     return rv;
 }
 
+int Shamir_ReconstructSharesWithValidation(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM *secret) {
+    int rv; 
+    ShamirShare **currShares = NULL;
+    string bitmask(t, 1); 
+    bitmask.resize(n, 0); 
 
+    CHECK_A (currShares = (ShamirShare **)malloc(n * sizeof(ShamirShare *)));
+
+    do {
+        int j = 0;
+        for (int i = 0; i < n; i++) {
+            if (bitmask[i]) {
+                currShares[j] = shares[i];
+                j++;
+            }   
+        }   
+        for (int i = 0; i < n; i++) {
+            if (!bitmask[i]) {
+                currShares[j] =  shares[i];
+                j++;
+            }   
+        }   
+        if (Shamir_ValidateShares(t, n, currShares, prime) == OKAY) {
+            CHECK_C (Shamir_ReconstructShares(t, n, currShares, prime, secret));
+            goto cleanup;
+        }   
+    } while (prev_permutation(bitmask.begin(), bitmask.end()));
+    printf("No valid reconstruction");
+    rv = ERROR;
+
+cleanup:
+    if (currShares) free(currShares);
+    return rv; 
+}
 
 /* Requires 32 bytes. */
 void Shamir_Marshal(uint8_t *buf, ShamirShare *share) {

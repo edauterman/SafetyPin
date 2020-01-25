@@ -26,5 +26,6 @@ void ElGamalMsgShare_free(ElGamalMsgShare *share);
 int ElGamalShamir_CreateShares(Params *params, int t, int n, BIGNUM *secret, EC_POINT **pks, ElGamalCtShare **shares);
 int ElGamalShamir_ReconstructShares(Params *params, int t, int n, ElGamalMsgShare **shares, EC_POINT *secret);
 int ElGamalShamir_ValidateShares(Params *params, int t, int n, ElGamalMsgShare **shares);
+int ElGamalShamir_ReconstructSharesWithValidation(Params *params, int t, int n, ElGamalMsgShare **shares, EC_POINT *secret);
 
 #endif

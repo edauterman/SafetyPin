@@ -17,6 +17,7 @@ void ShamirShare_free(ShamirShare *share);
 int Shamir_CreateShares(int t, int n, BIGNUM *secret, BIGNUM *prime, ShamirShare **shares);
 int Shamir_ReconstructShares(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM *secret);
 int Shamir_ValidateShares(int t, int n, ShamirShare **shares, BIGNUM *prime);
+int Shamir_ReconstructSharesWithValidation(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM *secret);
 
 void Shamir_Marshal(uint8_t *buf, ShamirShare *share);
 void Shamir_Unmarshal(uint8_t *buf, ShamirShare *share);

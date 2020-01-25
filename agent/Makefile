@@ -59,8 +59,8 @@ params.o: params.c params.h
 ibe.o: ibe.c ibe.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o ibe.o ibe.c -lssl -lcrypto  -lpthread
 
-shamir.o: shamir.c shamir.h
-	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o shamir.o shamir.c -lssl -lcrypto -lpthread
+shamir.o: shamir.cc shamir.h
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o shamir.o shamir.cc -lssl -lcrypto -lpthread
 
 hsm.o: hsm.cc hsm.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o hsm.o hsm.cc -lssl -lcrypto -lpthread
@@ -80,8 +80,8 @@ mpc.o: mpc.cc mpc.h
 elgamal.o: elgamal.cc elgamal.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o elgamal.o elgamal.cc -lssl -lcrypto -lpthread
 
-elgamal_shamir.o: elgamal_shamir.c elgamal_shamir.h
-	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o elgamal_shamir.o elgamal_shamir.c -lssl -lcrypto -lpthread
+elgamal_shamir.o: elgamal_shamir.cc elgamal_shamir.h
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Wall -o elgamal_shamir.o elgamal_shamir.cc -lssl -lcrypto -lpthread
 
 # simple hidapi tool to list devices to see paths.
 list: list.c $(HIDAPI)

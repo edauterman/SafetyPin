@@ -77,7 +77,8 @@ void ShamirTest() {
     CHECK_C (Shamir_CreateShares(t, n, secret, prime, shares));
     CHECK_C (Shamir_ValidateShares(t, n, shares, prime));
     CHECK_C (Shamir_ReconstructShares(t, n, shares, prime, secret_test));
-    
+    CHECK_C (Shamir_ReconstructSharesWithValidation(t, n, shares, prime, secret_test));
+
     CHECK_C (Shamir_CreateShares(1, 2, secret, prime, shares));
     CHECK_C (Shamir_ValidateShares(t, n, shares, prime) == ERROR);
 
@@ -221,6 +222,14 @@ void ElGamalShamirTest() {
     printf("msg: %s\n", EC_POINT_point2hex(params->group, msg, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
     if (EC_POINT_cmp(params->group, msg, msgTest, params->bn_ctx) == 0) {
         printf("Reconstruction successful\n");
+    }
+ 
+    ElGamalShamir_ReconstructSharesWithValidation(params, t, n, msgShares, msgTest);
+    
+    printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+    printf("msg: %s\n", EC_POINT_point2hex(params->group, msg, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+    if (EC_POINT_cmp(params->group, msg, msgTest, params->bn_ctx) == 0) {
+        printf("Reconstruction with validation successful\n");
     }
     //printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
 }

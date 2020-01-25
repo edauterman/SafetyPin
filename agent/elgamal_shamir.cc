@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
+#include <algorithm>
+#include <string>
 
 #include "common.h"
 #include "hsm.h"
@@ -9,6 +11,8 @@
 #include "shamir.h"
 #include "elgamal.h"
 #include "elgamal_shamir.h"
+
+using namespace std;
 
 ElGamalCtShare *ElGamalCtShare_new(Params *params) {
     int rv;
@@ -190,5 +194,40 @@ cleanup:
     if (currLambda) BN_free(currLambda);
     if (y) EC_POINT_free(y);
     if (zero) BN_free(zero);
+    return rv;
+}
+
+int ElGamalShamir_ReconstructSharesWithValidation(Params *params, int t, int n, ElGamalMsgShare **shares, EC_POINT *secret) {
+    int rv;
+    ElGamalMsgShare **currShares = NULL;
+    string bitmask(t, 1);
+    bitmask.resize(n, 0);
+
+    CHECK_A (currShares = (ElGamalMsgShare **)malloc(n * sizeof(ElGamalMsgShare *)));
+
+    do {
+        int j = 0;
+        for (int i = 0; i < n; i++) {
+            if (bitmask[i]) {
+                currShares[j] = shares[i];
+                j++;
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            if (!bitmask[i]) {
+                currShares[j] =  shares[i];
+                j++;
+            }
+        }
+        if (ElGamalShamir_ValidateShares(params, t, n, currShares) == OKAY) {
+            CHECK_C (ElGamalShamir_ReconstructShares(params, t, n, currShares, secret));
+            goto cleanup;
+        }
+    } while (prev_permutation(bitmask.begin(), bitmask.end()));
+    printf("No valid reconstruction");
+    rv = ERROR;
+
+cleanup:
+    if (currShares) free(currShares);
     return rv;
 }
