@@ -272,7 +272,7 @@ int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
 
 int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t *dMacs, uint8_t *eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], ShamirShare *pinShare, uint8_t *hsms);
 int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t **dMacs, uint8_t **eMacs, uint8_t *validHsms, uint8_t *allHsms);
-int HSM_AuthMPCDecrypt3(HSM *h, uint8_t *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultMacs, uint8_t *validHsms);
+int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultMacs, uint8_t *validHsms);
 
 /* Run microbenchmarks. */
 int HSM_MicroBench(HSM *h);

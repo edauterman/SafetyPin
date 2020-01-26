@@ -7,7 +7,7 @@
 #include "punc_enc.h"
 
 struct MpcMsg {
-    uint8_t msg[KEY_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
     uint8_t a[FIELD_ELEM_LEN];
     uint8_t b[FIELD_ELEM_LEN];
     uint8_t c[FIELD_ELEM_LEN];
@@ -16,7 +16,7 @@ struct MpcMsg {
 };
 
 fieldElem a, b, c, pinDiffShare, groupSize;
-uint8_t msg[KEY_LEN];
+uint8_t msg[FIELD_ELEM_LEN];
 uint8_t macKeys[KEY_LEN][NUM_HSMS];
 fieldElem pinDiffShare;
 fieldElem groupSize;
@@ -155,6 +155,6 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t **resultShareBufs,
 
     /* Check if result == 0. If so, return msg. */
     if (uECC_equal(zero, result) != 0) return ERROR;
-    memset(returnMsg, msg, KEY_LEN);
+    memset(returnMsg, msg, FIELD_ELEM_LEN);
     return OKAY;
 }

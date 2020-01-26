@@ -18,7 +18,8 @@ typedef struct {
 
 typedef struct {
     IBE_ciphertext *recoveryCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
-    BIGNUM *s;
+    BIGNUM *r;
+    //BIGNUM *s;
     IBE_ciphertext *saltCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
 } RecoveryCiphertext;
 
@@ -32,6 +33,6 @@ int Datacenter_init(Datacenter *d);
 int Datacenter_Setup(Datacenter *d);
 int Datacenter_SmallSetup(Datacenter *d);
 int Datacenter_TestSetup(Datacenter *d);
-int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, uint8_t pin[PIN_LEN], RecoveryCiphertext *c);
-int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, uint8_t pin[PIN_LEN], RecoveryCiphertext *c);
+int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c);
+int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c);
 #endif

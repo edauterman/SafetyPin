@@ -774,6 +774,17 @@ int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, 
     HSM_AUTH_MPC_DECRYPT_2_REQ req;
     HSM_AUTH_MPC_DECRYPT_2_RESP resp;
     string resp_str;
+    //ShamirShare **dShares;
+    //ShamirShare **eShares;
+    //uint8_t *validHsms;
+    //uint8_t *allHsms;
+    //uint8_t **dMacs;
+    //uint8_t **eMacs;
+    //uint8_t *dShares;
+    //uint8_t *eShares;
+    //uint8_t *dMacs;
+    //uint8_t *eMacs;
+    //uint8_t **resultMacs;
 
     pthread_mutex_lock(&h->m);
     
@@ -787,6 +798,10 @@ int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, 
         memcpy(req.dMacs[i], dMacs[i], SHA256_DIGEST_LENGTH);
         memcpy(req.eMacs[i], eMacs[i], SHA256_DIGEST_LENGTH);
     }
+    //memcpy(req.dShares, dShares, 2 * HSM_THRESHOLD_SIZE * FIELD_ELEM_LEN);
+    //memcpy(req.eShares, eShares, 2 * HSM_THRESHOLD_SIZE * FIELD_ELEM_LEN);
+    //memcpy(req.dMacs, dMacs, 2 * HSM_THRESHOLD_SIZE * SHA256_DIGEST_LENGTH);
+    //memcpy(req.eMacs, eMacs, 2 * HSM_THRESHOLD_SIZE * SHA256_DIGEST_LENGTH);
     memcpy(req.validHsms, validHsms, 2 * HSM_THRESHOLD_SIZE);
     memcpy(req.allHsms, allHsms, HSM_GROUP_SIZE);
 #ifdef HID
@@ -808,7 +823,7 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthMPCDecrypt3(HSM *h, uint8_t *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultMacs, uint8_t *validHsms) {
+int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultMacs, uint8_t *validHsms) {
     int rv;
     HSM_AUTH_MPC_DECRYPT_3_REQ req;
     HSM_AUTH_MPC_DECRYPT_3_RESP resp;
@@ -833,7 +848,7 @@ int HSM_AuthMPCDecrypt3(HSM *h, uint8_t *msg, BIGNUM *result, ShamirShare **resu
 #endif
     printf("got resp\n");
     
-    memcpy(msg, resp.msg, KEY_LEN);
+    Shamir_UnmarshalCompressed(resp.msg, h->id, msg);
 
 cleanup:
     pthread_mutex_unlock(&h->m);

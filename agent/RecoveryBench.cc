@@ -34,13 +34,15 @@ int main(int argc, char *argv[]) {
 
   printf("made params\n");
 
-  uint8_t pin[PIN_LEN];
+  BIGNUM *pin;
   BIGNUM *saveKey;
   BIGNUM *saveKeyTest;
   saveKey = BN_new();
+  pin = BN_new();
   saveKeyTest = BN_new();
   printf("before save key\n");
-  BN_rand_range(saveKey, params->prime);
+  BN_rand_range(saveKey, params->order);
+  BN_rand_range(pin, params->order);
   printf("made savekey\n");
   RecoveryCiphertext *c = RecoveryCiphertext_new();
 

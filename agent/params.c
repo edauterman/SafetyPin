@@ -186,9 +186,10 @@ void Params_pointToBytes(Params *params, uint8_t *bytes, const EC_POINT *pt) {
     EC_POINT_point2oct(params->group, pt, POINT_CONVERSION_COMPRESSED, bytes, 33, params->bn_ctx);
 }
 
-int intsToBignums(BIGNUM **bns, uint8_t ints, int len) {
+int intsToBignums(BIGNUM **bns, uint8_t *ints, int len) {
+    int rv;
     for (int i = 0; i < len; i++) {
-        CHECK_A (bns[i] = BN_bin2bn(ints[i], 1, NULL));
+        CHECK_A (bns[i] = BN_bin2bn(&ints[i], 1, NULL));
     }
 cleanup:
     return rv;

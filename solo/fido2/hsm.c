@@ -536,14 +536,14 @@ int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *ou
     uint8_t msg[KEY_LEN];
     
     if (MPC_Step3(msg, req->result, req->resultShares, req->resultMacs, req->validHsms) != OKAY) {
-        memset(msg, 0, KEY_LEN);
+        memset(msg, 0, FIELD_ELEM_LEN);
     }
 
     if (out) {
-        memcpy(out, msg, KEY_LEN);
-        *outLen = KEY_LEN;
+        memcpy(out, msg, FIELD_ELEM_LEN);
+        *outLen = FIELD_ELEM_LEN;
     } else {
-        u2f_response_writeback(msg, KEY_LEN);
+        u2f_response_writeback(msg, FIELD_ELEM_LEN);
     }
     printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
 

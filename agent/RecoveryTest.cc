@@ -30,12 +30,14 @@ int main(int argc, char *argv[]) {
 
   Params *params = Params_new(); 
 
-  uint8_t pin[PIN_LEN];
+  BIGNUM *pin;
   BIGNUM *saveKey;
   BIGNUM *saveKeyTest;
   saveKey = BN_new();
+  pin = BN_new();
   saveKeyTest = BN_new();
-  BN_rand_range(saveKey, params->prime);
+  BN_rand_range(saveKey, params->order);
+  BN_rand_range(pin, params->order);
   RecoveryCiphertext *c = RecoveryCiphertext_new();
 
   Datacenter_Save(d, params, saveKey, 0, pin, c);

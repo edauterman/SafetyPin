@@ -10,6 +10,7 @@
 #include "datacenter.h"
 #include "hidapi.h"
 #include "hsm.h"
+#include "mpc.h"
 #include "params.h"
 #include "punc_enc.h"
 #include "shamir.h"
@@ -24,6 +25,15 @@ using namespace std;
 
 const char *HANDLES[] = {"/dev/cu.usbmodem208532CA31412"};
 
+typedef struct {
+    uint8_t msg[FIELD_ELEM_LEN];
+    uint8_t a[FIELD_ELEM_LEN];
+    uint8_t b[FIELD_ELEM_LEN];
+    uint8_t c[FIELD_ELEM_LEN];
+    uint8_t rShare[FIELD_ELEM_LEN];
+    uint8_t savePinShare[FIELD_ELEM_LEN];
+} MpcMsg;
+
 RecoveryCiphertext *RecoveryCiphertext_new() {
     int rv = ERROR;
     RecoveryCiphertext *c = NULL;
@@ -34,7 +44,8 @@ RecoveryCiphertext *RecoveryCiphertext_new() {
             CHECK_A (c->saltCts[i][j] = IBE_ciphertext_new(IBE_MSG_LEN));
         }
     }
-    CHECK_A (c->s = BN_new());
+    CHECK_A (c->r = BN_new());
+    //CHECK_A (c->s = BN_new());
 cleanup:
     if (rv == ERROR) {
         RecoveryCiphertext_free(c);
@@ -50,7 +61,8 @@ void RecoveryCiphertext_free(RecoveryCiphertext *c) {
             if (c && c->saltCts[i] && c->saltCts[i][j]) IBE_ciphertext_free(c->saltCts[i][j]);
         }
     }
-    if (c && c->s) BN_free(c->s);
+    if (c && c->r) BN_free(c->r);
+    //if (c && c->s) BN_free(c->s);
     if (c) free(c);
 }
 
@@ -197,7 +209,7 @@ cleanup:
     return rv;
 }
 
-int chooseHsmsFromSalt(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *salt) {
+/*int chooseHsmsFromSalt(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *salt) {
     int rv = ERROR;
     BIGNUM *hsm;
     uint8_t out[SHA256_DIGEST_LENGTH];
@@ -205,8 +217,8 @@ int chooseHsmsFromSalt(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *salt) 
 
     CHECK_A (hsm = BN_new());
 
-    /* Hash salt and pin to choose recovery HSMs. */
-    printf("num hsms: %s\n", BN_bn2hex(params->numHsms));
+  */  /* Hash salt and pin to choose recovery HSMs. */
+    /*printf("num hsms: %s\n", BN_bn2hex(params->numHsms));
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         uint8_t *in = NULL;
         int len = BN_num_bytes(salt) + 1;
@@ -224,9 +236,9 @@ int chooseHsmsFromSalt(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *salt) 
 cleanup:
     if (hsm) BN_free(hsm);
     return rv;
-}
+}*/
 
-int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *saltHashes[HSM_GROUP_SIZE], BIGNUM *salt, uint8_t pin[PIN_LEN]) {
+int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *saltHashes[HSM_GROUP_SIZE], BIGNUM *salt, BIGNUM *pin) {
     int rv = ERROR;
     BIGNUM *hsm;
     uint8_t out[SHA256_DIGEST_LENGTH];
@@ -237,11 +249,11 @@ int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *
     printf("num hsms: %s\n", BN_bn2hex(params->numHsms));
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         uint8_t *in = NULL;
-        int len = BN_num_bytes(salt) + PIN_LEN + 1;
+        int len = BN_num_bytes(salt) + BN_num_bytes(pin) + 1;
         CHECK_A (in = (uint8_t *)malloc(len));
         in[0] = i;
         BN_bn2bin(salt, in + 1);
-        memcpy(in + BN_num_bytes(salt) + 1, pin, PIN_LEN);
+        BN_bn2bin(pin, in + 1 + BN_num_bytes(salt));
         hash_to_bytes(out, SHA256_DIGEST_LENGTH, in, len);
         CHECK_A (saltHashes[i] = BN_bin2bn(out, SHA256_DIGEST_LENGTH, NULL));
         CHECK_C (BN_mod(hsm, saltHashes[i], params->numHsms, params->bn_ctx));
@@ -255,22 +267,11 @@ cleanup:
     return rv;
 }
 
-void marshalShareAndHash(uint8_t *buf, ShamirShare *share, BIGNUM *hash) {
-    Shamir_Marshal(buf, share);
-    printf("hash bytes: %d\n", BN_num_bytes(hash));
-    BN_bn2bin(hash, buf + SHAMIR_MARSHALLED_SIZE + 32 - BN_num_bytes(hash));
-}
-
-void unmarshalShareAndHash(uint8_t *buf, ShamirShare *share, BIGNUM *hash) {
-    Shamir_Unmarshal(buf, share);
-    BN_bin2bn(buf + SHAMIR_MARSHALLED_SIZE, 16, hash);
-}
-
 /* bns: prime, numHsms
  * bn_ctx 
  * make IBE_MSG_LEN = 32 + 16 = 48*/
 
-int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, uint8_t pin[PIN_LEN], RecoveryCiphertext *c) {
+int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c) {
     int rv = ERROR;
     uint8_t h1[HSM_GROUP_SIZE];
     uint8_t h2[HSM_GROUP_SIZE];
@@ -278,33 +279,57 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     BIGNUM *saltHashes[HSM_GROUP_SIZE];
     ShamirShare *saveKeyShares[HSM_GROUP_SIZE];
     ShamirShare *saltShares[HSM_GROUP_SIZE];
+    ShamirShare *aShares[HSM_GROUP_SIZE];
+    ShamirShare *bShares[HSM_GROUP_SIZE];
+    ShamirShare *cShares[HSM_GROUP_SIZE];
+    ShamirShare *rShares[HSM_GROUP_SIZE];
+    ShamirShare *pinShares[HSM_GROUP_SIZE];
+    BIGNUM *h1Bns[HSM_GROUP_SIZE];
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
         CHECK_A (saltShares[i] = ShamirShare_new());
+        CHECK_A (aShares[i] = ShamirShare_new());
+        CHECK_A (bShares[i] = ShamirShare_new());
+        CHECK_A (cShares[i] = ShamirShare_new());
+        CHECK_A (rShares[i] = ShamirShare_new());
+        CHECK_A (pinShares[i] = ShamirShare_new());
     }
 
     printf("start save key: %s\n", BN_bn2hex(saveKey));
 
     /* Choose salts. */
     CHECK_A (r = BN_new());
-    CHECK_C (BN_rand_range(r, params->prime));
-    CHECK_C (BN_rand_range(c->s, params->prime));
-
-    printf("r: %s\n", BN_bn2hex(r));
+    CHECK_C (BN_rand_range(c->r, params->order));
+    CHECK_C (BN_rand_range(r, params->order));
 
     /* Hash salt and pin to choose recovery HSMs. */
-    chooseHsmsFromSaltAndPin(params, h1, saltHashes, r, pin);
-    
+    chooseHsmsFromSaltAndPin(params, h1, saltHashes, c->r, pin);
+    CHECK_C (intsToBignums(h1Bns, h1, HSM_GROUP_SIZE));
+
     /* Split saveKey into shares */
-    CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKey, params->prime, saveKeyShares));
+    CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKey, params->order, saveKeyShares, h1Bns));
+
+    /* Generate Beaver triple. */
+    CHECK_C (MPC_generateBeaverTripleShares(params, aShares, bShares, cShares, h1Bns));
+
+    /* Split r and PIN into shares. */
+    CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, r, params->order, rShares, h1Bns));
+    CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, pin, params->order, pinShares, h1Bns));
 
     /* Encrypt [saveKey]_i, H(pin, salt) to each HSM. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         uint8_t msg[IBE_MSG_LEN];
         memset(msg, 0, IBE_MSG_LEN);
-        marshalShareAndHash(msg, saveKeyShares[i], saltHashes[i]);
         
+        MpcMsg mpcMsg;
+        Shamir_MarshalCompressed(mpcMsg.msg, saveKeyShares[i]);
+        Shamir_MarshalCompressed(mpcMsg.a, aShares[i]);
+        Shamir_MarshalCompressed(mpcMsg.b, bShares[i]);
+        Shamir_MarshalCompressed(mpcMsg.c, cShares[i]);
+        Shamir_MarshalCompressed(mpcMsg.rShare, rShares[i]);
+        Shamir_MarshalCompressed(mpcMsg.savePinShare, pinShares[i]);
+
         printf("share[%d]: ", i);
         for (int j = 0; j < IBE_MSG_LEN; j++) {
             printf("%x ", msg[j]);
@@ -316,13 +341,13 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     }
 
     /* Choose HSMs to hide salt  r. */
-    chooseHsmsFromSalt(params, h2, c->s);
+    //chooseHsmsFromSalt(params, h2, c->s);
 
     /* Split salt r into shares. */
-    CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, r, params->prime, saltShares));
+    //CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, r, params->prime, saltShares));
 
     /* Encrypt [r]_i for each HSM. */
-    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+    /*for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         uint8_t msg[IBE_MSG_LEN];
         memset(msg, 0, IBE_MSG_LEN);
         Shamir_Marshal(msg, saltShares[i]);
@@ -334,7 +359,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
         printf("\n");
  
         CHECK_C (HSM_Encrypt(d->hsms[h2[i]], userID  + 2, msg, IBE_MSG_LEN, c->saltCts[i]));
-    }
+    }*/
 
 cleanup:
     if (r) BN_free(r);
@@ -342,30 +367,64 @@ cleanup:
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         if (saveKeyShares[i]) ShamirShare_free(saveKeyShares[i]);
         if (saltShares[i]) ShamirShare_free(saltShares[i]);
+        if (aShares[i]) ShamirShare_free(aShares[i]);
+        if (bShares[i]) ShamirShare_free(bShares[i]);
+        if (cShares[i]) ShamirShare_free(cShares[i]);
+        if (rShares[i]) ShamirShare_free(rShares[i]);
+        if (pinShares[i]) ShamirShare_free(pinShares[i]);
+        if (h1Bns[i]) BN_free(h1Bns[i]);
     }
     return rv;
 }
 
-int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, uint8_t pin[PIN_LEN], RecoveryCiphertext *c) {
+int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c) {
     int rv = ERROR;
     uint8_t h1[HSM_GROUP_SIZE];
     uint8_t h2[HSM_GROUP_SIZE];
     BIGNUM *saltHashes[HSM_GROUP_SIZE];
     BIGNUM *r = NULL;
+    BIGNUM *dVal = NULL;
+    BIGNUM *eVal = NULL;
+    BIGNUM *result = NULL;
     ShamirShare *saveKeyShares[HSM_GROUP_SIZE];
-    ShamirShare *saltShares[HSM_GROUP_SIZE];
+    //ShamirShare *saltShares[HSM_GROUP_SIZE];
+    ShamirShare *pinShares[HSM_GROUP_SIZE];
+    ShamirShare **dShares;
+    //ShamirShare *dShares[HSM_GROUP_SIZE];
+    ShamirShare **eShares;
+    //ShamirShare *eShares[HSM_GROUP_SIZE];
+    ShamirShare **resultShares;
+    //ShamirShare *resultShares[HSM_GROUP_SIZE];
+    //uint8_t dMacs[SHA256_DIGEST_LENGTH][HSM_GROUP_SIZE];
+    //uint8_t eMacs[SHA256_DIGEST_LENGTH][HSM_GROUP_SIZE];
+    uint8_t **dMacs;
+    uint8_t **eMacs;
+    uint8_t **resultMacs;
+    //uint8_t resultMacs[SHA256_DIGEST_LENGTH][HSM_GROUP_SIZE][HSM_GROUP_SIZE];
     thread t0[HSM_GROUP_SIZE];
     thread t1[HSM_GROUP_SIZE];
     thread t2[HSM_GROUP_SIZE];
+    BIGNUM *h1Bns[HSM_GROUP_SIZE];
+
+    CHECK_A (dShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
+    CHECK_A (eShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
+    CHECK_A (resultShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
-        CHECK_A (saltShares[i] = ShamirShare_new());
+        //CHECK_A (saltShares[i] = ShamirShare_new());
+        CHECK_A (pinShares[i] = ShamirShare_new());
+        CHECK_A (dShares[i] = ShamirShare_new());
+        CHECK_A (eShares[i] = ShamirShare_new());
+        CHECK_A (resultShares[i] = ShamirShare_new());
     }
     CHECK_A (r = BN_new());
+    CHECK_A (dVal = BN_new());
+    CHECK_A (eVal = BN_new());
+    CHECK_A (result = BN_new());
 
     /* Hash meta-salt to find salt HSMs. */
-    chooseHsmsFromSalt(params, h2, c->s);
+/*    chooseHsmsFromSalt(params, h2, c->s);
 
     uint8_t pinHashPlaceholder[SHA256_DIGEST_LENGTH];
     memset(pinHashPlaceholder, 0xff, SHA256_DIGEST_LENGTH);
@@ -381,39 +440,64 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         }
         printf("\n");
         Shamir_Unmarshal(saltShareBufs[i], saltShares[i]);
-    }
+    }*/
 
     /* Reassemble salt r. */
-    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saltShares, params->prime, r));
+  /*  CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saltShares, params->prime, r));
 
     printf("r: %s\n", BN_bn2hex(r));
-
+*/
     /* Hash salt and pin to find recovery HSMs. */
-    chooseHsmsFromSaltAndPin(params, h1, saltHashes, r, pin);
-    
-    /* Decrypt inner cts with HSMs. */
-    uint8_t saveKeyShareBufs[HSM_GROUP_SIZE][IBE_MSG_LEN];
-    uint8_t pinHashes[HSM_GROUP_SIZE][SHA256_DIGEST_LENGTH];
+    chooseHsmsFromSaltAndPin(params, h1, saltHashes, c->r, pin);
+    CHECK_C (intsToBignums(h1Bns, h1, HSM_GROUP_SIZE));
+
+    CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, pin, params->order, pinShares, h1Bns));
+
+    /* Run stage 1 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        BN_bn2bin(saltHashes[i], pinHashes[i]);
-        t2[i] = thread(HSM_AuthDecrypt, d->hsms[h1[i]], userID, c->recoveryCts[i], saveKeyShareBufs[i], IBE_MSG_LEN, pinHashes[i]);
-        //CHECK_C (HSM_AuthDecrypt(d->hsms[h1[i]], userID, innerCts[i], share, IBE_MSG_LEN, pinHash));
-        //Shamir_Unmarshal(share, saveKeyShares[i]);
+        t0[i] = thread(HSM_AuthMPCDecrypt1, d->hsms[h1[i]], dShares[i], eShares[i], dMacs[i], eMacs[i], userID, c->recoveryCts[i], pinShares[i], h1);
+    }
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        t0[i].join();
+    }
+
+    /* Reconstruct d and e. TODO: validate shares. */
+    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, dShares, params->order, dVal));
+    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, eShares, params->order, eVal));
+
+    /* Run stage 2 of MPC with HSMs. */
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        t1[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs, dVal, eVal, dShares, eShares, dMacs, eMacs, h1, h1);
+    }
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        t1[i].join();
+    }
+
+    /* Reconstruct result. TODO: validate shares. */
+    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, resultShares, params->order, result));
+     /* Run stage 3 of MPC with HSMs. */
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        t2[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultShares, resultMacs, h1);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t2[i].join();
-        Shamir_Unmarshal(saveKeyShareBufs[i], saveKeyShares[i]);
     }
 
     /* Reassemble original saveKey. */
-    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->prime, saveKey));
+    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, saveKey));
     printf("done: %s\n", BN_bn2hex(saveKey));
 
 cleanup:
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         if (saveKeyShares[i]) ShamirShare_free(saveKeyShares[i]);
-        if (saltShares[i]) ShamirShare_free(saltShares[i]);
+        if (pinShares[i]) ShamirShare_free(pinShares[i]);
+        if (dShares[i]) ShamirShare_free(dShares[i]);
+        if (eShares[i]) ShamirShare_free(eShares[i]);
+        if (resultShares[i]) ShamirShare_free(resultShares[i]);
     }
     BN_free(r);
+    BN_free(dVal);
+    BN_free(eVal);
+    BN_free(result);
     return rv;
 }

@@ -74,12 +74,12 @@ void ShamirTest() {
 //    BN_hex2bn(&prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
     CHECK_C (BN_rand_range(secret, prime));
 
-    CHECK_C (Shamir_CreateShares(t, n, secret, prime, shares));
+    CHECK_C (Shamir_CreateShares(t, n, secret, prime, shares, NULL));
     CHECK_C (Shamir_ValidateShares(t, n, shares, prime));
     CHECK_C (Shamir_ReconstructShares(t, n, shares, prime, secret_test));
     CHECK_C (Shamir_ReconstructSharesWithValidation(t, n, shares, prime, secret_test));
 
-    CHECK_C (Shamir_CreateShares(1, 2, secret, prime, shares));
+    CHECK_C (Shamir_CreateShares(1, 2, secret, prime, shares, NULL));
     CHECK_C (Shamir_ValidateShares(t, n, shares, prime) == ERROR);
 
     if (BN_cmp(secret, secret_test) != 0) {
@@ -203,7 +203,7 @@ void ElGamalShamirTest() {
     BN_rand_range(x, params->order);
     EC_POINT_mul(params->group, msg, x, NULL, NULL, params->bn_ctx);
 
-    ElGamalShamir_CreateShares(params, t, n, x, pks, ctShares);
+    ElGamalShamir_CreateShares(params, t, n, x, pks, ctShares, NULL);
 
     for (int i = 0; i < n; i++) {
         ElGamal_Decrypt(params, msgShares[i]->msg, sks[i], ctShares[i]->ct);
