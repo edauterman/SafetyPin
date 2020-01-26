@@ -455,3 +455,97 @@ int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, in
     }
     return U2F_SW_NO_ERROR;
 }
+
+int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen) {
+    printf1(TAG_GREEN, "starting to decrypt\n");
+    uint8_t leaf[CT_LEN];
+    embedded_pairing_bls12_381_g2_t U;
+    uint8_t V[IBE_MSG_LEN];
+    uint8_t W[IBE_MSG_LEN];
+    embedded_pairing_bls12_381_g1_t sk;
+    uint8_t msg[IBE_MSG_LEN];
+    uint8_t newCts[KEY_LEVELS][CT_LEN];
+    uint8_t dShareBuf[FIELD_ELEM_LEN];
+    uint8_t eShareBuf[FIELD_ELEM_LEN];
+    uint8_t dMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
+    uint8_t eMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
+
+    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
+        printf("Couldn't retrieve leaf\n");
+        if (out) {
+            memset(msg, 0, IBE_MSG_LEN +  (KEY_LEVELS * CT_LEN));
+            *outLen = IBE_MSG_LEN + (KEY_LEVELS * CT_LEN);
+        } else {
+            memset(msg, 0, IBE_MSG_LEN + (KEY_LEVELS * CT_LEN));
+            u2f_response_writeback(msg, IBE_MSG_LEN  + (KEY_LEVELS * CT_LEN));
+        }
+        return U2F_SW_NO_ERROR;
+    }
+    IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
+    IBE_UnmarshalSk(leaf, &sk);
+    IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
+
+    printf1(TAG_GREEN, "going to puncture\n");
+    PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
+    printf1(TAG_GREEN, "finished puncturing leaf\n");
+
+    MPC_Step1(dShareBuf, eShareBuf, dMacs, eMacs, msg, req->pinShare, req->hsms);
+
+    if (out) {
+        memcpy(out, dShareBuf, FIELD_ELEM_LEN);
+        memcpy(out + FIELD_ELEM_LEN, eShareBuf, FIELD_ELEM_LEN);
+        memcpy(out + 2 * FIELD_ELEM_LEN, dMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        memcpy(out + 2 * FIELD_ELEM_LEN + (SHA256_DIGEST_LEN * HSM_GROUP_SIZE), eMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        memcpy(out + 2 * FIELD_ELEM_LEN + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE), newCts, KEY_LEVELS * CT_LEN);
+        *outLen = (2 * FIELD_ELEM_LEN) + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE) + (KEY_LEVELS * CT_LEN);
+    } else {
+        u2f_response_writeback(dShareBuf, FIELD_ELEM_LEN);
+        u2f_response_writeback(eShareBuf, FIELD_ELEM_LEN);
+        u2f_response_writeback(dMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        u2f_response_writeback(eMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
+    }
+    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *out, int *outLen) {
+    uint8_t resultShareBuf[FIELD_ELEM_LEN];
+    uint8_t resultMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
+    
+    if (MPC_Step2(resultShareBuf, resultMacs, req->d, req->e, req->dShares, req->eShares, req->dMacs, req->eMacs, req->validHsms, req->allHsms) != OKAY) {
+        memset(resultShareBuf, 0, FIELD_ELEM_LEN);
+        memset(resultMacs, 0, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+    }
+
+    if (out) {
+        memcpy(out, resultShareBuf, FIELD_ELEM_LEN);
+        memcpy(out + FIELD_ELEM_LEN, resultMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        *outLen = FIELD_ELEM_LEN + (SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+    } else {
+        u2f_response_writeback(resultShareBuf, FIELD_ELEM_LEN);
+        u2f_response_writeback(resultMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+    }
+    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen) {
+    uint8_t msg[KEY_LEN];
+    
+    if (MPC_Step3(msg, req->result, req->resultShares, req->resultMacs, req->validHsms) != OKAY) {
+        memset(msg, 0, KEY_LEN);
+    }
+
+    if (out) {
+        memcpy(out, msg, KEY_LEN);
+        *outLen = KEY_LEN;
+    } else {
+        u2f_response_writeback(msg, KEY_LEN);
+    }
+    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+
+    return U2F_SW_NO_ERROR;
+}

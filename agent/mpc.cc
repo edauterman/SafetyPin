@@ -14,8 +14,8 @@ int MPC_generateBeaverTripleShares(Params *params, ShamirShare **a, ShamirShare 
     BIGNUM *c_raw;
 
     /* Sample a,b,c such that ab = c */
-    CHECK_C (BN_rand(a_raw, params->order, 0, 0));
-    CHECK_C (BN_rand(b_raw, params->order, 0, 0));
+    CHECK_C (BN_rand_range(a_raw, params->order));
+    CHECK_C (BN_rand_range(b_raw, params->order));
     CHECK_C (BN_mod_mul(c_raw, a_raw, b_raw, params->order, params->bn_ctx));
 
     /* Share a,b,c */

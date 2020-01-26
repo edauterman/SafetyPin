@@ -47,6 +47,8 @@ int hash_to_bytes (uint8_t *bytes_out, int outlen,
 int aesGcmEncrypt(const void *key, const uint8_t *pt, int ptLen, uint8_t *iv, uint8_t *tag, uint8_t *ct);
 int aesGcmDecrypt(const void *key, uint8_t *pt, const uint8_t *iv, const uint8_t *tag, const uint8_t *ct, int ctLen);
 
+int intsToBignums(BIGNUM **bns, uint8_t ints, int len);
+
 #ifdef __cplusplus
 }
 #endif

@@ -51,7 +51,7 @@ cleanup:
     return rv;
 }
 
-int Shamir_CreateShares(int t, int n, BIGNUM *secret, BIGNUM *prime, ShamirShare **shares) {
+int Shamir_CreateShares(int t, int n, BIGNUM *secret, BIGNUM *prime, ShamirShare **shares, BIGNUM **opt_x) {
     int rv;
     BIGNUM *a[t];
     BN_CTX *ctx = NULL;
@@ -68,7 +68,11 @@ int Shamir_CreateShares(int t, int n, BIGNUM *secret, BIGNUM *prime, ShamirShare
 
     /* Generate s random x's to evaluate polynomial at. */
     for (int i = 0; i < n; i++) {
-        CHECK_C (BN_rand_range(shares[i]->x, prime));
+        if (opt_x == NULL) {
+            CHECK_C (BN_rand_range(shares[i]->x, prime));
+        } else {
+            BN_copy(shares[i]->x, opt_x[i]);
+        }
         CHECK_C (evalPolynomial(a, t, shares[i]->x, shares[i]->y, prime, ctx));
     }
 
@@ -217,7 +221,7 @@ cleanup:
 }
 
 /* Requires 32 bytes. */
-void Shamir_Marshal(uint8_t *buf, ShamirShare *share) {
+/*void Shamir_Marshal(uint8_t *buf, ShamirShare *share) {
     memset(buf, 0, 32);
     BN_bn2bin(share->x, buf + 16 - BN_num_bytes(share->x));
     BN_bn2bin(share->y, buf + 32 - BN_num_bytes(share->y));
@@ -226,4 +230,14 @@ void Shamir_Marshal(uint8_t *buf, ShamirShare *share) {
 void Shamir_Unmarshal(uint8_t *buf, ShamirShare *share) {
     BN_bin2bn(buf, 16, share->x);
     BN_bin2bn(buf + 16, 16, share->y);
+}*/
+
+void Shamir_MarshalCompressed(uint8_t *buf, ShamirShare *share) {
+    memset(buf, 0, 32);
+    BN_bn2bin(share->y, buf + 32 - BN_num_bytes(share->y));
+}
+
+void Shamir_UnmarshalCompressed(uint8_t *buf, uint8_t x, ShamirShare *share) {
+    BN_bin2bn(x, 1, share->x);
+    BN_bin2bn(buf, 32, share->y);
 }

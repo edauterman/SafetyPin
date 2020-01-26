@@ -692,3 +692,153 @@ cleanup:
     if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
     return rv;
 }
+
+int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t *dMacs, uint8_t *eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], ShamirShare *pinShare, uint8_t *hsms) {
+    int rv = ERROR;
+    HSM_AUTH_MPC_DECRYPT_1_REQ req;
+    HSM_AUTH_MPC_DECRYPT_1_RESP resp;
+    string resp_str;
+    int numLeaves;
+    int levels;
+    uint32_t currIndex;
+    uint32_t totalTraveled;
+    uint32_t currInterval;
+    uint32_t indexes[PUNC_ENC_REPL];
+    bool gotPlaintext = false;
+
+    pthread_mutex_lock(&h->m);
+
+    CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
+
+    for (int i = 0; i < PUNC_ENC_REPL; i++) {
+
+        if (gotPlaintext || h->isPunctured[indexes[i]]) {
+            CHECK_C (puncture_noLock(h, indexes[i]));
+            continue;
+        }
+
+        numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
+        levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
+        currIndex = indexes[i];
+        totalTraveled = 0;
+        currInterval = numLeaves;
+        size_t ctIndexes[levels];
+    
+        for (int j = 0; j < levels; j++) {
+            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
+        
+            memcpy(req.treeCts[levels - j - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
+            ctIndexes[j] = totalTraveled + currIndex;
+            totalTraveled += currInterval;
+            currInterval /= 2;
+            currIndex /= 2;
+        }
+
+        IBE_MarshalCt(req.ibeCt, IBE_MSG_LEN, c[i]);
+        req.index = indexes[i];
+   
+        Shamir_MarshalCompressed(req.pinShare, pinShare); 
+        memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
+
+#ifdef HID
+        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_1, 0, 0,
+                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+        memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_1, (uint8_t *)&req,
+                    sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+        Shamir_UnmarshalCompressed(resp.dShare, h->id, dShare);
+        Shamir_UnmarshalCompressed(resp.eShare, h->id, eShare);
+        memcpy(dMacs, resp.dMacs, SHA256_DIGEST_LENGTH * HSM_GROUP_SIZE);
+        memcpy(eMacs, resp.eMacs, SHA256_DIGEST_LENGTH * HSM_GROUP_SIZE);
+
+        gotPlaintext =  true;
+        h->isPunctured[indexes[i]] = true;
+
+        for (int j = 0; j < levels - 1; j++) {
+            memcpy(h->cts + (ctIndexes[j] * CT_LEN), resp.newCts[j], CT_LEN);
+        }
+        printf("finished ciphertexts %d/%d\n", i, PUNC_ENC_REPL);
+    }
+
+    printf("finished retrieving auth decryption\n");
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
+    return rv;
+}
+
+int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t **dMacs, uint8_t **eMacs, uint8_t *validHsms, uint8_t *allHsms) {
+    int rv;
+    HSM_AUTH_MPC_DECRYPT_2_REQ req;
+    HSM_AUTH_MPC_DECRYPT_2_RESP resp;
+    string resp_str;
+
+    pthread_mutex_lock(&h->m);
+    
+    memset(req.d, 0, FIELD_ELEM_LEN);
+    BN_bn2bin(d, req.d + FIELD_ELEM_LEN  - BN_num_bytes(d));
+    memset(req.e, 0, FIELD_ELEM_LEN);
+    BN_bn2bin(e, req.e + FIELD_ELEM_LEN  - BN_num_bytes(e));
+    for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++)  {
+        Shamir_MarshalCompressed(req.dShares[i], dShares[i]);
+        Shamir_MarshalCompressed(req.eShares[i], eShares[i]);
+        memcpy(req.dMacs[i], dMacs[i], SHA256_DIGEST_LENGTH);
+        memcpy(req.eMacs[i], eMacs[i], SHA256_DIGEST_LENGTH);
+    }
+    memcpy(req.validHsms, validHsms, 2 * HSM_THRESHOLD_SIZE);
+    memcpy(req.allHsms, allHsms, HSM_GROUP_SIZE);
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_2, 0, 0,
+                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_2, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+    printf("got resp\n");
+    
+    Shamir_UnmarshalCompressed(resp.resultShare, h->id, resultShare);
+    memcpy(resultMacs, resp.resultMacs, SHA256_DIGEST_LENGTH * HSM_GROUP_SIZE);
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
+    return rv;
+}
+
+int HSM_AuthMPCDecrypt3(HSM *h, uint8_t *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultMacs, uint8_t *validHsms) {
+    int rv;
+    HSM_AUTH_MPC_DECRYPT_3_REQ req;
+    HSM_AUTH_MPC_DECRYPT_3_RESP resp;
+    string resp_str;
+
+    pthread_mutex_lock(&h->m);
+    
+    memset(req.result, 0, FIELD_ELEM_LEN);
+    BN_bn2bin(result, req.result + FIELD_ELEM_LEN - BN_num_bytes(result));
+    for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++)  {
+        Shamir_MarshalCompressed(req.resultShares[i], resultShares[i]);
+        memcpy(req.resultMacs[i], resultMacs[i], SHA256_DIGEST_LENGTH);
+    }
+    memcpy(req.validHsms, validHsms, 2 * HSM_THRESHOLD_SIZE);
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_3, 0, 0,
+                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_3, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+    printf("got resp\n");
+    
+    memcpy(msg, resp.msg, KEY_LEN);
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
+    return rv;
+}
+
+

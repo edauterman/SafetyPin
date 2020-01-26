@@ -54,7 +54,7 @@ void ElGamalMsgShare_free(ElGamalMsgShare *share) {
     if (share) free(share);
 }
 
-int ElGamalShamir_CreateShares(Params *params, int t, int n, BIGNUM *secret, EC_POINT **pks, ElGamalCtShare **shares) {
+int ElGamalShamir_CreateShares(Params *params, int t, int n, BIGNUM *secret, EC_POINT **pks, ElGamalCtShare **shares, BIGNUM **opt_x) {
     int rv;
     ShamirShare **shamirShares = NULL;
     EC_POINT *msg = NULL;
@@ -65,7 +65,7 @@ int ElGamalShamir_CreateShares(Params *params, int t, int n, BIGNUM *secret, EC_
     }
     CHECK_A (msg = EC_POINT_new(params->group));
 
-    CHECK_C (Shamir_CreateShares(t, n, secret, params->order, shamirShares));
+    CHECK_C (Shamir_CreateShares(t, n, secret, params->order, shamirShares, opt_x));
 
 
     for (int i = 0; i < n; i++) {

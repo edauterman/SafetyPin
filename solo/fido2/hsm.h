@@ -12,7 +12,12 @@
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32) 
 
+#define HSM_GROUP_SIZE 10
+#define HSM_THRESHOLD_SIZE 3
+#define NUM_HSMS 100
+
 #define COMPRESSED_PT_SZ 33
+#define FIELD_ELEM_LEN 32
 #define ELGAMAL_CT_LEN (2 * COMPRESSED_PT_SZ)
 #define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
@@ -137,6 +142,36 @@ struct hsm_elgamal_decrypt_request {
 
 struct hsm_elgamal_decrypt_response {
     uint8_t msg[ELGAMAL_PT_LEN];
+};
+
+struct hsm_set_mac_keys_request {
+    uint8_t macKeys[KEY_LEN][NUM_HSMS];
+};
+
+struct hsm_auth_mpc_decrypt_1_request {
+    uint32_t index;
+    uint8_t treeCts[LEVELS][CT_LEN];
+    uint8_t ibeCt[IBE_CT_LEN];
+    uint8_t pinShare[FIELD_ELEM_LEN];
+    uint8_t hsms[HSM_GROUP_SIZE];
+};
+
+struct hsm_auth_mpc_decrypt_2_request {
+    uint8_t d[FIELD_ELEM_LEN];
+    uint8_t e[FIELD_ELEM_LEN];
+    uint8_t dShares[FIELD_ELEM_LEN][2 * HSM_THRESHOLD_SIZE];
+    uint8_t eShares[FIELD_ELEM_LEN][2 * HSM_THRESHOLD_SIZE];
+    uint8_t dMacs[SHA256_DIGEST_LEN][2 * HSM_THRESHOLD_SIZE];
+    uint8_t eMacs[SHA256_DIGEST_LEN][2 * HSM_THRESHOLD_SIZE];
+    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
+    uint8_t allHsms[HSM_GROUP_SIZE];
+};
+
+struct hsm_auth_mpc_decrypt_3_request {
+    uint8_t result[FIELD_ELEM_LEN];
+    uint8_t resultShares[FIELD_ELEM_LEN][2 * HSM_THRESHOLD_SIZE];
+    uint8_t resultMacs[SHA256_DIGEST_LEN][2 * HSM_THRESHOLD_SIZE];
+    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
 };
 
 uint8_t pingKey[KEY_LEN];
