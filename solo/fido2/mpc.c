@@ -38,7 +38,7 @@ void multiplyFinish(fieldElem res, fieldElem a, fieldElem b, fieldElem c, fieldE
     fieldElem term1, term2, term3, scratch1, scratch2, numPartiesInverse;
 
     /* d * e / numParties */
-    uECC_modMul(scratch1, d, e);
+    uECC_modMult(scratch1, d, e);
     uECC_modInv(numPartiesInverse, numParties);
     uECC_modMult(term1, scratch1, numPartiesInverse);
 
@@ -157,4 +157,8 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t **resultShareBufs,
     if (uECC_equal(zero, result) != 0) return ERROR;
     memset(returnMsg, msg, FIELD_ELEM_LEN);
     return OKAY;
+}
+
+void MPC_SetMacKeys(uint8_t **macKeysIn) {
+    memcpy(macKeys, macKeysIn, KEY_LEN * NUM_HSMS);
 }

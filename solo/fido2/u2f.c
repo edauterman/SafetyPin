@@ -145,6 +145,30 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished el gamal decrypt\n");
                 break;
 
+          case HSM_AUTH_MPC_DECRYPT_1:
+                printf1(TAG_GREEN, "starting mpc decrypt 1\n");
+                rcode = HSM_AuthMPCDecrypt_1((struct hsm_auth_mpc_decrypt_1_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished mpc decrypt 1\n");
+                break;
+
+        case HSM_AUTH_MPC_DECRYPT_2:
+                printf1(TAG_GREEN, "starting mpc decrypt 2\n");
+                rcode = HSM_AuthMPCDecrypt_2((struct hsm_auth_mpc_decrypt_2_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished mpc decrypt 2\n");
+                break;
+
+        case HSM_AUTH_MPC_DECRYPT_3:
+                printf1(TAG_GREEN, "starting mpc decrypt 3\n");
+                rcode = HSM_AuthMPCDecrypt_3((struct hsm_auth_mpc_decrypt_3_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished mpc decrypt 3\n");
+                break;
+
+       case HSM_SET_MAC_KEYS:
+                printf1(TAG_GREEN, "starting set mac keys\n");
+                rcode = HSM_SetMacKeys((struct hsm_set_mac_keys_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished set mac keys\n");
+                break;
+
 
             case U2F_REGISTER:
                 printf1(TAG_U2F, "U2F_REGISTER\n");

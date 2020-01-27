@@ -59,6 +59,10 @@
 #define HSM_RESET           0x7d
 #define HSM_ELGAMAL_PK      0x7e
 #define HSM_ELGAMAL_DECRYPT 0x7f
+#define HSM_AUTH_MPC_DECRYPT_1  0x80
+#define HSM_AUTH_MPC_DECRYPT_2  0x81
+#define HSM_AUTH_MPC_DECRYPT_3  0x82
+#define HSM_SET_MAC_KEYS        0x83
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -194,4 +198,9 @@ int HSM_GetNonce(uint8_t *out, int *outLen);
 int HSM_RetMac(struct hsm_ret_mac_request *req, uint8_t *out, int *outLen);
 int HSM_ElGamalPk(uint8_t *out, int *outLen);
 int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, int *outLen);
+int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outLen);
+int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen);
+int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *out, int *outLen);
+int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen);
+
 #endif

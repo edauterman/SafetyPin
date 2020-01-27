@@ -8,6 +8,7 @@
 #include "hsm.h"
 #include "ibe.h"
 #include "log.h"
+#include "mpc.h"
 #include "punc_enc.h"
 #include "u2f.h"
 
@@ -58,6 +59,18 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_ELGAMAL_DECRYPT:
             HSM_RetMac((struct hsm_elgamal_decrypt_request *)(in), out, outLen);
             break;
+        case HSM_AUTH_MPC_DECRYPT_1:
+            HSM_AuthMPCDecrypt_1((struct hsm_auth_mpc_decrypt_1_request *)(in), out, outLen);
+            break;
+        case HSM_AUTH_MPC_DECRYPT_2:
+            HSM_AuthMPCDecrypt_2((struct hsm_auth_mpc_decrypt_2_request *)(in), out, outLen);
+            break;
+        case HSM_AUTH_MPC_DECRYPT_3:
+            HSM_AuthMPCDecrypt_3((struct hsm_auth_mpc_decrypt_3_request *)(in), out, outLen);
+            break;
+        case HSM_SET_MAC_KEYS:
+            HSM_SetMacKeys((struct hsm_set_mac_keys_request *)(in), out, outLen);
+            break;
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
     }
@@ -95,6 +108,14 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return 0;
         case HSM_ELGAMAL_DECRYPT:
             return sizeof(struct hsm_elgamal_decrypt_request);
+        case HSM_AUTH_MPC_DECRYPT_1:
+            return sizeof(struct hsm_auth_mpc_decrypt_1_request);
+        case HSM_AUTH_MPC_DECRYPT_2:
+            return sizeof(struct hsm_auth_mpc_decrypt_2_request);
+        case HSM_AUTH_MPC_DECRYPT_3:
+            return sizeof(struct hsm_auth_mpc_decrypt_3_request);
+        case HSM_SET_MAC_KEYS:
+            return sizeof(struct hsm_set_mac_keys_request);
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
             return 0;
@@ -546,6 +567,16 @@ int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *ou
         u2f_response_writeback(msg, FIELD_ELEM_LEN);
     }
     printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outLen) {
+    MPC_SetMacKeys(req->macKeys);
+
+    if (out) {
+        *outLen = 0;
+    }
 
     return U2F_SW_NO_ERROR;
 }

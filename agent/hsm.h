@@ -72,6 +72,7 @@ extern "C" {
 #define HSM_AUTH_MPC_DECRYPT_1 0x80
 #define HSM_AUTH_MPC_DECRYPT_2 0x81
 #define HSM_AUTH_MPC_DECRYPT_3 0x82
+#define HSM_SET_MAC_KEYS       0x83
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -143,7 +144,7 @@ typedef struct {
 
 typedef struct {
     uint8_t macKeys[KEY_LEN][NUM_HSMS];
-} HSM_SET_MAC_KEYS;
+} HSM_SET_MAC_KEYS_REQ;
 
 typedef struct {
     uint32_t index;
@@ -256,6 +257,7 @@ int HSM_Setup(HSM *h);
 int HSM_SmallSetup(HSM *h);
 int HSM_TestSetup(HSM *h);
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk);
+int HSM_SetMacKeys(HSM *h, uint8_t **macKeys);
 
 /* Testing tree. */
 int HSM_Retrieve(HSM *h, uint32_t index);
@@ -270,7 +272,7 @@ int HSM_ElGamalGetPk(HSM *h);
 int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
 int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
 
-int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t *dMacs, uint8_t *eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], ShamirShare *pinShare, uint8_t *hsms);
+int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t **dMacs, uint8_t **eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], ShamirShare *pinShare, uint8_t *hsms);
 int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t **dMacs, uint8_t **eMacs, uint8_t *validHsms, uint8_t *allHsms);
 int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultMacs, uint8_t *validHsms);
 
