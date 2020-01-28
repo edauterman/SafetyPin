@@ -578,7 +578,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
             }
             printf("\n");
         }
-        t1[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dShares, eShares, dMacsCurr, eMacsCurr, h1, h1, i);
+        t1[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dShares, eShares, list, list, dMacsCurr, eMacsCurr, h1, h1, i);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t1[i].join();
@@ -593,7 +593,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         for (int j = 0; j < 2 * HSM_THRESHOLD_SIZE; j++) {
             resultMacsCurr[j] = resultMacs[j][i];
         }
-        t2[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultShares, resultMacsCurr, h1, i);
+        t2[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultShares, list, resultMacsCurr, h1, i);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t2[i].join();

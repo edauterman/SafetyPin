@@ -776,7 +776,7 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t **dMacs, uint8_t **eMacs, uint8_t *validHsms, uint8_t *allHsms, uint8_t reconstructIndex) {
+int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t *dSharesX, uint8_t *eSharesX, uint8_t **dMacs, uint8_t **eMacs, uint8_t *validHsms, uint8_t *allHsms, uint8_t reconstructIndex) {
     int rv;
     HSM_AUTH_MPC_DECRYPT_2_REQ req;
     HSM_AUTH_MPC_DECRYPT_2_RESP resp;
@@ -815,6 +815,8 @@ int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, 
         }
         printf("\n");
     }
+    memcpy(req.dSharesX, dSharesX, 2 * HSM_THRESHOLD_SIZE);
+    memcpy(req.eSharesX, eSharesX, 2 * HSM_THRESHOLD_SIZE);
     //memcpy(req.dShares, dShares, 2 * HSM_THRESHOLD_SIZE * FIELD_ELEM_LEN);
     //memcpy(req.eShares, eShares, 2 * HSM_THRESHOLD_SIZE * FIELD_ELEM_LEN);
     //memcpy(req.dMacs, dMacs, 2 * HSM_THRESHOLD_SIZE * SHA256_DIGEST_LENGTH);
@@ -842,7 +844,7 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultMacs, uint8_t *validHsms, uint8_t reconstructIndex) {
+int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t *resultSharesX, uint8_t **resultMacs, uint8_t *validHsms, uint8_t reconstructIndex) {
     int rv;
     HSM_AUTH_MPC_DECRYPT_3_REQ req;
     HSM_AUTH_MPC_DECRYPT_3_RESP resp;
@@ -856,6 +858,7 @@ int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **
         Shamir_MarshalCompressed(req.resultShares[i], resultShares[i]);
         memcpy(req.resultMacs[i], resultMacs[i], SHA256_DIGEST_LENGTH);
     }
+    memcpy(req.resultSharesX, resultSharesX, 2 * HSM_THRESHOLD_SIZE);
     memcpy(req.validHsms, validHsms, 2 * HSM_THRESHOLD_SIZE);
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_3, 0, 0,
