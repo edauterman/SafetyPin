@@ -8,6 +8,7 @@ typedef uECC_word_t ecPoint[16];
 
 void uECC_setZero(fieldElem vli);
 void uECC_setOne(fieldElem vli);
+void uECC_setWord(fieldElem vli, uECC_word_t word);
 
 /* Constant-time comparison function - secure way to compare long integers */
 /* Returns one if left == right, zero otherwise */

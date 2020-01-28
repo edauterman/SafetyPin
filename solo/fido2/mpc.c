@@ -15,11 +15,11 @@ struct MpcMsg {
     uint8_t savePinShare[FIELD_ELEM_LEN];
 };
 
-fieldElem a, b, c, pinDiffShare, groupSize;
+fieldElem a, b, c, pinDiffShare;
 uint8_t msg[FIELD_ELEM_LEN];
 uint8_t macKeys[KEY_LEN][NUM_HSMS];
 fieldElem pinDiffShare;
-fieldElem groupSize;
+fieldElem thresholdSize;
 
 void sub(fieldElem res, fieldElem y, fieldElem z) {
     uECC_modSub(res, y, z);
@@ -28,6 +28,8 @@ void sub(fieldElem res, fieldElem y, fieldElem z) {
 /* Takes as input shares of x,y and shares of beaver triples a,b,c and
  * computes shares of intermediate values d,e */
 void multiplyStart(fieldElem d, fieldElem e, fieldElem y, fieldElem z, fieldElem a, fieldElem b) {
+    uECC_setZero(d);
+    uECC_setZero(e);
     uECC_modSub(d, y, a);
     uECC_modSub(e, z, b);
 }
@@ -38,12 +40,37 @@ void multiplyFinish(fieldElem res, fieldElem a, fieldElem b, fieldElem c, fieldE
     fieldElem term1, term2, term3, scratch1, scratch2, numPartiesInverse;
 
     /* d * e / numParties */
+    //uECC_modMult(term1, d, e);
     uECC_modMult(scratch1, d, e);
     uECC_modInv(numPartiesInverse, numParties);
     uECC_modMult(term1, scratch1, numPartiesInverse);
 
     /* d * [b] */
     uECC_modMult(term2, d, b);
+    
+   /* uint8_t dBytes[FIELD_ELEM_LEN];
+    uint8_t bBytes[FIELD_ELEM_LEN];
+    uint8_t prodBytes[FIELD_ELEM_LEN];
+    uECC_fieldElemToBytes(dBytes, d);
+    uECC_fieldElemToBytes(bBytes, b);
+    uECC_fieldElemToBytes(prodBytes, term2);
+    printf("d: ");
+    for (int i = 0; i < FIELD_ELEM_LEN; i++) {
+        printf("%02x", dBytes[i]);
+    }
+    printf("\n");
+
+    printf("b: ");
+    for (int i = 0; i < FIELD_ELEM_LEN; i++) {
+        printf("%02x", bBytes[i]);
+    }
+    printf("\n");
+
+    printf("product: ");
+    for (int i = 0; i < FIELD_ELEM_LEN; i++) {
+        printf("%02x", prodBytes[i]);
+    }
+    printf("\n");*/
 
     /* e * [a] */
     uECC_modMult(term3, e, a);
@@ -77,7 +104,15 @@ void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t dMacs[HSM_GROUP_S
     uECC_bytesToFieldElem(recoveryPinShare, recoveryPinShareBuf);
     uECC_bytesToFieldElem(savePinShare, currMpcMsg->savePinShare);
     sub(pinDiffShare, recoveryPinShare, savePinShare);
+    uint8_t pinDiffShareBytes[FIELD_ELEM_LEN];
+    uECC_fieldElemToBytes(pinDiffShareBytes, pinDiffShare);
 
+    printf("pinDiffShare: ");
+    for (int i = 0; i < FIELD_ELEM_LEN; i++) {
+        printf("%02x", pinDiffShareBytes[i]);
+    }
+    printf("\n");
+    
     printf("a: ");
     for (int i = 0; i < FIELD_ELEM_LEN; i++) {
         printf("%02x", currMpcMsg->a[i]);
@@ -95,6 +130,14 @@ void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t dMacs[HSM_GROUP_S
         printf("%02x", currMpcMsg->c[i]);
     }
     printf("\n");
+
+    printf("rShare: ");
+    for (int i = 0; i < FIELD_ELEM_LEN; i++) {
+        printf("%02x", currMpcMsg->rShare[i]);
+    }
+    printf("\n");
+
+
 
     /* Start computation for r * (pin - pin') */
     fieldElem dShare, eShare, rShare;
@@ -198,7 +241,7 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
     printf("going to finish multiplication step\n");
 
     /* Finish computing r * (pin - pin') */
-    multiplyFinish(resultShare, a, b, c, d, e, groupSize);
+    multiplyFinish(resultShare, a, b, c, d, e, thresholdSize);
    
     printf("finished multiplication step\n");
 
@@ -256,4 +299,12 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[2 
 
 void MPC_SetMacKeys(uint8_t **macKeysIn) {
     memcpy(macKeys, macKeysIn, KEY_LEN * NUM_HSMS);
+    uECC_setWord(thresholdSize, HSM_THRESHOLD_SIZE);
+    uint8_t thresholdSizeBytes[FIELD_ELEM_LEN];
+    uECC_fieldElemToBytes(thresholdSizeBytes, thresholdSize);
+    printf("threshold size: ");
+    for (int i = 0; i < FIELD_ELEM_LEN; i++) {
+        printf("%02x", thresholdSizeBytes[i]);
+    }
+    printf("\n");
 }

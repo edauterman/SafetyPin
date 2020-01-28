@@ -17,7 +17,12 @@ void uECC_setZero(fieldElem vli) {
 
 void uECC_setOne(fieldElem vli) {
     uECC_vli_clear(vli, uECC_curve_num_n_words(curve));
-    vli[7] = 1;
+    vli[0] = 1;
+}
+
+void uECC_setWord(fieldElem vli, uECC_word_t word) {
+    uECC_vli_clear(vli, uECC_curve_num_n_words(curve));
+    vli[0] = word;
 }
 
 /* Constant-time comparison function - secure way to compare long integers */
@@ -48,7 +53,8 @@ void uECC_modSub(fieldElem result,
 void uECC_modMult(fieldElem result,
                       const fieldElem left,
                       const fieldElem right) {
-    uECC_vli_modMult_fast(result, left, right, curve);
+    uECC_vli_modMult(result, left, right, uECC_curve_n(curve), uECC_curve_num_n_words(curve));
+    //uECC_vli_modMult_fast(result, left, right, curve);
 }
 
 void uECC_modNeg(fieldElem result,

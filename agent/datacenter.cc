@@ -24,7 +24,7 @@
 
 using namespace std;
 
-const char *HANDLES[] = {"/dev/cu.usbmodem208532CA31412"};
+const char *HANDLES[] = {"/dev/cu.usbmodem206A36AC55482"};
 
 typedef struct {
     uint8_t msg[FIELD_ELEM_LEN];

@@ -154,6 +154,14 @@ void scratch() {
     BN_hex2bn(&sk, "61b28db14fc7ca83ff4a26982f5ae16ffecaaf52087db27a57b55bc115971603");
     BN_mod_inverse(skInv, sk, params->order, params->bn_ctx);
     printf("skInv: %s\n", BN_bn2hex(skInv));
+
+    BIGNUM *d = BN_new();
+    BIGNUM *b = BN_new();
+    BIGNUM *prod = BN_new();
+    BN_hex2bn(&d, "55896b2bc2b79802bbd3de223d5c6d1239f15b7a6d9682e6d4bd0bbb8c7a90bf");
+    BN_hex2bn(&b, "fc57d5c233b49444fd122c62341b7f4cb52e31043be2a4a23560f2616a4429f9");
+    BN_mod_mul(prod, d, b, params->order, params->bn_ctx);
+    printf("prod: %s\n", BN_bn2hex(prod));
 }
 
 void ElGamalTest() {
@@ -240,6 +248,6 @@ int main(int argc, char *argv[]) {
   AESGCMTest();
   ElGamalTest();
   ElGamalShamirTest();
-  //scratch();
+  scratch();
   return 0;
 }
