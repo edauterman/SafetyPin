@@ -456,10 +456,20 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     thread t2[HSM_GROUP_SIZE];
     BIGNUM *h1Bns[HSM_GROUP_SIZE];
     uint8_t list[3] = {0,1,2};
+    uint8_t dOrder[2 * HSM_THRESHOLD_SIZE];
+    uint8_t eOrder[2 * HSM_THRESHOLD_SIZE];
+    uint8_t resultOrder[2 * HSM_THRESHOLD_SIZE];
+    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
+    ShamirShare **dValidShares;
+    ShamirShare **eValidShares;
+    ShamirShare **resultValidShares;
 
     CHECK_A (dShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
     CHECK_A (eShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
     CHECK_A (resultShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
+    CHECK_A (dValidShares = (ShamirShare **)malloc(2 * HSM_THRESHOLD_SIZE * sizeof(ShamirShare *)));
+    CHECK_A (eValidShares = (ShamirShare **)malloc(2 * HSM_THRESHOLD_SIZE * sizeof(ShamirShare *)));
+    CHECK_A (resultValidShares = (ShamirShare **)malloc(2 * HSM_THRESHOLD_SIZE * sizeof(ShamirShare *)));
     CHECK_A (dMacs = (uint8_t ***)malloc(HSM_GROUP_SIZE * sizeof(uint8_t **)));
     CHECK_A (eMacs = (uint8_t ***)malloc(HSM_GROUP_SIZE * sizeof(uint8_t **)));
     CHECK_A (resultMacs = (uint8_t ***)malloc(HSM_GROUP_SIZE * sizeof(uint8_t **)));
@@ -549,8 +559,12 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
 
     /* Reconstruct d and e. TODO: validate shares. */
-    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, dShares, params->order, dVal));
-    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, eShares, params->order, eVal));
+    CHECK_C (Shamir_FindValidShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, dShares, dValidShares, dOrder, params->order, dVal));
+    CHECK_C (Shamir_FindValidShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, eShares, eValidShares, eOrder, params->order, eVal));
+    for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
+        validHsms[i] = h1[dOrder[i]];   //assume same set of valid shares across d and e
+    }
+
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         printf("dShare[%d] = %s\n", i, BN_bn2hex(dShares[i]->y));
     }
@@ -578,22 +592,26 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
             }
             printf("\n");
         }
-        t1[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dShares, eShares, list, list, dMacsCurr, eMacsCurr, h1, h1, i);
+        t1[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dValidShares, eValidShares, dOrder, eOrder, dMacsCurr, eMacsCurr, validHsms, h1, i);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t1[i].join();
     }
 
     /* Reconstruct result. TODO: validate shares. */
-    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, resultShares, params->order, result));
+    CHECK_C (Shamir_FindValidShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, resultShares, resultValidShares, resultOrder, params->order, result));
     printf("result: %s\n", BN_bn2hex(result));
+    for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
+        validHsms[i] = h1[resultOrder[i]];   //assume same set of valid shares across d and e
+    }
+
 
     /* Run stage 3 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         for (int j = 0; j < 2 * HSM_THRESHOLD_SIZE; j++) {
             resultMacsCurr[j] = resultMacs[j][i];
         }
-        t2[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultShares, list, resultMacsCurr, h1, i);
+        t2[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultValidShares, resultOrder, resultMacsCurr, validHsms, i);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t2[i].join();
@@ -612,6 +630,9 @@ cleanup:
         if (eShares[i]) ShamirShare_free(eShares[i]);
         if (resultShares[i]) ShamirShare_free(resultShares[i]);
     }
+    free(dValidShares);
+    free(eValidShares);
+    free(resultValidShares);
     BN_free(r);
     BN_free(dVal);
     BN_free(eVal);

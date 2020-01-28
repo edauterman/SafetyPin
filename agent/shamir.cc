@@ -130,6 +130,7 @@ cleanup:
     return rv;
 }
 
+/*  validShareIndexes of length t, if NULL don't fill in */
 int Shamir_ValidateShares(int t, int n, ShamirShare **shares, BIGNUM *prime) {
     int rv;
     int ctr = 0;
@@ -223,6 +224,35 @@ cleanup:
     if (currShares) free(currShares);
     return rv; 
 }
+
+/* sharesIn of length n, sharesOut of length 2t, ordering is combination of indexes of sharesIn
+ * that are in shareOut */
+int Shamir_FindValidShares(int t, int n, ShamirShare **sharesIn, ShamirShare **sharesOut, uint8_t *ordering, BIGNUM *prime, BIGNUM *secret) {
+    int rv; 
+    string bitmask(2 * t, 1); 
+    bitmask.resize(n, 0); 
+
+    do {
+        int j = 0;
+        for (int i = 0; i < n; i++) {
+            if (bitmask[i]) {
+                sharesOut[j] = sharesIn[i];
+                ordering[j] = i;
+                j++;
+            }   
+        }   
+        if (Shamir_ValidateShares(t, 2 * t, sharesOut, prime) == OKAY) {
+            CHECK_C (Shamir_ReconstructShares(t, 2 * t, sharesOut, prime, secret));
+            goto cleanup;
+        }   
+    } while (prev_permutation(bitmask.begin(), bitmask.end()));
+    printf("No valid reconstruction");
+    rv = ERROR;
+
+cleanup:
+    return rv; 
+}
+
 
 /* Requires 32 bytes. */
 /*void Shamir_Marshal(uint8_t *buf, ShamirShare *share) {

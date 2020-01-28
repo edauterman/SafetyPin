@@ -57,6 +57,8 @@ void ShamirTest() {
     BIGNUM *secret = NULL;
     BIGNUM *secret_test = NULL;
     ShamirShare *shares[n];
+    ShamirShare *sharesOut[2 * t];
+    uint8_t order[2 * t];
     Params *params;
 
     printf("----- SHAMIR SECRET SHARING TEST -----\n");
@@ -78,6 +80,14 @@ void ShamirTest() {
     CHECK_C (Shamir_ValidateShares(t, n, shares, prime));
     CHECK_C (Shamir_ReconstructShares(t, n, shares, prime, secret_test));
     CHECK_C (Shamir_ReconstructSharesWithValidation(t, n, shares, prime, secret_test));
+    printf("before find valid shares\n");
+    CHECK_C (Shamir_FindValidShares(t, n, shares, sharesOut, order, prime, secret_test));
+    printf("after find valid shares\n");
+    printf("order of valid shares: "); 
+    for (int i = 0; i < 2 * t; i++) {
+        printf("%d ", order[i]);
+    }
+    printf("\n");
 
     CHECK_C (Shamir_CreateShares(1, 2, secret, prime, shares, NULL));
     CHECK_C (Shamir_ValidateShares(t, n, shares, prime) == ERROR);
