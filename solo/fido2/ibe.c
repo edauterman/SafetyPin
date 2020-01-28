@@ -54,36 +54,48 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
     embedded_pairing_bls12_381_g2affine_t U_affine;
     embedded_pairing_bls12_381_fq12_t U_sk;
     uint8_t U_sk_buf[embedded_pairing_bls12_381_gt_marshalled_size];
-    uint8_t U_sk_buf_msg_len[msgLen];
-    uint8_t sigma[msgLen];
-    uint8_t M[msgLen];
-    uint8_t sigma_hash[msgLen];
+    //uint8_t U_sk_buf_msg_len[msgLen];
+    //uint8_t sigma[msgLen];
+    uint8_t tmp[msgLen];
+    //uint8_t M[msgLen];
+    //uint8_t sigma_hash[msgLen];
     uint8_t sigma_M[2 * msgLen];
     uint8_t sigma_M_hash[SHA256_DIGEST_LEN];
     embedded_pairing_core_bigint_256_t r;
     embedded_pairing_bls12_381_g2_t U_test;
 
+    printf("starting decrypt\n");
+
     /* \sigma = V XOR H(e(sk, U)) */
     embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, sk);
     embedded_pairing_bls12_381_g2affine_from_projective(&U_affine, U);
+    printf("before pairing\n");
     embedded_pairing_bls12_381_pairing(&U_sk, &sk_affine, &U_affine);
+    printf("after pairing\n");
     embedded_pairing_bls12_381_gt_marshal(U_sk_buf, &U_sk);
-    hashToLength(U_sk_buf, embedded_pairing_bls12_381_gt_marshalled_size, U_sk_buf_msg_len, msgLen);
+    hashToLength(U_sk_buf, embedded_pairing_bls12_381_gt_marshalled_size, tmp, msgLen);
+    //hashToLength(U_sk_buf, embedded_pairing_bls12_381_gt_marshalled_size, U_sk_buf_msg_len, msgLen);
     for (int i = 0; i < msgLen; i++) {
-        sigma[i] = U_sk_buf_msg_len[i] ^ V[i];
+        sigma_M[i] = tmp[i] ^ V[i];
     }
+
+    printf("finished 1\n");
 
     /* M = W XOR H(\sigma) */
-    hashToLength(sigma, msgLen, sigma_hash, msgLen);
+    hashToLength(sigma_M, msgLen, tmp, msgLen);
     for (int i = 0; i < msgLen; i++) {
-        M[i] =  W[i] ^  sigma_hash[i];
+        sigma_M[i + msgLen] =  W[i] ^  tmp[i];
     }
 
+    printf("finished 2\n");
+
     /* r = H(\sigma, M) */
-    memcpy(sigma_M, sigma, msgLen);
-    memcpy(sigma_M + msgLen, M, msgLen);
+    //memcpy(sigma_M, sigma, msgLen);
+    //memcpy(sigma_M + msgLen, M, msgLen);
     hashToLength(sigma_M, 2 * msgLen, sigma_M_hash, SHA256_DIGEST_LEN);
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
+
+    printf("finished 3\n");
 
     /* Test u = rP */
     embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_zero, &r);
@@ -91,7 +103,8 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
         printf("--------- ERROR IN DECRYPTION ----------\n");
     }
 
-    memcpy(msg, M, msgLen);
+    memcpy(msg, sigma_M + msgLen, msgLen);
+    printf("finished decrypt\n");
 }
 
 void IBE_MarshalCt(uint8_t *buf, int msgLen, embedded_pairing_bls12_381_g2_t *U, uint8_t *V, uint8_t *W) {

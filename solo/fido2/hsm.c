@@ -162,6 +162,8 @@ int HSM_Setup(uint8_t *out, int *outLen) {
 int HSM_SmallSetup(uint8_t *out, int *outLen) {
     uint8_t cts[SUB_TREE_SIZE][CT_LEN];
 
+    printf("before going into small tree\n");
+
     PuncEnc_BuildSmallTree(cts);
 
     printf1(TAG_GREEN, "finished small setup, just need to write back\n");
@@ -289,6 +291,7 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
     }
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
     IBE_UnmarshalSk(leaf, &sk);
+    printf("unmarshalled, going to decrypt\n");
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
 
     printf1(TAG_GREEN, "finished decryption\n");
@@ -477,55 +480,125 @@ int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, in
     return U2F_SW_NO_ERROR;
 }
 
-int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen) {
-    printf1(TAG_GREEN, "starting to decrypt\n");
-    uint8_t leaf[CT_LEN];
+void getMsg(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *msg, uint8_t *leaf) {
     embedded_pairing_bls12_381_g2_t U;
     uint8_t V[IBE_MSG_LEN];
     uint8_t W[IBE_MSG_LEN];
     embedded_pairing_bls12_381_g1_t sk;
-    uint8_t msg[IBE_MSG_LEN];
-    uint8_t newCts[KEY_LEVELS][CT_LEN];
-    uint8_t dShareBuf[FIELD_ELEM_LEN];
-    uint8_t eShareBuf[FIELD_ELEM_LEN];
-    uint8_t dMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
-    uint8_t eMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
 
-    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
-        printf("Couldn't retrieve leaf\n");
-        if (out) {
-            memset(msg, 0, IBE_MSG_LEN +  (KEY_LEVELS * CT_LEN));
-            *outLen = IBE_MSG_LEN + (KEY_LEVELS * CT_LEN);
-        } else {
-            memset(msg, 0, IBE_MSG_LEN + (KEY_LEVELS * CT_LEN));
-            u2f_response_writeback(msg, IBE_MSG_LEN  + (KEY_LEVELS * CT_LEN));
-        }
-        return U2F_SW_NO_ERROR;
-    }
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
     IBE_UnmarshalSk(leaf, &sk);
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
+}
+
+void doPuncture(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen) {
+    uint8_t newCts[KEY_LEVELS][CT_LEN];
 
     printf1(TAG_GREEN, "going to puncture\n");
     PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
     printf1(TAG_GREEN, "finished puncturing leaf\n");
+    if (out) {
+        memcpy(out, newCts, KEY_LEVELS * CT_LEN);
+    } else {
+        u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
+    }
+}
 
+void mpcStep1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *msg, uint8_t *out, int *outLen) {
+    uint8_t dShareBuf[FIELD_ELEM_LEN];
+    uint8_t eShareBuf[FIELD_ELEM_LEN];
+    uint8_t dMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
+    uint8_t eMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
+    
     MPC_Step1(dShareBuf, eShareBuf, dMacs, eMacs, msg, req->pinShare, req->hsms);
 
     if (out) {
-        memcpy(out, dShareBuf, FIELD_ELEM_LEN);
-        memcpy(out + FIELD_ELEM_LEN, eShareBuf, FIELD_ELEM_LEN);
-        memcpy(out + 2 * FIELD_ELEM_LEN, dMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
-        memcpy(out + 2 * FIELD_ELEM_LEN + (SHA256_DIGEST_LEN * HSM_GROUP_SIZE), eMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
-        memcpy(out + 2 * FIELD_ELEM_LEN + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE), newCts, KEY_LEVELS * CT_LEN);
+        memcpy(out + (KEY_LEVELS * CT_LEN), dShareBuf, FIELD_ELEM_LEN);
+        memcpy(out + (KEY_LEVELS * CT_LEN) + FIELD_ELEM_LEN, eShareBuf, FIELD_ELEM_LEN);
+        memcpy(out + (KEY_LEVELS * CT_LEN) + 2 * FIELD_ELEM_LEN, dMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        memcpy(out + (KEY_LEVELS * CT_LEN) + 2 * FIELD_ELEM_LEN + (SHA256_DIGEST_LEN * HSM_GROUP_SIZE), eMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        //memcpy(out + 2 * FIELD_ELEM_LEN + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE), newCts, KEY_LEVELS * CT_LEN);
         *outLen = (2 * FIELD_ELEM_LEN) + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE) + (KEY_LEVELS * CT_LEN);
     } else {
         u2f_response_writeback(dShareBuf, FIELD_ELEM_LEN);
         u2f_response_writeback(eShareBuf, FIELD_ELEM_LEN);
         u2f_response_writeback(dMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
         u2f_response_writeback(eMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
-        u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
+        //u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
     }
+    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+
+
+}
+
+int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen) {
+    printf1(TAG_GREEN, "starting to decrypt\n");
+    uint8_t leaf[CT_LEN];
+    /*embedded_pairing_bls12_381_g2_t U;
+    uint8_t V[IBE_MSG_LEN];
+    uint8_t W[IBE_MSG_LEN];
+    embedded_pairing_bls12_381_g1_t sk;*/
+    //uint8_t newCts[1][CT_LEN];
+    //uint8_t newCts[KEY_LEVELS][CT_LEN];
+    uint8_t msg[IBE_MSG_LEN];
+/*    uint8_t dShareBuf[FIELD_ELEM_LEN];
+    uint8_t eShareBuf[FIELD_ELEM_LEN];
+    uint8_t dMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
+    uint8_t eMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
+ */ /*uint8_t dShareBuf[FIELD_ELEM_LEN];
+    uint8_t eShareBuf[FIELD_ELEM_LEN];
+    uint8_t dMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
+    uint8_t eMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
+*/
+    /*uint8_t *dShareBuf = out;
+    uint8_t *eShareBuf = out + FIELD_ELEM_LEN;
+    uint8_t **dMacs = out + (2 * FIELD_ELEM_LEN);
+    uint8_t **eMacs = out + (2 * FIELD_ELEM_LEN) + SHA256_DIGEST_LEN;
+    uint8_t **newCts = out + (2 * FIELD_ELEM_LEN) + (2 * SHA256_DIGEST_LEN);
+*/
+
+    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
+        printf("Couldn't retrieve leaf\n");
+        if (out) {
+            memset(out, 0, (2 * FIELD_ELEM_LEN) + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE) + (KEY_LEVELS * CT_LEN));
+            *outLen = (2 * FIELD_ELEM_LEN) + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE) + (KEY_LEVELS * CT_LEN);
+        } /*else {
+            //memset(msg, 0, IBE_MSG_LEN + (KEY_LEVELS * CT_LEN));
+            //u2f_response_writeback(msg, IBE_MSG_LEN);
+        }*/
+        return U2F_SW_NO_ERROR;
+    }
+    /*IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
+    IBE_UnmarshalSk(leaf, &sk);
+    IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
+*/
+    getMsg(req, msg, leaf);
+
+    /*printf1(TAG_GREEN, "going to puncture\n");
+    PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
+    printf1(TAG_GREEN, "finished puncturing leaf\n");
+*/
+
+    doPuncture(req, out, outLen);
+
+    mpcStep1(req, msg, out, outLen);
+
+   /* MPC_Step1(dShareBuf, eShareBuf, dMacs, eMacs, msg, req->pinShare, req->hsms);
+
+    if (out) {
+        memcpy(out + (KEY_LEVELS * CT_LEN), dShareBuf, FIELD_ELEM_LEN);
+        memcpy(out + (KEY_LEVELS * CT_LEN) + FIELD_ELEM_LEN, eShareBuf, FIELD_ELEM_LEN);
+        memcpy(out + (KEY_LEVELS * CT_LEN) + 2 * FIELD_ELEM_LEN, dMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        memcpy(out + (KEY_LEVELS * CT_LEN) + 2 * FIELD_ELEM_LEN + (SHA256_DIGEST_LEN * HSM_GROUP_SIZE), eMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        //memcpy(out + 2 * FIELD_ELEM_LEN + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE), newCts, KEY_LEVELS * CT_LEN);
+        *outLen = (2 * FIELD_ELEM_LEN) + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE) + (KEY_LEVELS * CT_LEN);
+    } else {
+        u2f_response_writeback(dShareBuf, FIELD_ELEM_LEN);
+        u2f_response_writeback(eShareBuf, FIELD_ELEM_LEN);
+        u2f_response_writeback(dMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        u2f_response_writeback(eMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
+        //u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
+    }*/
     printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
 
     return U2F_SW_NO_ERROR;
@@ -533,9 +606,12 @@ int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *ou
 
 int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *out, int *outLen) {
     uint8_t resultShareBuf[FIELD_ELEM_LEN];
-    uint8_t resultMacs[SHA256_DIGEST_LEN][HSM_GROUP_SIZE];
-    
+    uint8_t resultMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
+   
+    printf("in the mpc auth decrypt 2 function\n");
+
     if (MPC_Step2(resultShareBuf, resultMacs, req->d, req->e, req->dShares, req->eShares, req->dMacs, req->eMacs, req->validHsms, req->allHsms) != OKAY) {
+        printf("error in MPC step 2\n");
         memset(resultShareBuf, 0, FIELD_ELEM_LEN);
         memset(resultMacs, 0, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
     }
@@ -555,11 +631,14 @@ int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *ou
 
 int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen) {
     uint8_t msg[KEY_LEN];
+    printf("in mpc step 3\n");
     
     if (MPC_Step3(msg, req->result, req->resultShares, req->resultMacs, req->validHsms) != OKAY) {
+        printf("ERROR in mpc step 3\n");
         memset(msg, 0, FIELD_ELEM_LEN);
     }
 
+    printf("writing back\n");
     if (out) {
         memcpy(out, msg, FIELD_ELEM_LEN);
         *outLen = FIELD_ELEM_LEN;

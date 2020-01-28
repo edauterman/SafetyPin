@@ -693,7 +693,7 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t **dMacs, uint8_t **eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], ShamirShare *pinShare, uint8_t *hsms) {
+int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t **dMacs, uint8_t **eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], ShamirShare *pinShare, uint8_t *hsms, uint8_t reconstructIndex) {
     int rv = ERROR;
     HSM_AUTH_MPC_DECRYPT_1_REQ req;
     HSM_AUTH_MPC_DECRYPT_1_RESP resp;
@@ -748,11 +748,16 @@ int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_
         CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_1, (uint8_t *)&req,
                     sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
-        Shamir_UnmarshalCompressed(resp.dShare, h->id, dShare);
-        Shamir_UnmarshalCompressed(resp.eShare, h->id, eShare);
+        Shamir_UnmarshalCompressed(resp.dShare, reconstructIndex, dShare);
+        Shamir_UnmarshalCompressed(resp.eShare, reconstructIndex, eShare);
         for (int j = 0; j < HSM_GROUP_SIZE; j++) {
-            memcpy(dMacs[i], resp.dMacs[i], SHA256_DIGEST_LENGTH);
-            memcpy(eMacs[i], resp.eMacs[i], SHA256_DIGEST_LENGTH);
+            printf("raw dMac[%d]: ", j);
+            for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
+                printf("%02x", resp.dMacs[j][k]);
+            }
+            printf("\n");
+            memcpy(dMacs[j], resp.dMacs[j], SHA256_DIGEST_LENGTH);
+            memcpy(eMacs[j], resp.eMacs[j], SHA256_DIGEST_LENGTH);
         }
 
         gotPlaintext =  true;
@@ -771,7 +776,7 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t **dMacs, uint8_t **eMacs, uint8_t *validHsms, uint8_t *allHsms) {
+int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t **dMacs, uint8_t **eMacs, uint8_t *validHsms, uint8_t *allHsms, uint8_t reconstructIndex) {
     int rv;
     HSM_AUTH_MPC_DECRYPT_2_REQ req;
     HSM_AUTH_MPC_DECRYPT_2_RESP resp;
@@ -799,6 +804,16 @@ int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, 
         Shamir_MarshalCompressed(req.eShares[i], eShares[i]);
         memcpy(req.dMacs[i], dMacs[i], SHA256_DIGEST_LENGTH);
         memcpy(req.eMacs[i], eMacs[i], SHA256_DIGEST_LENGTH);
+        printf("sending dShares[%d]: ", i);
+        for (int j = 0; j < FIELD_ELEM_LEN; j++) {
+            printf("%02x", req.dShares[j]);
+        }
+        printf("\n");
+        printf("sending dMacs[%d]: ", i);
+        for (int j = 0; j < FIELD_ELEM_LEN; j++) {
+            printf("%02x", req.dMacs[j]);
+        }
+        printf("\n");
     }
     //memcpy(req.dShares, dShares, 2 * HSM_THRESHOLD_SIZE * FIELD_ELEM_LEN);
     //memcpy(req.eShares, eShares, 2 * HSM_THRESHOLD_SIZE * FIELD_ELEM_LEN);
@@ -816,7 +831,7 @@ int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, 
 #endif
     printf("got resp\n");
     
-    Shamir_UnmarshalCompressed(resp.resultShare, h->id, resultShare);
+    Shamir_UnmarshalCompressed(resp.resultShare, reconstructIndex, resultShare);
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         memcpy(resultMacs[i], resp.resultMacs[i], SHA256_DIGEST_LENGTH);
     }
@@ -827,7 +842,7 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultMacs, uint8_t *validHsms) {
+int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultMacs, uint8_t *validHsms, uint8_t reconstructIndex) {
     int rv;
     HSM_AUTH_MPC_DECRYPT_3_REQ req;
     HSM_AUTH_MPC_DECRYPT_3_RESP resp;
@@ -852,7 +867,7 @@ int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **
 #endif
     printf("got resp\n");
     
-    Shamir_UnmarshalCompressed(resp.msg, h->id, msg);
+    Shamir_UnmarshalCompressed(resp.msg, reconstructIndex, msg);
 
 cleanup:
     pthread_mutex_unlock(&h->m);

@@ -12,9 +12,13 @@
 #include "cdc.h"
 #include "hsm.h"
 
-uint8_t msgBuf[2048];
-//uint8_t msgBuf[3000];
-uint8_t rsp[2048];
+//uint8_t msgBuf[2048];
+uint8_t msgBuf[16];
+
+//uint8_t msgBuf[3000]; // not used
+
+//uint8_t rsp[2048];
+uint8_t rsp[16];
 uint8_t currSessionNum = 0;
 
 static int ceil(double x) {

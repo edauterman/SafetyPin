@@ -163,8 +163,10 @@ int setMacKeys(Datacenter *d) {
 
     if (NUM_HSMS % 2 != 0) printf("ERROR: NOT AN EVEN NUMBER OF HSMS %d\n", NUM_HSMS);
 
-    for (int i = 0; i < NUM_HSMS / 2; i++) {
-        for (int j = NUM_HSMS / 2; j < NUM_HSMS; j++) {
+    for (int i = 0; i < NUM_HSMS; i++) {
+    //for (int i = 0; i < NUM_HSMS / 2; i++) {
+        for (int j = 0; j < NUM_HSMS; j++) {
+        //for (int j = NUM_HSMS / 2; j < NUM_HSMS; j++) {
             CHECK_C (RAND_bytes(macKeys[i][j], KEY_LEN));
             memcpy(macKeys[j][i], macKeys[i][j], KEY_LEN);
         }
@@ -229,6 +231,8 @@ int Datacenter_TestSetup(Datacenter *d) {
 
     CHECK_A (cts = (uint8_t *)malloc(TREE_SIZE * CT_LEN));
 
+    setMacKeys(d);
+
     printf("going to build tree\n");
     PuncEnc_BuildTree(cts, msk, hmacKey, &mpk);
     for (int i = 0; i < NUM_HSMS; i++) {
@@ -236,7 +240,6 @@ int Datacenter_TestSetup(Datacenter *d) {
         CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, &mpk));
         printf("Done with setup for %d/%d\n", i, NUM_HSMS);
     }
-    setMacKeys(d);
 cleanup:
     if (cts) free(cts);
     return rv;
@@ -318,6 +321,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     ShamirShare *rShares[HSM_GROUP_SIZE];
     ShamirShare *pinShares[HSM_GROUP_SIZE];
     BIGNUM *h1Bns[HSM_GROUP_SIZE];
+    uint8_t list[3] = {0,1,2};
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
@@ -338,20 +342,30 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
 
     /* Hash salt and pin to choose recovery HSMs. */
     chooseHsmsFromSaltAndPin(params, h1, saltHashes, c->r, pin);
-    CHECK_C (intsToBignums(h1Bns, h1, HSM_GROUP_SIZE));
+    CHECK_C (intsToBignums(h1Bns, list, HSM_GROUP_SIZE));
+    //CHECK_C (intsToBignums(h1Bns, h1, HSM_GROUP_SIZE));
+
+    printf("hashed salt and pin to find HSMs\n");
 
     /* Split saveKey into shares */
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKey, params->order, saveKeyShares, h1Bns));
 
+    printf("created shares of save key\n");
+
     /* Generate Beaver triple. */
     CHECK_C (MPC_generateBeaverTripleShares(params, aShares, bShares, cShares, h1Bns));
+
+    printf("created beaver triple\n");
 
     /* Split r and PIN into shares. */
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, r, params->order, rShares, h1Bns));
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, pin, params->order, pinShares, h1Bns));
 
+    printf("Going to encrypt ciphertexts to each HSM\n");
+
     /* Encrypt [saveKey]_i, H(pin, salt) to each HSM. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        printf("starting ct %d\n", i);
         uint8_t msg[IBE_MSG_LEN];
         memset(msg, 0, IBE_MSG_LEN);
         
@@ -365,11 +379,18 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
 
         printf("share[%d]: ", i);
         for (int j = 0; j < IBE_MSG_LEN; j++) {
-            printf("%x ", msg[j]);
+            printf("%x ", ((uint8_t *)&mpcMsg)[j]);
         }
         printf("\n");
+
+        printf("saveKeyShare[%d]: %s\n", i, BN_bn2hex(saveKeyShares[i]->y));
+        printf("aShare[%d]: %s\n", i, BN_bn2hex(aShares[i]->y));
+        printf("bShare[%d]: %s\n", i, BN_bn2hex(bShares[i]->y));
+        printf("cShare[%d]: %s\n", i, BN_bn2hex(cShares[i]->y));
+        printf("rShare[%d]: %s\n", i, BN_bn2hex(rShares[i]->y));
+        printf("savePinShare[%d]: %s\n", i, BN_bn2hex(pinShares[i]->y));
         
-        CHECK_C (HSM_Encrypt(d->hsms[h1[i]], userID, msg, IBE_MSG_LEN, c->recoveryCts[i]));
+        CHECK_C (HSM_Encrypt(d->hsms[h1[i]], userID + i, (uint8_t *)&mpcMsg, IBE_MSG_LEN, c->recoveryCts[i]));
 
     }
 
@@ -434,6 +455,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     thread t1[HSM_GROUP_SIZE];
     thread t2[HSM_GROUP_SIZE];
     BIGNUM *h1Bns[HSM_GROUP_SIZE];
+    uint8_t list[3] = {0,1,2};
 
     CHECK_A (dShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
     CHECK_A (eShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
@@ -494,29 +516,69 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
 */
     /* Hash salt and pin to find recovery HSMs. */
     chooseHsmsFromSaltAndPin(params, h1, saltHashes, c->r, pin);
-    CHECK_C (intsToBignums(h1Bns, h1, HSM_GROUP_SIZE));
+    CHECK_C (intsToBignums(h1Bns, list, HSM_GROUP_SIZE));
+    //CHECK_C (intsToBignums(h1Bns, h1, HSM_GROUP_SIZE));
+    printf("bns[0] = %s\n", BN_bn2hex(h1Bns[0]));
+    printf("bns[1] = %s\n", BN_bn2hex(h1Bns[1]));
+    printf("bns[2] = %s\n", BN_bn2hex(h1Bns[2]));
 
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, pin, params->order, pinShares, h1Bns));
 
     /* Run stage 1 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        t0[i] = thread(HSM_AuthMPCDecrypt1, d->hsms[h1[i]], dShares[i], eShares[i], dMacs[i], eMacs[i], userID, c->recoveryCts[i], pinShares[i], h1);
+        t0[i] = thread(HSM_AuthMPCDecrypt1, d->hsms[h1[i]], dShares[i], eShares[i], dMacs[i], eMacs[i], userID + i, c->recoveryCts[i], pinShares[i], h1, i);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t0[i].join();
     }
 
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+    for (int j = 0; j < HSM_GROUP_SIZE; j++) {
+        printf("orig dMacs[%d][%d]", i,j);
+        for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
+            printf("%02x", dMacs[i][j][k]);
+        }
+        printf("\n");
+            
+        printf("orig eMacs[%d][%d]", i,j);
+        for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
+            printf("%02x", eMacs[i][j][k]);
+        }
+        printf("\n");
+    }
+    }
+
     /* Reconstruct d and e. TODO: validate shares. */
     CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, dShares, params->order, dVal));
     CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, eShares, params->order, eVal));
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        printf("dShare[%d] = %s\n", i, BN_bn2hex(dShares[i]->y));
+    }
+    printf("d: %s\n", BN_bn2hex(dVal));
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        printf("eShare[%d] = %s\n", i, BN_bn2hex(eShares[i]->y));
+    }
+    printf("e: %s\n", BN_bn2hex(eVal));
 
     /* Run stage 2 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         for (int j = 0; j < 2 * HSM_THRESHOLD_SIZE; j++) {
             eMacsCurr[j] = eMacs[j][i];
             dMacsCurr[j] = dMacs[j][i];
+            
+            printf("dMacs[%d]", j);
+            for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
+                printf("%02x", dMacsCurr[j][k]);
+            }
+            printf("\n");
+            
+            printf("eMacs[%d]", j);
+            for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
+                printf("%02x", eMacsCurr[j][k]);
+            }
+            printf("\n");
         }
-        t1[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dShares, eShares, dMacsCurr, eMacsCurr, h1, h1);
+        t1[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dShares, eShares, dMacsCurr, eMacsCurr, h1, h1, i);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t1[i].join();
@@ -524,12 +586,14 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
 
     /* Reconstruct result. TODO: validate shares. */
     CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, resultShares, params->order, result));
-     /* Run stage 3 of MPC with HSMs. */
+    printf("result: %s\n", BN_bn2hex(result));
+
+    /* Run stage 3 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         for (int j = 0; j < 2 * HSM_THRESHOLD_SIZE; j++) {
             resultMacsCurr[j] = resultMacs[j][i];
         }
-        t2[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultShares, resultMacsCurr, h1);
+        t2[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultShares, resultMacsCurr, h1, i);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t2[i].join();
@@ -540,6 +604,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     printf("done: %s\n", BN_bn2hex(saveKey));
 
 cleanup:
+    if (rv == ERROR) printf("ERROR in recovery\n");
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         if (saveKeyShares[i]) ShamirShare_free(saveKeyShares[i]);
         if (pinShares[i]) ShamirShare_free(pinShares[i]);
