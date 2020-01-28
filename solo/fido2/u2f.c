@@ -164,7 +164,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 break;
 
        case HSM_SET_MAC_KEYS:
-                printf1(TAG_GREEN, "starting set mac keys\n");
+                printf1(TAG_GREEN, "starting set mac keys with len %d\n", len);
                 rcode = HSM_SetMacKeys((struct hsm_set_mac_keys_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished set mac keys\n");
                 break;

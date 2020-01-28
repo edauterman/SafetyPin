@@ -132,6 +132,7 @@ cleanup:
 
 int Shamir_ValidateShares(int t, int n, ShamirShare **shares, BIGNUM *prime) {
     int rv;
+    int ctr = 0;
     BIGNUM *currTerm = NULL;
     BIGNUM *numerator = NULL;
     BIGNUM *denominator = NULL;
@@ -170,8 +171,11 @@ int Shamir_ValidateShares(int t, int n, ShamirShare **shares, BIGNUM *prime) {
             CHECK_C (BN_mod_add(y, y, currTerm, prime, ctx));
         }
         /* Check if g(x_checkPt) = y_checkPt  */
-        CHECK_C (BN_cmp(y, shares[checkPt]->y) == 0);
+        if (BN_cmp(y, shares[checkPt]->y) == 0) {
+            ctr++;
+        }
     }
+    rv = ctr >= t ? OKAY : ERROR;
 
 cleanup:
     if (currTerm) BN_free(currTerm);

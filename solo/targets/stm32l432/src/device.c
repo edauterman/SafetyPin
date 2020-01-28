@@ -499,6 +499,32 @@ void heartbeat(void)
 
 }
 
+void raw_flash_write(uint8_t *bytes, int len) {
+    flash_erase_page(STATE1_PAGE);
+    if (len < FLASH_PAGE_SIZE) {
+        flash_write(flash_addr(STATE1_PAGE), bytes, len);
+    } else {
+        flash_write(flash_addr(STATE1_PAGE), bytes, FLASH_PAGE_SIZE);
+        flash_erase_page(STATE2_PAGE);
+        flash_write(flash_addr(STATE2_PAGE), bytes + FLASH_PAGE_SIZE, (len - FLASH_PAGE_SIZE) % FLASH_PAGE_SIZE);
+    }
+}
+
+void raw_flash_read(uint8_t *bytes, int start, int len) {
+    if (start < FLASH_PAGE_SIZE) {
+        int toCopy = start + len > FLASH_PAGE_SIZE ? FLASH_PAGE_SIZE - start : len;
+        uint8_t *ptr = (uint8_t *)flash_addr(STATE1_PAGE);
+        memcpy(bytes, ptr + start, toCopy);
+        if (toCopy < len) {
+            ptr = (uint8_t *)flash_addr(STATE2_PAGE);
+            memcpy(bytes + toCopy, ptr, len - toCopy);
+        }
+    } else {
+        uint8_t *ptr = (uint8_t *)flash_addr(STATE2_PAGE);
+        memcpy(bytes, ptr + start - FLASH_PAGE_SIZE, len);
+    }
+}
+
 void authenticator_read_state(AuthenticatorState * a)
 {
     uint32_t * ptr = (uint32_t *)flash_addr(STATE1_PAGE);

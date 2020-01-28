@@ -11,8 +11,10 @@
 #include "log.h"
 
 
+//FIFO_CREATE(debug,256,1)
 FIFO_CREATE(debug,2048,1)
 
+//FIFO_CREATE(hidmsg,80,64)
 FIFO_CREATE(hidmsg,100,64)
 
 //FIFO_CREATE(cdcmsg,3,1024)

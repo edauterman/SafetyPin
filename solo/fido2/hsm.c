@@ -610,7 +610,7 @@ int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *ou
    
     printf("in the mpc auth decrypt 2 function\n");
 
-    if (MPC_Step2(resultShareBuf, resultMacs, req->d, req->e, req->dShares, req->eShares, req->dMacs, req->eMacs, req->validHsms, req->allHsms) != OKAY) {
+    if (MPC_Step2(resultShareBuf, resultMacs, req->d, req->e, req->dShares, req->eShares, req->dSharesX, req->eSharesX, req->dMacs, req->eMacs, req->validHsms, req->allHsms) != OKAY) {
         printf("error in MPC step 2\n");
         memset(resultShareBuf, 0, FIELD_ELEM_LEN);
         memset(resultMacs, 0, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
@@ -633,7 +633,7 @@ int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *ou
     uint8_t msg[KEY_LEN];
     printf("in mpc step 3\n");
     
-    if (MPC_Step3(msg, req->result, req->resultShares, req->resultMacs, req->validHsms) != OKAY) {
+    if (MPC_Step3(msg, req->result, req->resultShares, req->resultSharesX, req->resultMacs, req->validHsms) != OKAY) {
         printf("ERROR in mpc step 3\n");
         memset(msg, 0, FIELD_ELEM_LEN);
     }
@@ -651,7 +651,8 @@ int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *ou
 }
 
 int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outLen) {
-    MPC_SetMacKeys(req->macKeys);
+    printf1(TAG_GREEN, "calling set mac keys mpc\n");
+    MPC_SetMacKeys((uint8_t *)req->macKeys);
 
     if (out) {
         *outLen = 0;

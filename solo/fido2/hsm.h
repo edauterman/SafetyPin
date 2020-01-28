@@ -149,7 +149,7 @@ struct hsm_elgamal_decrypt_response {
 };
 
 struct hsm_set_mac_keys_request {
-    uint8_t macKeys[KEY_LEN][NUM_HSMS];
+    uint8_t macKeys[100][KEY_LEN];
 };
 
 struct hsm_auth_mpc_decrypt_1_request {
@@ -165,6 +165,8 @@ struct hsm_auth_mpc_decrypt_2_request {
     uint8_t e[FIELD_ELEM_LEN];
     uint8_t dShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
     uint8_t eShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t dSharesX[2 * HSM_THRESHOLD_SIZE];
+    uint8_t eSharesX[2 * HSM_THRESHOLD_SIZE];
     uint8_t dMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
     uint8_t eMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
     uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
@@ -174,6 +176,7 @@ struct hsm_auth_mpc_decrypt_2_request {
 struct hsm_auth_mpc_decrypt_3_request {
     uint8_t result[FIELD_ELEM_LEN];
     uint8_t resultShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t resultSharesX[2 * HSM_THRESHOLD_SIZE];
     uint8_t resultMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
     uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
 };

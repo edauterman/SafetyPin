@@ -143,7 +143,7 @@ typedef struct {
 } HSM_AUTH_DECRYPT_RESP;
 
 typedef struct {
-    uint8_t macKeys[KEY_LEN][NUM_HSMS];
+    uint8_t macKeys[100][KEY_LEN];
 } HSM_SET_MAC_KEYS_REQ;
 
 typedef struct {
@@ -167,6 +167,8 @@ typedef struct {
     uint8_t e[FIELD_ELEM_LEN];
     uint8_t dShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
     uint8_t eShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t dSharesX[2 * HSM_THRESHOLD_SIZE];
+    uint8_t eSharesX[2 * HSM_THRESHOLD_SIZE];
     uint8_t dMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
     uint8_t eMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
     uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
@@ -181,6 +183,7 @@ typedef struct {
 typedef struct {
     uint8_t result[FIELD_ELEM_LEN];
     uint8_t resultShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t resultSharesX[2 * HSM_THRESHOLD_SIZE];
     uint8_t resultMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
     uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
 } HSM_AUTH_MPC_DECRYPT_3_REQ;
