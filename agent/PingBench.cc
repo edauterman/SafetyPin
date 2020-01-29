@@ -19,7 +19,8 @@
 #include "ibe.h"
 #include "common.h"
 
-#define NUM_ROUNDS 1000
+#define NUM_ROUNDS 250
+//#define NUM_ROUNDS 1000
 #define NUM_ITERS 250
 
 using namespace std;
@@ -86,7 +87,7 @@ int main(int argc, char *argv[]) {
     }
     //Datacenter_free(d);
     printf("Unplug and replug and then enter char to continue...\n");
-    int ch = getchar();
+//    int ch = getchar();
     printf("... continuing\n");
     
   }
