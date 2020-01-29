@@ -51,8 +51,8 @@ void IBETest() {
 
 void ShamirTest() {
     int rv = ERROR;
-    int t = 3;
-    int n = 10;
+    int t = 2;
+    int n = 6;
     BIGNUM *prime = NULL;
     BIGNUM *secret = NULL;
     BIGNUM *secret_test = NULL;

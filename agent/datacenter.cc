@@ -333,7 +333,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     IBE_ciphertext *recoveryCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     uint8_t elGamalRandBuf[33];
     uint8_t keyBuf[AES256_KEY_LEN];
-    uint8_t list[3] = {0,1,2};
+    uint8_t list[6] = {1,2,3,4,5,6};
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
@@ -401,7 +401,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
         }
         printf("\n");
 
-        printf("saveKeyShare[%d]: %s\n", i, BN_bn2hex(saveKeyShares[i]->y));
+        printf("saveKeyShare[%d]: %s, %s\n", i, BN_bn2hex(saveKeyShares[i]->x), BN_bn2hex(saveKeyShares[i]->y));
         printf("aShare[%d]: %s\n", i, BN_bn2hex(aShares[i]->y));
         printf("bShare[%d]: %s\n", i, BN_bn2hex(bShares[i]->y));
         printf("cShare[%d]: %s\n", i, BN_bn2hex(cShares[i]->y));
@@ -501,7 +501,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     thread t2[HSM_GROUP_SIZE];
     thread t3[HSM_GROUP_SIZE];
     BIGNUM *h1Bns[HSM_GROUP_SIZE];
-    uint8_t list[3] = {0,1,2};
+    uint8_t list[6] = {1,2,3,4,5,6};
     uint8_t dOrder[2 * HSM_THRESHOLD_SIZE];
     uint8_t eOrder[2 * HSM_THRESHOLD_SIZE];
     uint8_t resultOrder[2 * HSM_THRESHOLD_SIZE];
@@ -612,7 +612,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
 
     /* Run stage 1 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        t1[i] = thread(HSM_AuthMPCDecrypt1, d->hsms[h1[i]], dShares[i], eShares[i], dMacs[i], eMacs[i], userID + i, recoveryCts[i], pinShares[i], h1, i);
+        t1[i] = thread(HSM_AuthMPCDecrypt1, d->hsms[h1[i]], dShares[i], eShares[i], dMacs[i], eMacs[i], userID + i, recoveryCts[i], pinShares[i], h1, i + 1);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t1[i].join();
@@ -641,6 +641,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         validHsms[i] = h1[dOrder[i]];   //assume same set of valid shares across d and e
     }
 
+    printf("threshold size %d, group size %d\n", HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE);
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         printf("dShare[%d] = %s\n", i, BN_bn2hex(dShares[i]->y));
     }
@@ -668,7 +669,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
             }
             printf("\n");
         }
-        t2[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dValidShares, eValidShares, dOrder, eOrder, dMacsCurr, eMacsCurr, validHsms, h1, i);
+        t2[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dValidShares, eValidShares, dOrder, eOrder, dMacsCurr, eMacsCurr, validHsms, h1, i + 1);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t2[i].join();
@@ -687,10 +688,11 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         for (int j = 0; j < 2 * HSM_THRESHOLD_SIZE; j++) {
             resultMacsCurr[j] = resultMacs[j][i];
         }
-        t3[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultValidShares, resultOrder, resultMacsCurr, validHsms, i);
+        t3[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultValidShares, resultOrder, resultMacsCurr, validHsms, i + 1);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t3[i].join();
+        printf("saveKeyShare[%d] = %s, %s\n", i, BN_bn2hex(saveKeyShares[i]->x), BN_bn2hex(saveKeyShares[i]->y));
     }
 
     /* Reassemble original saveKey. */
