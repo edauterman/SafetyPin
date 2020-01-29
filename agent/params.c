@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 
@@ -30,7 +31,8 @@ inline int min (int a, int b) {
   return (a < b) ? a : b;
 }
 
-Params *Params_new() {
+Params *Params_new() 
+{
     int rv = ERROR;
 
     Params *params = NULL;
@@ -38,6 +40,7 @@ Params *Params_new() {
     CHECK_A (params->prime = BN_new());
     CHECK_A (params->numHsms = BN_new());
     CHECK_A (params->numLeaves = BN_new());
+    CHECK_A (params->order = BN_new());
     CHECK_A (params->bn_ctx = BN_CTX_new());
 
     char numHsmsBuf[4];
@@ -53,6 +56,10 @@ Params *Params_new() {
     // TODO: choose prime closer to 2^128
     BN_hex2bn(&params->prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
 
+    CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_secp256k1));
+    CHECK_C (EC_GROUP_get_order(params->group, params->order, params->bn_ctx));
+
+    printf("finished params\n");
 cleanup:
     if (rv == ERROR) {
         Params_free(params);
@@ -66,6 +73,8 @@ void Params_free(Params *params) {
     BN_free(params->numHsms);
     BN_free(params->numLeaves);
     BN_CTX_free(params->bn_ctx);
+    BN_free(params->order);
+    EC_GROUP_free(params->group);
     free(params);
 }
 
@@ -164,5 +173,66 @@ int aesGcmDecrypt(const void *key, uint8_t *pt,
 cleanup:
     if (rv != OKAY) printf("NOT OK DECRYPT\n");
     if (ctx) EVP_CIPHER_CTX_free(ctx);
+    return rv;
+}
+
+/* aadLen must be <= 16 */
+/* bytesIn, aadLen = 16, outLen = 32 */
+int aesEncrypt(const void *key, const uint8_t *pt, int ptLen,
+        uint8_t *iv, uint8_t *ct) {
+    int rv = ERROR;
+    int bytesFilled = 0;
+    EVP_CIPHER_CTX *ctx;
+    int len;
+
+    CHECK_C (RAND_bytes(iv, AES256_IV_LEN));
+
+    CHECK_A (ctx = EVP_CIPHER_CTX_new());
+    CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, (const uint8_t *)key, iv));
+    CHECK_C (EVP_EncryptUpdate(ctx, ct, &bytesFilled, pt, ptLen));
+    len = bytesFilled;
+    CHECK_C (EVP_EncryptFinal_ex(ctx, ct + len, &bytesFilled));
+cleanup:
+    if (rv != OKAY) printf("NOT OK ENCRYPT\n");
+    if (ctx) EVP_CIPHER_CTX_free(ctx);
+    return rv;
+}
+
+int aesDecrypt(const void *key, uint8_t *pt,
+        const uint8_t *iv,
+        const uint8_t *ct, int ctLen) {
+    int rv = ERROR;
+    int bytesFilled = 0;
+    EVP_CIPHER_CTX *ctx;
+
+    CHECK_A (ctx = EVP_CIPHER_CTX_new());
+    CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, (const uint8_t *)key, iv));
+    CHECK_C (EVP_DecryptUpdate(ctx, pt, &bytesFilled, ct, ctLen));
+    CHECK_C (EVP_DecryptFinal_ex(ctx, pt + bytesFilled, &bytesFilled));
+
+cleanup:
+    if (rv != OKAY) printf("NOT OK DECRYPT\n");
+    if (ctx) EVP_CIPHER_CTX_free(ctx);
+    return rv;
+}
+
+
+
+/* 33 bytes */
+void Params_bytesToPoint(Params *params, const uint8_t *bytes, EC_POINT *pt) {
+    EC_POINT_oct2point(params->group, pt, bytes, 33, params->bn_ctx);
+}
+
+/* 33 bytes */
+void Params_pointToBytes(Params *params, uint8_t *bytes, const EC_POINT *pt) {
+    EC_POINT_point2oct(params->group, pt, POINT_CONVERSION_COMPRESSED, bytes, 33, params->bn_ctx);
+}
+
+int intsToBignums(BIGNUM **bns, uint8_t *ints, int len) {
+    int rv;
+    for (int i = 0; i < len; i++) {
+        CHECK_A (bns[i] = BN_bin2bn(&ints[i], 1, NULL));
+    }
+cleanup:
     return rv;
 }

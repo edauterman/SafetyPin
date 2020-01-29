@@ -36,6 +36,9 @@ void heartbeat();
 
 void device_reboot();
 
+void raw_flash_read(uint8_t *bytes, int start, int len);
+void raw_flash_write(uint8_t *bytes, int len);
+
 void authenticator_read_state(AuthenticatorState * );
 
 void authenticator_read_backup_state(AuthenticatorState * );

@@ -14,9 +14,12 @@ typedef struct {
 ShamirShare *ShamirShare_new();
 void ShamirShare_free(ShamirShare *share);
 
-int Shamir_CreateShares(int t, int n, BIGNUM *secret, BIGNUM *prime, ShamirShare **shares);
+int Shamir_CreateShares(int t, int n, BIGNUM *secret, BIGNUM *prime, ShamirShare **shares, BIGNUM **opt_x);
 int Shamir_ReconstructShares(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM *secret);
+int Shamir_ValidateShares(int t, int n, ShamirShare **shares, BIGNUM *prime);
+int Shamir_ReconstructSharesWithValidation(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM *secret);
+int Shamir_FindValidShares(int t, int n, ShamirShare **sharesIn, ShamirShare **sharesOut, uint8_t *ordering, BIGNUM *prime, BIGNUM *secret);
 
-void Shamir_Marshal(uint8_t *buf, ShamirShare *share);
-void Shamir_Unmarshal(uint8_t *buf, ShamirShare *share);
+void Shamir_MarshalCompressed(uint8_t *buf, ShamirShare *share);
+void Shamir_UnmarshalCompressed(uint8_t *buf, uint8_t x, ShamirShare *share);
 #endif

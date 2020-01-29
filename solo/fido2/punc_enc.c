@@ -101,6 +101,7 @@ void setIBELeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], int start) {
     for (int i = 0; i < NUM_SUB_LEAVES; i++) {
         //memset(leaves[i], 0xff, LEAF_LEN);
 
+        printf("start %d\n", i);
         memset(leaves[i], 0, LEAF_LEN);
         uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
         embedded_pairing_bls12_381_g1_t sk;
@@ -307,11 +308,11 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
 
     /* Walk down the tree. */
     for (int i = 0; i < levels - 1; i++) {
-        /*printf("ct[%d]: ", i);
+        printf("ct[%d]: ", i);
         for (int j = 0; j < CT_LEN; j++) {
             printf("%x ", cts[i][j]);
         }
-        printf("\n");*/
+        printf("\n");
         /* Decrypt current ciphertext. */
         if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[i]) == ERROR) {
             printf("ERROR IN DECRYPTION OF INNER NODE\n");
@@ -353,6 +354,7 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
     }
     memcpy(leaf, leftKey, KEY_LEN);
     memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);
+    printf("finished\n");
     return OKAY;
 }
 

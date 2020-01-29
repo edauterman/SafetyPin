@@ -40,16 +40,16 @@ int _write (int fd, const void *buf, unsigned long int len)
 
 	// Send out USB serial
     // JUST TRYING COMMENTING OUT THIS NEXT LINE
-    //	CDC_Transmit_FS(data, len);
+    	CDC_Transmit_FS(data, len);
 	// if (res == USBD_OK)
 	// 	logbuflen = 0;
 #endif
 #ifdef ENABLE_SERIAL_PRINTING
     // Send out UART serial
-/*    while(len--)
+    while(len--)
     {
         _putchar(*data++);
-    }*/
+    }
 #endif
     return 0;
 

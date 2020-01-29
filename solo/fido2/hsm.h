@@ -12,6 +12,16 @@
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32) 
 
+#define HSM_GROUP_SIZE 6
+#define HSM_THRESHOLD_SIZE 2
+#define NUM_HSMS 1
+
+#define COMPRESSED_PT_SZ 33
+#define FIELD_ELEM_LEN 32
+#define ELGAMAL_CT_LEN (2 * COMPRESSED_PT_SZ)
+#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
+#define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
+
 #define NUM_LEAVES 524288
 //#define NUM_LEAVES 16384 
 //#define NUM_LEAVES 65536 
@@ -47,6 +57,12 @@
 #define HSM_GET_NONCE       0x7b
 #define HSM_RET_MAC         0x7c
 #define HSM_RESET           0x7d
+#define HSM_ELGAMAL_PK      0x7e
+#define HSM_ELGAMAL_DECRYPT 0x7f
+#define HSM_AUTH_MPC_DECRYPT_1  0x80
+#define HSM_AUTH_MPC_DECRYPT_2  0x81
+#define HSM_AUTH_MPC_DECRYPT_3  0x82
+#define HSM_SET_MAC_KEYS        0x83
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -120,7 +136,50 @@ struct hsm_ret_mac_request {
     uint8_t mac[SHA256_DIGEST_LEN];
 };
 
+struct hsm_elgamal_pk_response {
+    uint8_t pk[ELGAMAL_PK_LEN];
+};
 
+struct hsm_elgamal_decrypt_request {
+    uint8_t ct[ELGAMAL_CT_LEN];
+};
+
+struct hsm_elgamal_decrypt_response {
+    uint8_t msg[ELGAMAL_PT_LEN];
+};
+
+struct hsm_set_mac_keys_request {
+    uint8_t macKeys[100][KEY_LEN];
+};
+
+struct hsm_auth_mpc_decrypt_1_request {
+    uint32_t index;
+    uint8_t treeCts[LEVELS][CT_LEN];
+    uint8_t ibeCt[IBE_CT_LEN];
+    uint8_t pinShare[FIELD_ELEM_LEN];
+    uint8_t hsms[HSM_GROUP_SIZE];
+};
+
+struct hsm_auth_mpc_decrypt_2_request {
+    uint8_t d[FIELD_ELEM_LEN];
+    uint8_t e[FIELD_ELEM_LEN];
+    uint8_t dShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t eShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t dSharesX[2 * HSM_THRESHOLD_SIZE];
+    uint8_t eSharesX[2 * HSM_THRESHOLD_SIZE];
+    uint8_t dMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+    uint8_t eMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
+    uint8_t allHsms[HSM_GROUP_SIZE];
+};
+
+struct hsm_auth_mpc_decrypt_3_request {
+    uint8_t result[FIELD_ELEM_LEN];
+    uint8_t resultShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t resultSharesX[2 * HSM_THRESHOLD_SIZE];
+    uint8_t resultMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
+};
 
 uint8_t pingKey[KEY_LEN];
 
@@ -140,4 +199,11 @@ int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen);
 int HSM_Mac(struct hsm_mac_request *req, uint8_t *out, int *outLen);
 int HSM_GetNonce(uint8_t *out, int *outLen);
 int HSM_RetMac(struct hsm_ret_mac_request *req, uint8_t *out, int *outLen);
+int HSM_ElGamalPk(uint8_t *out, int *outLen);
+int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, int *outLen);
+int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outLen);
+int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen);
+int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *out, int *outLen);
+int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen);
+
 #endif
