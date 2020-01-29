@@ -1,6 +1,7 @@
 #ifndef _DATACENTER_H
 #define _DATACENTER_H
 
+#include "elgamal_shamir.h"
 #include "hsm.h"
 #include "params.h"
 #include "punc_enc.h"
@@ -20,10 +21,13 @@ typedef struct {
     IBE_ciphertext *recoveryCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     BIGNUM *r;
     //BIGNUM *s;
-    IBE_ciphertext *saltCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
+//    IBE_ciphertext *saltCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
+    uint8_t iv[AES256_IV_LEN];
+    uint8_t ct[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];
+    ElGamalCtShare *elGamalCts[HSM_GROUP_SIZE];
 } RecoveryCiphertext;
 
-RecoveryCiphertext *RecoveryCiphertext_new();
+RecoveryCiphertext *RecoveryCiphertext_new(Params *params);
 void RecoveryCiphertext_free(RecoveryCiphertext *c);
 
 Datacenter *Datacenter_new();

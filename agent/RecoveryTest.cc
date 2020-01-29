@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   saveKeyTest = BN_new();
   BN_rand_range(saveKey, params->order);
   BN_rand_range(pin, params->order);
-  RecoveryCiphertext *c = RecoveryCiphertext_new();
+  RecoveryCiphertext *c = RecoveryCiphertext_new(params);
 
   Datacenter_Save(d, params, saveKey, 0, pin, c);
   Datacenter_Recover(d, params, saveKeyTest, 0, pin, c);

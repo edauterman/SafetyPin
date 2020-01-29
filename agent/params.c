@@ -176,6 +176,48 @@ cleanup:
     return rv;
 }
 
+/* aadLen must be <= 16 */
+/* bytesIn, aadLen = 16, outLen = 32 */
+int aesEncrypt(const void *key, const uint8_t *pt, int ptLen,
+        uint8_t *iv, uint8_t *ct) {
+    int rv = ERROR;
+    int bytesFilled = 0;
+    EVP_CIPHER_CTX *ctx;
+    int len;
+
+    CHECK_C (RAND_bytes(iv, AES256_IV_LEN));
+
+    CHECK_A (ctx = EVP_CIPHER_CTX_new());
+    CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, (const uint8_t *)key, iv));
+    CHECK_C (EVP_EncryptUpdate(ctx, ct, &bytesFilled, pt, ptLen));
+    len = bytesFilled;
+    CHECK_C (EVP_EncryptFinal_ex(ctx, ct + len, &bytesFilled));
+cleanup:
+    if (rv != OKAY) printf("NOT OK ENCRYPT\n");
+    if (ctx) EVP_CIPHER_CTX_free(ctx);
+    return rv;
+}
+
+int aesDecrypt(const void *key, uint8_t *pt,
+        const uint8_t *iv,
+        const uint8_t *ct, int ctLen) {
+    int rv = ERROR;
+    int bytesFilled = 0;
+    EVP_CIPHER_CTX *ctx;
+
+    CHECK_A (ctx = EVP_CIPHER_CTX_new());
+    CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, (const uint8_t *)key, iv));
+    CHECK_C (EVP_DecryptUpdate(ctx, pt, &bytesFilled, ct, ctLen));
+    CHECK_C (EVP_DecryptFinal_ex(ctx, pt + bytesFilled, &bytesFilled));
+
+cleanup:
+    if (rv != OKAY) printf("NOT OK DECRYPT\n");
+    if (ctx) EVP_CIPHER_CTX_free(ctx);
+    return rv;
+}
+
+
+
 /* 33 bytes */
 void Params_bytesToPoint(Params *params, const uint8_t *bytes, EC_POINT *pt) {
     EC_POINT_oct2point(params->group, pt, bytes, 33, params->bn_ctx);

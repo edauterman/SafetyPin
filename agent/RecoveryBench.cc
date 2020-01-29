@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
   BN_rand_range(saveKey, params->order);
   BN_rand_range(pin, params->order);
   printf("made savekey\n");
-  RecoveryCiphertext *c = RecoveryCiphertext_new();
+  RecoveryCiphertext *c = RecoveryCiphertext_new(params);
 
   printf("going to run test setup\n");
 

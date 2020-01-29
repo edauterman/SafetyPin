@@ -643,6 +643,8 @@ int HSM_ElGamalGetPk(HSM *h) {
     HSM_ELGAMAL_PK_RESP resp;
     string resp_str;
 
+    pthread_mutex_lock(&h->m);
+
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_ELGAMAL_PK, 0, 0,
                    "", &resp_str));
@@ -654,6 +656,7 @@ int HSM_ElGamalGetPk(HSM *h) {
     Params_bytesToPoint(h->params, resp.pk, h->elGamalPk);
 
 cleanup:
+    pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("ERROR GETTING ELGAMAL PK\n");
     return rv;
 }
@@ -673,6 +676,8 @@ int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
     HSM_ELGAMAL_DECRYPT_RESP resp;
     string resp_str;
 
+    pthread_mutex_lock(&h->m);
+    
     printf("starting decrypt\n");
     ElGamal_Marshal(h->params, req.ct, c);
     printf("did the marshal\n");
@@ -689,6 +694,7 @@ int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
     printf("finished getting point\n");
 
 cleanup:
+    pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
     return rv;
 }
