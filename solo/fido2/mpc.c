@@ -294,6 +294,7 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
         
 
         if (memcmp(mac, dMacs[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        printf1(TAG_GREEN, "past dMac");
         crypto_hmac(macKey, mac, eShareBufs[i], FIELD_ELEM_LEN);
         //crypto_hmac(macKeys[validHsms[i]], mac, eShareBufs[i], FIELD_ELEM_LEN);
         if (memcmp(mac, eMacs[i], SHA256_DIGEST_LEN) != 0) return ERROR;
@@ -319,10 +320,10 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
         printf("eShareX[%d] = %x, %x\n", i, word, eShareXBufs[i]);
         uECC_setWord(eSharesX[i], word);
     }
-    if (validateShares(dSharesX, dSharesY) != OKAY) return ERROR;
-    if (validateShares(eSharesX, eSharesY) != OKAY) return ERROR;
-    if (checkReconstruction(dSharesX, dSharesY, d) != OKAY) return ERROR;
-    if (checkReconstruction(eSharesX, eSharesY, e) != OKAY) return ERROR;
+    if (validateShares(dSharesX, dSharesY) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
+    if (validateShares(eSharesX, eSharesY) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
+    if (checkReconstruction(dSharesX, dSharesY, d) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
+    if (checkReconstruction(eSharesX, eSharesY, e) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
 
     printf("going to finish multiplication step\n");
 
@@ -361,7 +362,10 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[2 
         getMacKey(macKey, validHsms[i]);
         crypto_hmac(macKey, mac, resultShareBufs[i], FIELD_ELEM_LEN);
         //crypto_hmac(macKeys[validHsms[i]], mac, resultShareBufs[i], FIELD_ELEM_LEN);
-        if (memcmp(mac, resultMacs[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        if (memcmp(mac, resultMacs[i], SHA256_DIGEST_LEN) != 0) {
+            memset(returnMsg, 0xaa, FIELD_ELEM_LEN);
+            return ERROR;
+        }
     }
     printf("passed MAC checks\n");
 
@@ -374,8 +378,8 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[2 
         uECC_word_t word = resultShareXBufs[i] & 0xff;
         uECC_setWord(resultSharesX[i], word);
     }
-    if (validateShares(resultSharesX, resultSharesY) != OKAY) return ERROR;
-    if (checkReconstruction(resultSharesX, resultSharesY, result) != OKAY) return ERROR;
+    if (validateShares(resultSharesX, resultSharesY) != OKAY) {memset(returnMsg, 0xbb, FIELD_ELEM_LEN); return ERROR;}
+    if (checkReconstruction(resultSharesX, resultSharesY, result) != OKAY) {memset(returnMsg, 0xcc, FIELD_ELEM_LEN); return ERROR;}
     printf("got past share checks\n");
 
     uECC_fieldElemToBytes(resultBytes, result);

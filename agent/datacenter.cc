@@ -638,7 +638,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     CHECK_C (Shamir_FindValidShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, dShares, dValidShares, dOrder, params->order, dVal));
     CHECK_C (Shamir_FindValidShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, eShares, eValidShares, eOrder, params->order, eVal));
     for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
-        validHsms[i] = h1[dOrder[i]];   //assume same set of valid shares across d and e
+        validHsms[i] = h1[dOrder[i] - 1];   //assume same set of valid shares across d and e
     }
 
     printf("threshold size %d, group size %d\n", HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE);

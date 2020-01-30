@@ -16,12 +16,12 @@
 extern "C" {
 #endif
 
-#define HID
+//#define HID
 
 #define NUM_HSMS 1 
-#define HSM_GROUP_SIZE 6 
+#define HSM_GROUP_SIZE 3 
 //#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 2
+#define HSM_THRESHOLD_SIZE 1
 
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)

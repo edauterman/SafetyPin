@@ -57,7 +57,7 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
             HSM_ElGamalPk(out, outLen);
             break;
         case HSM_ELGAMAL_DECRYPT:
-            HSM_RetMac((struct hsm_elgamal_decrypt_request *)(in), out, outLen);
+            HSM_ElGamalDecrypt((struct hsm_elgamal_decrypt_request *)(in), out, outLen);
             break;
         case HSM_AUTH_MPC_DECRYPT_1:
             HSM_AuthMPCDecrypt_1((struct hsm_auth_mpc_decrypt_1_request *)(in), out, outLen);
