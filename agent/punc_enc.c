@@ -173,8 +173,8 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
             BN_bn2bin(modIndexBn, (uint8_t *)&indexes[i]);
         }
 
-        printf("numLeaves: %s, tag: %s, num bytes: %d\n", BN_bn2hex(params->numLeaves), BN_bn2hex(modIndexBn), BN_num_bytes(modIndexBn));
-        printf("%d -> %d (%d/%d)\n", tag, indexes[i], i, PUNC_ENC_REPL);
+        debug_print("numLeaves: %s, tag: %s, num bytes: %d\n", BN_bn2hex(params->numLeaves), BN_bn2hex(modIndexBn), BN_num_bytes(modIndexBn));
+        debug_print("%d -> %d (%d/%d)\n", tag, indexes[i], i, PUNC_ENC_REPL);
     }
 cleanup:
     if (rawIndexBn) BN_free(rawIndexBn);

@@ -762,7 +762,7 @@ int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_
 
     debug_print("finished retrieving auth decryption\n");
 cleanup:
-    pthread_mutex_unlock(&h->m);
+//    pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
@@ -784,7 +784,7 @@ int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, 
     //uint8_t *eMacs;
     //uint8_t **resultMacs;
 
-    pthread_mutex_lock(&h->m);
+//    pthread_mutex_lock(&h->m);
     
     memset(req.d, 0, FIELD_ELEM_LEN);
     BN_bn2bin(d, req.d + FIELD_ELEM_LEN  - BN_num_bytes(d));
@@ -819,7 +819,7 @@ int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, 
     }
 
 cleanup:
-    pthread_mutex_unlock(&h->m);
+//    pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
     return rv;
 }
@@ -830,7 +830,7 @@ int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **
     HSM_AUTH_MPC_DECRYPT_3_RESP resp;
     string resp_str;
 
-    pthread_mutex_lock(&h->m);
+//    pthread_mutex_lock(&h->m);
     
     memset(req.result, 0, FIELD_ELEM_LEN);
     BN_bn2bin(result, req.result + FIELD_ELEM_LEN - BN_num_bytes(result));
