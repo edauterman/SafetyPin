@@ -32,21 +32,15 @@ int main(int argc, char *argv[]) {
 
   Params *params = Params_new(); 
 
-  printf("made params\n");
-
   BIGNUM *pin;
   BIGNUM *saveKey;
   BIGNUM *saveKeyTest;
   saveKey = BN_new();
   pin = BN_new();
   saveKeyTest = BN_new();
-  printf("before save key\n");
   BN_rand_range(saveKey, params->order);
   BN_rand_range(pin, params->order);
-  printf("made savekey\n");
   RecoveryCiphertext *c = RecoveryCiphertext_new(params);
-
-  printf("going to run test setup\n");
 
   Datacenter_TestSetup(d);
 

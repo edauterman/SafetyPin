@@ -45,6 +45,7 @@ typedef enum
     TAG_NFC      = (1 << 19),
     TAG_NFC_APDU = (1 << 20),
     TAG_CCID     = (1 << 21),
+    TAG_HSM      = (1 << 22),
 
     TAG_NO_TAG   = (1UL << 30),
     TAG_FILENO   = (1UL << 31)

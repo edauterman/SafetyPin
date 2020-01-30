@@ -44,12 +44,10 @@ Params *Params_new()
     CHECK_A (params->bn_ctx = BN_CTX_new());
 
     char numHsmsBuf[4];
-    printf("NUM_HSMS: %d\n", NUM_HSMS);
     sprintf(numHsmsBuf, "%d", NUM_HSMS);
     BN_dec2bn(&params->numHsms, numHsmsBuf);
 
     char numLeavesBuf[4];
-    printf("NUM_LEAVES: %d\n", NUM_LEAVES);
     sprintf(numLeavesBuf, "%d", NUM_LEAVES);
     BN_dec2bn(&params->numLeaves, numLeavesBuf);
 
@@ -59,7 +57,6 @@ Params *Params_new()
     CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_secp256k1));
     CHECK_C (EC_GROUP_get_order(params->group, params->order, params->bn_ctx));
 
-    printf("finished params\n");
 cleanup:
     if (rv == ERROR) {
         Params_free(params);
@@ -145,7 +142,6 @@ int aesGcmEncrypt(const void *key, const uint8_t *pt, int ptLen,
     CHECK_C (EVP_EncryptInit_ex(ctx, NULL, NULL, (const unsigned char *)key, iv));
     CHECK_C (EVP_EncryptUpdate(ctx, ct, &bytesFilled, pt, ptLen));
     len = bytesFilled;
-    printf("len = %d, in len = %d\n", len, ptLen);
     CHECK_C (EVP_EncryptFinal_ex(ctx, ct + len, &bytesFilled));
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, TAG_LEN, tag));
 cleanup:
@@ -166,7 +162,6 @@ int aesGcmDecrypt(const void *key, uint8_t *pt,
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, IV_LEN, NULL));
     CHECK_C (EVP_DecryptInit_ex(ctx, NULL, NULL, (const unsigned char *)key, iv));
     CHECK_C (EVP_DecryptUpdate(ctx, pt, &bytesFilled, ct, ctLen));
-    printf("bytes filled = %d, wanted %d\n", bytesFilled, ctLen);
     CHECK_C (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, TAG_LEN, (void *)tag));
     CHECK_C (EVP_DecryptFinal_ex(ctx, pt + bytesFilled, &bytesFilled));
 

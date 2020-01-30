@@ -244,7 +244,7 @@ int Shamir_FindValidShares(int t, int n, ShamirShare **sharesIn, ShamirShare **s
         }   
         if (Shamir_ValidateShares(t, 2 * t, sharesOut, prime) == OKAY) {
             CHECK_C (Shamir_ReconstructShares(t, 2 * t, sharesOut, prime, secret));
-            printf("Found reconstruction\n");
+            debug_print("Found reconstruction\n");
             goto cleanup;
         }   
     } while (prev_permutation(bitmask.begin(), bitmask.end()));

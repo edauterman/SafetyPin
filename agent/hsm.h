@@ -22,6 +22,7 @@ extern "C" {
 #define HSM_GROUP_SIZE 3 
 //#define HSM_GROUP_SIZE 5
 #define HSM_THRESHOLD_SIZE 1
+#define HSM_HONEST_MAJORITY 2
 
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)
@@ -165,13 +166,13 @@ typedef struct {
 typedef struct {
     uint8_t d[FIELD_ELEM_LEN];
     uint8_t e[FIELD_ELEM_LEN];
-    uint8_t dShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t eShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t dSharesX[2 * HSM_THRESHOLD_SIZE];
-    uint8_t eSharesX[2 * HSM_THRESHOLD_SIZE];
-    uint8_t dMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t eMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
+    uint8_t dShares[HSM_HONEST_MAJORITY][FIELD_ELEM_LEN];
+    uint8_t eShares[HSM_HONEST_MAJORITY][FIELD_ELEM_LEN];
+    uint8_t dSharesX[HSM_HONEST_MAJORITY];
+    uint8_t eSharesX[HSM_HONEST_MAJORITY];
+    uint8_t dMacs[HSM_HONEST_MAJORITY][SHA256_DIGEST_LENGTH];
+    uint8_t eMacs[HSM_HONEST_MAJORITY][SHA256_DIGEST_LENGTH];
+    uint8_t validHsms[HSM_HONEST_MAJORITY];
     uint8_t allHsms[HSM_GROUP_SIZE];
 } HSM_AUTH_MPC_DECRYPT_2_REQ;
 
@@ -182,10 +183,10 @@ typedef struct {
 
 typedef struct {
     uint8_t result[FIELD_ELEM_LEN];
-    uint8_t resultShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t resultSharesX[2 * HSM_THRESHOLD_SIZE];
-    uint8_t resultMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
+    uint8_t resultShares[HSM_HONEST_MAJORITY][FIELD_ELEM_LEN];
+    uint8_t resultSharesX[HSM_HONEST_MAJORITY];
+    uint8_t resultMacs[HSM_HONEST_MAJORITY][SHA256_DIGEST_LENGTH];
+    uint8_t validHsms[HSM_HONEST_MAJORITY];
 } HSM_AUTH_MPC_DECRYPT_3_REQ;
 
 typedef struct {
