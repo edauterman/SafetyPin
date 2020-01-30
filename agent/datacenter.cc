@@ -27,7 +27,7 @@ using namespace std;
 //const char *HANDLES[] = {
 //    "/dev/serial/by-id/usb-SoloKeys_Solo_3.0.0-1-gf91fb79_206F37AE5048-if01",
 //};
-const char *HANDLES[] = {
+/*const char *HANDLES[] = {
     "/dev/ttyACM0",
     "/dev/ttyACM1",
     "/dev/ttyACM2",
@@ -128,8 +128,8 @@ const char *HANDLES[] = {
     "/dev/ttyACM97",
     "/dev/ttyACM98",
     "/dev/ttyACM99",
-};
-//const char *HANDLES[] = {"/dev/cu.usbmodem208532CA31412"};
+};*/
+const char *HANDLES[] = {"/dev/cu.usbmodem206A36AC55482"};
 
 typedef struct {
     uint8_t msg[FIELD_ELEM_LEN];
@@ -422,8 +422,8 @@ int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *
         // NOTE: ASSUMING NUM_HSMS NEVER GREATER THAN 256
         h[i] = 0;
         BN_bn2bin(hsm, &h[i]);
-	h[i] = i;		// THIS LINE JUST FOR TESTING!!!!
-	printf("h[%d] = %d\n", i, h[i]);
+	    h[i] = i % NUM_HSMS;		// THIS LINE JUST FOR TESTING!!!!
+	    printf("h[%d] = %d\n", i, h[i]);
     }
 cleanup:
     if (hsm) BN_free(hsm);
