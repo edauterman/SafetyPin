@@ -24,7 +24,112 @@
 
 using namespace std;
 
-const char *HANDLES[] = {"/dev/cu.usbmodem206A36AC55482"};
+//const char *HANDLES[] = {
+//    "/dev/serial/by-id/usb-SoloKeys_Solo_3.0.0-1-gf91fb79_206F37AE5048-if01",
+//};
+const char *HANDLES[] = {
+    "/dev/ttyACM0",
+    "/dev/ttyACM1",
+    "/dev/ttyACM2",
+    "/dev/ttyACM3",
+    "/dev/ttyACM4",
+    "/dev/ttyACM5",
+    "/dev/ttyACM6",
+    "/dev/ttyACM7",
+    "/dev/ttyACM8",
+    "/dev/ttyACM9",
+    "/dev/ttyACM10",
+    "/dev/ttyACM11",
+    "/dev/ttyACM12",
+    "/dev/ttyACM13",
+    "/dev/ttyACM14",
+    "/dev/ttyACM15",
+    "/dev/ttyACM16",
+    "/dev/ttyACM17",
+    "/dev/ttyACM18",
+    "/dev/ttyACM19",
+    "/dev/ttyACM20",
+    "/dev/ttyACM21",
+    "/dev/ttyACM22",
+    "/dev/ttyACM23",
+    "/dev/ttyACM24",
+    "/dev/ttyACM25",
+    "/dev/ttyACM26",
+    "/dev/ttyACM27",
+    "/dev/ttyACM28",
+    "/dev/ttyACM29",
+    "/dev/ttyACM30",
+    "/dev/ttyACM31",
+    "/dev/ttyACM32",
+    "/dev/ttyACM33",
+    "/dev/ttyACM34",
+    "/dev/ttyACM35",
+    "/dev/ttyACM36",
+    "/dev/ttyACM37",
+    "/dev/ttyACM38",
+    "/dev/ttyACM39",
+    "/dev/ttyACM40",
+    "/dev/ttyACM41",
+    "/dev/ttyACM42",
+    "/dev/ttyACM43",
+    "/dev/ttyACM44",
+    "/dev/ttyACM45",
+    "/dev/ttyACM46",
+    "/dev/ttyACM47",
+    "/dev/ttyACM48",
+    "/dev/ttyACM49",
+    "/dev/ttyACM50",
+    "/dev/ttyACM51",
+    "/dev/ttyACM52",
+    "/dev/ttyACM53",
+    "/dev/ttyACM54",
+    "/dev/ttyACM55",
+    "/dev/ttyACM56",
+    "/dev/ttyACM57",
+    "/dev/ttyACM58",
+    "/dev/ttyACM59",
+    "/dev/ttyACM60",
+    "/dev/ttyACM61",
+    "/dev/ttyACM62",
+    "/dev/ttyACM63",
+    "/dev/ttyACM64",
+    "/dev/ttyACM65",
+    "/dev/ttyACM66",
+    "/dev/ttyACM67",
+    "/dev/ttyACM68",
+    "/dev/ttyACM69",
+    "/dev/ttyACM70",
+    "/dev/ttyACM71",
+    "/dev/ttyACM72",
+    "/dev/ttyACM73",
+    "/dev/ttyACM74",
+    "/dev/ttyACM75",
+    "/dev/ttyACM76",
+    "/dev/ttyACM77",
+    "/dev/ttyACM78",
+    "/dev/ttyACM79",
+    "/dev/ttyACM80",
+    "/dev/ttyACM81",
+    "/dev/ttyACM82",
+    "/dev/ttyACM83",
+    "/dev/ttyACM84",
+    "/dev/ttyACM85",
+    "/dev/ttyACM86",
+    "/dev/ttyACM87",
+    "/dev/ttyACM88",
+    "/dev/ttyACM89",
+    "/dev/ttyACM90",
+    "/dev/ttyACM91",
+    "/dev/ttyACM92",
+    "/dev/ttyACM93",
+    "/dev/ttyACM94",
+    "/dev/ttyACM95",
+    "/dev/ttyACM96",
+    "/dev/ttyACM97",
+    "/dev/ttyACM98",
+    "/dev/ttyACM99",
+};
+//const char *HANDLES[] = {"/dev/cu.usbmodem208532CA31412"};
 
 typedef struct {
     uint8_t msg[FIELD_ELEM_LEN];
@@ -154,6 +259,7 @@ cleanup:
 int setMacKeys(Datacenter *d) {
     int rv;
     uint8_t ***macKeys = NULL;
+    uint8_t zeros[KEY_LEN];
 
     CHECK_A (macKeys = (uint8_t ***)malloc(NUM_HSMS * sizeof(uint8_t **)));
     for (int i = 0; i < NUM_HSMS; i++) {
@@ -166,16 +272,31 @@ int setMacKeys(Datacenter *d) {
     if (NUM_HSMS % 2 != 0) printf("ERROR: NOT AN EVEN NUMBER OF HSMS %d\n", NUM_HSMS);
 
     for (int i = 0; i < NUM_HSMS; i++) {
-    //for (int i = 0; i < NUM_HSMS / 2; i++) {
+	for (int j = 0; j < NUM_HSMS; j++) {
+	    memset(macKeys[i][j], 0, KEY_LEN);
+	}
+    }
+    memset(zeros, 0, KEY_LEN);
+
+    //for (int i = 0; i < NUM_HSMS; i++) {
+    for (int i = 0; i < NUM_HSMS; i++) {
+        //for (int j = 0; j < NUM_HSMS; j++) {
         for (int j = 0; j < NUM_HSMS; j++) {
-        //for (int j = NUM_HSMS / 2; j < NUM_HSMS; j++) {
+	    if (memcmp(macKeys[i][j], zeros, KEY_LEN) != 0) continue;
             CHECK_C (RAND_bytes(macKeys[i][j], KEY_LEN));
             memcpy(macKeys[j][i], macKeys[i][j], KEY_LEN);
         }
     }
 
     for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_SetMacKeys(d->hsms[i], macKeys[i]));
+	for (int j = 0; j < NUM_HSMS; j++)  {
+	    printf("MAC key[%d][%d] =  ",i,j);
+	    for (int k = 0; k < KEY_LEN; k++) {
+		printf("%02x", macKeys[i][j][k]);
+	    }
+	    printf("\n");
+	}
+   	CHECK_C (HSM_SetMacKeys(d->hsms[i], macKeys[i]));
     }
 cleanup:
     if (rv == ERROR) printf("Error setting initial MAC keys\n");
@@ -301,7 +422,8 @@ int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *
         // NOTE: ASSUMING NUM_HSMS NEVER GREATER THAN 256
         h[i] = 0;
         BN_bn2bin(hsm, &h[i]);
-        printf("h[%d] = %d\n", i, h[i]);
+	h[i] = i;		// THIS LINE JUST FOR TESTING!!!!
+	printf("h[%d] = %d\n", i, h[i]);
     }
 cleanup:
     if (hsm) BN_free(hsm);
@@ -493,9 +615,9 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     uint8_t ***dMacs;
     uint8_t ***eMacs;
     uint8_t ***resultMacs;
-    uint8_t **dMacsCurr;
-    uint8_t **eMacsCurr;
-    uint8_t **resultMacsCurr;
+    uint8_t ***dMacsCurr;
+    uint8_t ***eMacsCurr;
+    uint8_t ***resultMacsCurr;
     thread t0[HSM_GROUP_SIZE];
     thread t1[HSM_GROUP_SIZE];
     thread t2[HSM_GROUP_SIZE];
@@ -526,9 +648,9 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     CHECK_A (eMacs = (uint8_t ***)malloc(HSM_GROUP_SIZE * sizeof(uint8_t **)));
     CHECK_A (resultMacs = (uint8_t ***)malloc(HSM_GROUP_SIZE * sizeof(uint8_t **)));
 
-    CHECK_A (dMacsCurr = (uint8_t **)malloc(2 * HSM_THRESHOLD_SIZE * sizeof(uint8_t *)));
-    CHECK_A (eMacsCurr = (uint8_t **)malloc(2 * HSM_THRESHOLD_SIZE * sizeof(uint8_t *)));
-    CHECK_A (resultMacsCurr = (uint8_t **)malloc(2 * HSM_THRESHOLD_SIZE * sizeof(uint8_t *)));
+    CHECK_A (dMacsCurr = (uint8_t ***)malloc(HSM_GROUP_SIZE * sizeof(uint8_t **)));
+    CHECK_A (eMacsCurr = (uint8_t ***)malloc(HSM_GROUP_SIZE * sizeof(uint8_t **)));
+    CHECK_A (resultMacsCurr = (uint8_t ***)malloc(HSM_GROUP_SIZE * sizeof(uint8_t **)));
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
@@ -539,6 +661,9 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         CHECK_A (dMacs[i] = (uint8_t **)malloc(HSM_GROUP_SIZE * sizeof(uint8_t *)));
         CHECK_A (eMacs[i] = (uint8_t **)malloc(HSM_GROUP_SIZE * sizeof(uint8_t *)));
         CHECK_A (resultMacs[i] = (uint8_t **)malloc(HSM_GROUP_SIZE * sizeof(uint8_t *)));
+        CHECK_A (dMacsCurr[i] = (uint8_t **)malloc(2 * HSM_THRESHOLD_SIZE * sizeof(uint8_t *)));
+        CHECK_A (eMacsCurr[i] = (uint8_t **)malloc(2 * HSM_THRESHOLD_SIZE * sizeof(uint8_t *)));
+        CHECK_A (resultMacsCurr[i] = (uint8_t **)malloc(2 * HSM_THRESHOLD_SIZE * sizeof(uint8_t *)));
         CHECK_A (elGamalRandShares[i] = ElGamalMsgShare_new(params));
         for (int j = 0; j < HSM_GROUP_SIZE; j++) {
             CHECK_A (dMacs[i][j] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH));
@@ -638,6 +763,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     CHECK_C (Shamir_FindValidShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, dShares, dValidShares, dOrder, params->order, dVal));
     CHECK_C (Shamir_FindValidShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, eShares, eValidShares, eOrder, params->order, eVal));
     for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
+	    // convert from 1-index to 0-index
         validHsms[i] = h1[dOrder[i] - 1];   //assume same set of valid shares across d and e
     }
 
@@ -654,41 +780,45 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     /* Run stage 2 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         for (int j = 0; j < 2 * HSM_THRESHOLD_SIZE; j++) {
-            eMacsCurr[j] = eMacs[j][i];
-            dMacsCurr[j] = dMacs[j][i];
+            eMacsCurr[i][j] = eMacs[eOrder[j] - 1][i];
+            //eMacsCurr[j] = eMacs[eOrder[j] - 1][i];
+            dMacsCurr[i][j] = dMacs[dOrder[j] - 1][i];
+            //dMacsCurr[j] = dMacs[dOrder[j] - 1][i];
+	    printf("macCurrIndex = %d, %d\n", dOrder[j] - 1, eOrder[j] - 1);
             
             printf("dMacs[%d]", j);
             for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
-                printf("%02x", dMacsCurr[j][k]);
+                printf("%02x", dMacsCurr[i][j][k]);
             }
             printf("\n");
             
             printf("eMacs[%d]", j);
             for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
-                printf("%02x", eMacsCurr[j][k]);
+                printf("%02x", eMacsCurr[i][j][k]);
             }
             printf("\n");
         }
-        t2[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dValidShares, eValidShares, dOrder, eOrder, dMacsCurr, eMacsCurr, validHsms, h1, i + 1);
+        t2[i] = thread(HSM_AuthMPCDecrypt2, d->hsms[h1[i]], resultShares[i], resultMacs[i], dVal, eVal, dValidShares, eValidShares, dOrder, eOrder, dMacsCurr[i], eMacsCurr[i], validHsms, h1, i + 1);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        t2[i].join();
+	printf("resultShares[%d] = %s\n", i, BN_bn2hex(resultShares[i]->y));
+   	t2[i].join();
     }
 
     /* Reconstruct result. TODO: validate shares. */
     CHECK_C (Shamir_FindValidShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, resultShares, resultValidShares, resultOrder, params->order, result));
     printf("result: %s\n", BN_bn2hex(result));
     for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
-        validHsms[i] = h1[resultOrder[i]];   //assume same set of valid shares across d and e
+        validHsms[i] = h1[resultOrder[i] - 1];   //assume same set of valid shares across d and e
     }
 
 
     /* Run stage 3 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         for (int j = 0; j < 2 * HSM_THRESHOLD_SIZE; j++) {
-            resultMacsCurr[j] = resultMacs[j][i];
+            resultMacsCurr[i][j] = resultMacs[resultOrder[j] - 1][i];
         }
-        t3[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultValidShares, resultOrder, resultMacsCurr, validHsms, i + 1);
+        t3[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultValidShares, resultOrder, resultMacsCurr[i], validHsms, i + 1);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t3[i].join();
