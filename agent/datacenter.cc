@@ -258,6 +258,34 @@ cleanup:
     return rv;
 }
 
+
+int Datacenter_VirtualSetup(Datacenter *d) {
+    int rv;
+    uint8_t *cts;
+    uint8_t msk[KEY_LEN];
+    uint8_t hmacKey[KEY_LEN];
+    embedded_pairing_bls12_381_g2_t mpk;
+
+    CHECK_A (cts = (uint8_t *)malloc(TREE_SIZE * CT_LEN));
+
+    printf("AES_CT_LEN = %d, sizeof = %d\n", AES_CT_LEN, sizeof(InnerMpcMsg));
+
+    printf("going to build tree\n");
+    PuncEnc_BuildTree(cts, msk, hmacKey, &mpk);
+    for (int i = 0; i < NUM_HSMS; i++) {
+        embedded_pairing_core_bigint_256_t sk;
+        IBE_Setup(&sk, &d->hsms[i]->mpk);
+        BIGNUM *x = BN_new();
+        BN_rand_range(x, d->hsms[i]->params->order);
+        EC_POINT_mul(d->hsms[i]->params->group, d->hsms[i]->elGamalPk, x, NULL, NULL, d->hsms[i]->params->bn_ctx);
+        printf("Done with setup for %d/%d\n", i, NUM_HSMS);
+    }
+cleanup:
+    if (cts) free(cts);
+    return rv;
+}
+
+
 /*int chooseHsmsFromSalt(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *salt) {
     int rv = ERROR;
     BIGNUM *hsm;
@@ -361,7 +389,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     CHECK_A (elGamalRandPt = EC_POINT_new(params->group));
     CHECK_A (elGamalRand = BN_new());
     
-    printf("start save key: %s\n", BN_bn2hex(saveKey));
+    debug_print("start save key: %s\n", BN_bn2hex(saveKey));
 
     /* Choose salts. */
     CHECK_A (r = BN_new());
@@ -373,27 +401,27 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     CHECK_C (intsToBignums(h1Bns, list, HSM_GROUP_SIZE));
     //CHECK_C (intsToBignums(h1Bns, h1, HSM_GROUP_SIZE));
 
-    printf("hashed salt and pin to find HSMs\n");
+    debug_print("hashed salt and pin to find HSMs\n");
 
     /* Split saveKey into shares */
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKey, params->order, saveKeyShares, h1Bns));
 
-    printf("created shares of save key\n");
+    debug_print("created shares of save key\n");
 
     /* Generate Beaver triple. */
     CHECK_C (MPC_generateBeaverTripleShares(params, aShares, bShares, cShares, h1Bns));
 
-    printf("created beaver triple\n");
+    debug_print("created beaver triple\n");
 
     /* Split r and PIN into shares. */
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, r, params->order, rShares, h1Bns));
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, pin, params->order, pinShares, h1Bns));
 
-    printf("Going to encrypt ciphertexts to each HSM\n");
+    debug_print("Going to encrypt ciphertexts to each HSM\n");
 
     /* Encrypt [saveKey]_i, H(pin, salt) to each HSM. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        printf("starting ct %d\n", i);
+        debug_print("starting ct %d\n", i);
         int bytesFilled = 0;
 
         InnerMpcMsg innerMpcMsg;
@@ -417,35 +445,13 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
         CHECK_C (EVP_EncryptUpdate(ctx, c->aesCts[i], &bytesFilled, (uint8_t *)&innerMpcMsg, AES_CT_LEN));
         hmac(mpcMsg.hmacKey, c->aesCtTags[i], c->aesCts[i], AES_CT_LEN);
 
-        printf("bytesFilled = %d\n", bytesFilled);
-        printf("saveKeyShare[%d]: %s, %s\n", i, BN_bn2hex(saveKeyShares[i]->x), BN_bn2hex(saveKeyShares[i]->y));
-        printf("aShare[%d]: %s\n", i, BN_bn2hex(aShares[0][i]->y));
-        printf("bShare[%d]: %s\n", i, BN_bn2hex(bShares[0][i]->y));
-        printf("cShare[%d]: %s\n", i, BN_bn2hex(cShares[0][i]->y));
-        printf("rShare[%d]: %s\n", i, BN_bn2hex(rShares[i]->y));
-        printf("savePinShare[%d]: %s\n", i, BN_bn2hex(pinShares[i]->y));
+        debug_print("saveKeyShare[%d]: %s, %s\n", i, BN_bn2hex(saveKeyShares[i]->x), BN_bn2hex(saveKeyShares[i]->y));
+        debug_print("aShare[%d]: %s\n", i, BN_bn2hex(aShares[0][i]->y));
+        debug_print("bShare[%d]: %s\n", i, BN_bn2hex(bShares[0][i]->y));
+        debug_print("cShare[%d]: %s\n", i, BN_bn2hex(cShares[0][i]->y));
+        debug_print("rShare[%d]: %s\n", i, BN_bn2hex(rShares[i]->y));
+        debug_print("savePinShare[%d]: %s\n", i, BN_bn2hex(pinShares[i]->y));
        
-        printf("encrypted buffer for %d: ", i);
-        for (int j = 0; j < AES_CT_LEN; j++) {
-            printf("%02x", ((uint8_t *)(&innerMpcMsg))[j]);
-        }
-        printf("\n");
-
-        printf("ciphertext for %d: ", i);
-        for (int j = 0; j < AES_CT_LEN; j++) {
-            printf("%02x", c->aesCts[i][j]);
-        }
-        printf("\n");
-
-        printf("aes key for %d: ", i);
-        for (int j = 0; j < KEY_LEN; j++) {
-            printf("%02x", mpcMsg.aesKey[j]);
-        }
-        printf("\n");
-
-
-
-
         CHECK_C (HSM_Encrypt(d->hsms[h1[i]], userID + i, (uint8_t *)&mpcMsg, IBE_MSG_LEN, recoveryCts[i]));
 
     }
