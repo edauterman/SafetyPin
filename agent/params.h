@@ -28,7 +28,7 @@ extern "C"{
 #define AES128_KEY_LEN 16 
 
 #define AES256_KEY_LEN 32
-#define AES256_IV_LEN 132
+#define AES256_IV_LEN 32
 
 typedef struct {
     BIGNUM *prime;
