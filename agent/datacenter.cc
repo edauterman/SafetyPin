@@ -261,17 +261,10 @@ cleanup:
 
 int Datacenter_VirtualSetup(Datacenter *d) {
     int rv;
-    uint8_t *cts;
     uint8_t msk[KEY_LEN];
     uint8_t hmacKey[KEY_LEN];
     embedded_pairing_bls12_381_g2_t mpk;
 
-    CHECK_A (cts = (uint8_t *)malloc(TREE_SIZE * CT_LEN));
-
-    printf("AES_CT_LEN = %d, sizeof = %d\n", AES_CT_LEN, sizeof(InnerMpcMsg));
-
-    printf("going to build tree\n");
-    PuncEnc_BuildTree(cts, msk, hmacKey, &mpk);
     for (int i = 0; i < NUM_HSMS; i++) {
         embedded_pairing_core_bigint_256_t sk;
         IBE_Setup(&sk, &d->hsms[i]->mpk);
@@ -281,7 +274,6 @@ int Datacenter_VirtualSetup(Datacenter *d) {
         printf("Done with setup for %d/%d\n", i, NUM_HSMS);
     }
 cleanup:
-    if (cts) free(cts);
     return rv;
 }
 
@@ -337,7 +329,7 @@ int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *
         // NOTE: ASSUMING NUM_HSMS NEVER GREATER THAN 256
         h[i] = 0;
         BN_bn2bin(hsm, &h[i]);
-        printf("h[%d] = %d\n", i, h[i]);
+        debug_print("h[%d] = %d\n", i, h[i]);
     }
 cleanup:
     if (hsm) BN_free(hsm);
