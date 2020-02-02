@@ -25,14 +25,11 @@ int MPC_generateBeaverTripleShares(Params *params, ShamirShare *a[NUM_ATTEMPTS][
         CHECK_C (BN_rand_range(b_raw, params->order));
         CHECK_C (BN_mod_mul(c_raw, a_raw, b_raw, params->order, params->bn_ctx));
 
-        printf("sampled a,b,c\n");
-
         /* Share a,b,c */
         CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, a_raw, params->order, a[i], x));
         CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, b_raw, params->order, b[i], x));
         CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, c_raw, params->order, c[i], x));
 
-        printf("created shares\n");
     }
 
 cleanup:

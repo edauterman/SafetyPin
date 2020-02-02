@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <openssl/rand.h>
 
 #include "datacenter.h"
 #include "hsm.h"
@@ -41,19 +42,35 @@ int main(int argc, char *argv[]) {
 
   Datacenter_VirtualSetup(d);
 
-  struct timeval t1, t2, t3;
+  struct timeval t1, t2, t3, t4;
   //clock_t t1 = clock();
   gettimeofday(&t1, NULL);
   Datacenter_Save(d, params, saveKey, 0, pin, c);
   gettimeofday(&t2, NULL);
   //clock_t t2 = clock();
 
+  uint8_t key[32];
+  RAND_bytes(key, 32);
+  uint8_t pt[32];
+  memset(pt, 0xff, 32);
+  uint8_t iv[32];
+  uint8_t ct[32];
+
+  gettimeofday(&t3, NULL);
+  aesEncrypt(key, pt, 32, iv, ct);
+  gettimeofday(&t4, NULL);
+
+
   long saveSeconds = (t2.tv_sec - t1.tv_sec);
   long saveMicros = (t2.tv_usec - t1.tv_usec);
   double saveTime = saveSeconds + (saveMicros / 1000000.0);
+  long shortSeconds = (t4.tv_sec - t3.tv_sec);
+  long shortMicros = (t4.tv_usec - t3.tv_usec);
+  double shortTime = shortSeconds + (shortMicros / 1000000.0);
   //double saveTime = ((double) (t2 - t1)) / CLOCKS_PER_SEC;
   //double recoverTime = ((double) (t3 - t2)) / CLOCKS_PER_SEC;
   printf("**** Save time: %f, %d seconds, %d microseconds\n", saveTime, saveSeconds, saveMicros);
+  printf("**** Google/Apple save time: %f, %d seconds, %d microseconds\n", shortTime, shortSeconds, shortMicros);
 
   string filename = "../out/save_" + to_string(NUM_HSMS);
   FILE *f = fopen(filename.c_str(), "w+");
