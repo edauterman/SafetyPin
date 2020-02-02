@@ -4,6 +4,6 @@
 #include "params.h"
 #include "shamir.h"
 
-int MPC_generateBeaverTripleShares(Params *params, ShamirShare **a, ShamirShare **b, ShamirShare **c, BIGNUM **x);
+int MPC_generateBeaverTripleShares(Params *params, ShamirShare *a[NUM_ATTEMPTS][HSM_GROUP_SIZE], ShamirShare *b[NUM_ATTEMPTS][HSM_GROUP_SIZE], ShamirShare *c[NUM_ATTEMPTS][HSM_GROUP_SIZE], BIGNUM **x);
 
 #endif

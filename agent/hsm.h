@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-//#define HID
+#define HID
 
 #define NUM_HSMS 1 
 #define HSM_GROUP_SIZE 3 
@@ -34,7 +34,10 @@ extern "C" {
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
 #define PUNC_ENC_REPL 1
-//#define PUNC_ENC_REPL 80 
+#define NUM_ATTEMPTS 1
+    //#define PUNC_ENC_REPL 80 
+
+#define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
 
 #define RESPONSE_BUFFER_SIZE 4096
 
@@ -150,6 +153,8 @@ typedef struct {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
+    uint8_t aesCt[AES_CT_LEN];
+    uint8_t aesCtTag[SHA256_DIGEST_LENGTH];
     uint8_t pinShare[FIELD_ELEM_LEN];
     uint8_t hsms[HSM_GROUP_SIZE];
 } HSM_AUTH_MPC_DECRYPT_1_REQ;
@@ -275,7 +280,7 @@ int HSM_ElGamalGetPk(HSM *h);
 int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
 int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
 
-int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t **dMacs, uint8_t **eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], ShamirShare *pinShare, uint8_t *hsms, uint8_t reconstructIndex);
+int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t **dMacs, uint8_t **eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *aesCt, uint8_t *aesCtTag, ShamirShare *pinShare, uint8_t *hsms, uint8_t reconstructIndex);
 int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t *dSharesX, uint8_t *eSharesX, uint8_t **dMacs, uint8_t **eMacs, uint8_t *validHsms, uint8_t *allHsms, uint8_t reconstructIndex);
 int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t *resultSharesX, uint8_t **resultMacs, uint8_t *validHsms, uint8_t reconstructIndex);
 

@@ -38,6 +38,7 @@ void crypto_aes256_encrypt_sep(uint8_t *out, uint8_t *in, int length) {
 
 /* Decrypt with separate input and output buffers. */
 void crypto_aes256_decrypt_sep(uint8_t *out, uint8_t *in, int length) {
+    printf("in aes256 decrypt, length = %d\n", length);
     for (int i = 0; i < length / 16; i++) {
         uint8_t tmp[16];
         memcpy(tmp, in + (i * 16), 16);

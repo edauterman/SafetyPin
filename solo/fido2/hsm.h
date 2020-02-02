@@ -16,6 +16,10 @@
 #define HSM_THRESHOLD_SIZE 1
 #define NUM_HSMS 1
 
+#define NUM_ATTEMPTS 1
+
+#define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
+
 #define COMPRESSED_PT_SZ 33
 #define FIELD_ELEM_LEN 32
 #define ELGAMAL_CT_LEN (2 * COMPRESSED_PT_SZ)
@@ -156,6 +160,8 @@ struct hsm_auth_mpc_decrypt_1_request {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
+    uint8_t aesCt[AES_CT_LEN];
+    uint8_t aesCtTag[SHA256_DIGEST_LEN];
     uint8_t pinShare[FIELD_ELEM_LEN];
     uint8_t hsms[HSM_GROUP_SIZE];
 };

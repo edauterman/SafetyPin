@@ -55,6 +55,7 @@ int aesDecrypt(const void *key, uint8_t *pt, const uint8_t *iv, const uint8_t *c
 
 int intsToBignums(BIGNUM **bns, uint8_t *ints, int len);
 
+void hmac(uint8_t *key,  uint8_t *out, uint8_t *in, int inLen);
 #ifdef __cplusplus
 }
 #endif

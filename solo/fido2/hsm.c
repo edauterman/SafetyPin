@@ -510,7 +510,7 @@ void mpcStep1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *msg, uint8_t 
     uint8_t dMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
     uint8_t eMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
     
-    MPC_Step1(dShareBuf, eShareBuf, dMacs, eMacs, msg, req->pinShare, req->hsms);
+    MPC_Step1(dShareBuf, eShareBuf, dMacs, eMacs, msg, req->pinShare, req->hsms, req->aesCt, req->aesCtTag);
 
     if (out) {
         memcpy(out + (KEY_LEVELS * CT_LEN), dShareBuf, FIELD_ELEM_LEN);

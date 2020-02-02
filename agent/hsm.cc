@@ -699,7 +699,7 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t **dMacs, uint8_t **eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], ShamirShare *pinShare, uint8_t *hsms, uint8_t reconstructIndex) {
+int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t **dMacs, uint8_t **eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *aesCt, uint8_t *aesCtTag, ShamirShare *pinShare, uint8_t *hsms, uint8_t reconstructIndex) {
     int rv = ERROR;
     HSM_AUTH_MPC_DECRYPT_1_REQ req;
     HSM_AUTH_MPC_DECRYPT_1_RESP resp;
@@ -745,6 +745,9 @@ int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_
    
         Shamir_MarshalCompressed(req.pinShare, pinShare); 
         memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
+
+        memcpy(req.aesCt, aesCt, AES_CT_LEN);
+        memcpy(req.aesCtTag, aesCtTag, SHA256_DIGEST_LENGTH);
 
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_1, 0, 0,

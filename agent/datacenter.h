@@ -25,6 +25,8 @@ typedef struct {
     uint8_t iv[AES256_IV_LEN];
     uint8_t ct[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];
     ElGamalCtShare *elGamalCts[HSM_GROUP_SIZE];
+    uint8_t aesCts[HSM_GROUP_SIZE][AES_CT_LEN];
+    uint8_t aesCtTags[HSM_GROUP_SIZE][SHA256_DIGEST_LENGTH];
 } RecoveryCiphertext;
 
 RecoveryCiphertext *RecoveryCiphertext_new(Params *params);

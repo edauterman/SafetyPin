@@ -4,6 +4,7 @@
 #include <openssl/bn.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
+#include <openssl/evp.h>
 #include <thread>
 
 #include "bls12_381/bls12_381.h"
@@ -27,13 +28,18 @@ using namespace std;
 const char *HANDLES[] = {"/dev/cu.usbmodem206A36AC55482"};
 
 typedef struct {
+    uint8_t aesKey[KEY_LEN];
+    uint8_t hmacKey[KEY_LEN];
+} MpcMsg;
+
+typedef struct {
     uint8_t msg[FIELD_ELEM_LEN];
-    uint8_t a[FIELD_ELEM_LEN];
-    uint8_t b[FIELD_ELEM_LEN];
-    uint8_t c[FIELD_ELEM_LEN];
+    uint8_t a[NUM_ATTEMPTS][FIELD_ELEM_LEN];
+    uint8_t b[NUM_ATTEMPTS][FIELD_ELEM_LEN];
+    uint8_t c[NUM_ATTEMPTS][FIELD_ELEM_LEN];
     uint8_t rShare[FIELD_ELEM_LEN];
     uint8_t savePinShare[FIELD_ELEM_LEN];
-} MpcMsg;
+} InnerMpcMsg;
 
 RecoveryCiphertext *RecoveryCiphertext_new(Params *params) {
     int rv = ERROR;
@@ -237,6 +243,8 @@ int Datacenter_TestSetup(Datacenter *d) {
 
     setMacKeys(d);
 
+    printf("AES_CT_LEN = %d, sizeof = %d\n", AES_CT_LEN, sizeof(InnerMpcMsg));
+
     printf("going to build tree\n");
     PuncEnc_BuildTree(cts, msk, hmacKey, &mpk);
     for (int i = 0; i < NUM_HSMS; i++) {
@@ -322,9 +330,9 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     EC_POINT *elGamalRandPt = NULL;
     ShamirShare *saveKeyShares[HSM_GROUP_SIZE];
     ShamirShare *saltShares[HSM_GROUP_SIZE];
-    ShamirShare *aShares[HSM_GROUP_SIZE];
-    ShamirShare *bShares[HSM_GROUP_SIZE];
-    ShamirShare *cShares[HSM_GROUP_SIZE];
+    ShamirShare *aShares[NUM_ATTEMPTS][HSM_GROUP_SIZE];
+    ShamirShare *bShares[NUM_ATTEMPTS][HSM_GROUP_SIZE];
+    ShamirShare *cShares[NUM_ATTEMPTS][HSM_GROUP_SIZE];
     ShamirShare *rShares[HSM_GROUP_SIZE];
     ShamirShare *pinShares[HSM_GROUP_SIZE];
     ShamirShare *elGamalRandShares[HSM_GROUP_SIZE];
@@ -338,14 +346,16 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
         CHECK_A (saltShares[i] = ShamirShare_new());
-        CHECK_A (aShares[i] = ShamirShare_new());
-        CHECK_A (bShares[i] = ShamirShare_new());
-        CHECK_A (cShares[i] = ShamirShare_new());
         CHECK_A (rShares[i] = ShamirShare_new());
         CHECK_A (pinShares[i] = ShamirShare_new());
         CHECK_A (elGamalRandShares[i] = ShamirShare_new());
         for (int j = 0; j < PUNC_ENC_REPL; j++) {
             CHECK_A (recoveryCts[i][j] = IBE_ciphertext_new(IBE_MSG_LEN));
+        }
+        for (int j = 0; j < NUM_ATTEMPTS; j++) {
+            CHECK_A (aShares[j][i] = ShamirShare_new());
+            CHECK_A (bShares[j][i] = ShamirShare_new());
+            CHECK_A (cShares[j][i] = ShamirShare_new());
         }
     }
     CHECK_A (elGamalRandPt = EC_POINT_new(params->group));
@@ -384,30 +394,58 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     /* Encrypt [saveKey]_i, H(pin, salt) to each HSM. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         printf("starting ct %d\n", i);
-        uint8_t msg[IBE_MSG_LEN];
-        memset(msg, 0, IBE_MSG_LEN);
-        
-        MpcMsg mpcMsg;
-        Shamir_MarshalCompressed(mpcMsg.msg, saveKeyShares[i]);
-        Shamir_MarshalCompressed(mpcMsg.a, aShares[i]);
-        Shamir_MarshalCompressed(mpcMsg.b, bShares[i]);
-        Shamir_MarshalCompressed(mpcMsg.c, cShares[i]);
-        Shamir_MarshalCompressed(mpcMsg.rShare, rShares[i]);
-        Shamir_MarshalCompressed(mpcMsg.savePinShare, pinShares[i]);
+        int bytesFilled = 0;
 
-        printf("share[%d]: ", i);
-        for (int j = 0; j < IBE_MSG_LEN; j++) {
-            printf("%x ", ((uint8_t *)&mpcMsg)[j]);
+        InnerMpcMsg innerMpcMsg;
+        Shamir_MarshalCompressed(innerMpcMsg.msg, saveKeyShares[i]);
+        Shamir_MarshalCompressed(innerMpcMsg.rShare, rShares[i]);
+        Shamir_MarshalCompressed(innerMpcMsg.savePinShare, pinShares[i]);
+
+        for (int j = 0; j < NUM_ATTEMPTS; j++) {
+            Shamir_MarshalCompressed(innerMpcMsg.a[j], aShares[j][i]);
+            Shamir_MarshalCompressed(innerMpcMsg.b[j], bShares[j][i]);
+            Shamir_MarshalCompressed(innerMpcMsg.c[j], cShares[j][i]);
+        }
+
+        MpcMsg mpcMsg;
+        CHECK_C (RAND_bytes(mpcMsg.aesKey, KEY_LEN));
+        CHECK_C (RAND_bytes(mpcMsg.hmacKey, KEY_LEN));
+
+        EVP_CIPHER_CTX *ctx;
+        CHECK_A (ctx = EVP_CIPHER_CTX_new());
+        CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, mpcMsg.aesKey, NULL));
+        CHECK_C (EVP_EncryptUpdate(ctx, c->aesCts[i], &bytesFilled, (uint8_t *)&innerMpcMsg, AES_CT_LEN));
+        hmac(mpcMsg.hmacKey, c->aesCtTags[i], c->aesCts[i], AES_CT_LEN);
+
+        printf("bytesFilled = %d\n", bytesFilled);
+        printf("saveKeyShare[%d]: %s, %s\n", i, BN_bn2hex(saveKeyShares[i]->x), BN_bn2hex(saveKeyShares[i]->y));
+        printf("aShare[%d]: %s\n", i, BN_bn2hex(aShares[0][i]->y));
+        printf("bShare[%d]: %s\n", i, BN_bn2hex(bShares[0][i]->y));
+        printf("cShare[%d]: %s\n", i, BN_bn2hex(cShares[0][i]->y));
+        printf("rShare[%d]: %s\n", i, BN_bn2hex(rShares[i]->y));
+        printf("savePinShare[%d]: %s\n", i, BN_bn2hex(pinShares[i]->y));
+       
+        printf("encrypted buffer for %d: ", i);
+        for (int j = 0; j < AES_CT_LEN; j++) {
+            printf("%02x", ((uint8_t *)(&innerMpcMsg))[j]);
         }
         printf("\n");
 
-        printf("saveKeyShare[%d]: %s, %s\n", i, BN_bn2hex(saveKeyShares[i]->x), BN_bn2hex(saveKeyShares[i]->y));
-        printf("aShare[%d]: %s\n", i, BN_bn2hex(aShares[i]->y));
-        printf("bShare[%d]: %s\n", i, BN_bn2hex(bShares[i]->y));
-        printf("cShare[%d]: %s\n", i, BN_bn2hex(cShares[i]->y));
-        printf("rShare[%d]: %s\n", i, BN_bn2hex(rShares[i]->y));
-        printf("savePinShare[%d]: %s\n", i, BN_bn2hex(pinShares[i]->y));
-        
+        printf("ciphertext for %d: ", i);
+        for (int j = 0; j < AES_CT_LEN; j++) {
+            printf("%02x", c->aesCts[i][j]);
+        }
+        printf("\n");
+
+        printf("aes key for %d: ", i);
+        for (int j = 0; j < KEY_LEN; j++) {
+            printf("%02x", mpcMsg.aesKey[j]);
+        }
+        printf("\n");
+
+
+
+
         CHECK_C (HSM_Encrypt(d->hsms[h1[i]], userID + i, (uint8_t *)&mpcMsg, IBE_MSG_LEN, recoveryCts[i]));
 
     }
@@ -463,14 +501,16 @@ cleanup:
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         if (saveKeyShares[i]) ShamirShare_free(saveKeyShares[i]);
         if (saltShares[i]) ShamirShare_free(saltShares[i]);
-        if (aShares[i]) ShamirShare_free(aShares[i]);
-        if (bShares[i]) ShamirShare_free(bShares[i]);
-        if (cShares[i]) ShamirShare_free(cShares[i]);
         if (rShares[i]) ShamirShare_free(rShares[i]);
         if (pinShares[i]) ShamirShare_free(pinShares[i]);
         if (h1Bns[i]) BN_free(h1Bns[i]);
         for (int j = 0; j < PUNC_ENC_REPL; j++) {
             if (recoveryCts[i][j]) IBE_ciphertext_free(recoveryCts[i][j]);
+        }
+        for (int j = 0; j < NUM_ATTEMPTS; j++) {
+            if (aShares[j][i]) ShamirShare_free(aShares[j][i]);
+            if (bShares[j][i]) ShamirShare_free(bShares[j][i]);
+            if (cShares[j][i]) ShamirShare_free(cShares[j][i]);
         }
     }
     return rv;
@@ -612,7 +652,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
 
     /* Run stage 1 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        t1[i] = thread(HSM_AuthMPCDecrypt1, d->hsms[h1[i]], dShares[i], eShares[i], dMacs[i], eMacs[i], userID + i, recoveryCts[i], pinShares[i], h1, i + 1);
+        t1[i] = thread(HSM_AuthMPCDecrypt1, d->hsms[h1[i]], dShares[i], eShares[i], dMacs[i], eMacs[i], userID + i, recoveryCts[i], c->aesCts[i], c->aesCtTags[i], pinShares[i], h1, i + 1);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t1[i].join();

@@ -2,18 +2,24 @@
 #include <stdio.h>
 
 //#include "../crypto/cifra/src/arm/unacl/scalarmult.c"
+#include "crypto.h"
 #include "uECC.h"
 #include "log.h"
 #include "hsm.h"
 #include "punc_enc.h"
 
-struct MpcMsg {
+struct InnerMpcMsg {
     uint8_t msg[FIELD_ELEM_LEN];
-    uint8_t a[FIELD_ELEM_LEN];
-    uint8_t b[FIELD_ELEM_LEN];
-    uint8_t c[FIELD_ELEM_LEN];
+    uint8_t a[NUM_ATTEMPTS][FIELD_ELEM_LEN];
+    uint8_t b[NUM_ATTEMPTS][FIELD_ELEM_LEN];
+    uint8_t c[NUM_ATTEMPTS][FIELD_ELEM_LEN];
     uint8_t rShare[FIELD_ELEM_LEN];
     uint8_t savePinShare[FIELD_ELEM_LEN];
+};
+
+struct MpcMsg {
+    uint8_t aesKey[KEY_LEN];
+    uint8_t hmacKey[KEY_LEN];
 };
 
 fieldElem a, b, c, pinDiffShare;
@@ -161,16 +167,43 @@ int checkReconstruction(fieldElem *sharesX, fieldElem *sharesY, fieldElem result
     return (uECC_equal(resultTest, result) != 0) ? OKAY : ERROR;
 }
 
-void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t dMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN], uint8_t eMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN], uint8_t *msgIn, uint8_t *recoveryPinShareBuf, uint8_t *hsms) {
-    struct MpcMsg *currMpcMsg = (struct MpcMsg *)msgIn;
+void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t dMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN], uint8_t eMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN], uint8_t *msgIn, uint8_t *recoveryPinShareBuf, uint8_t *hsms, uint8_t *aesCt, uint8_t *aesCtTag) {
+    struct MpcMsg *outerMpcMsg = (struct MpcMsg *)msgIn;
     fieldElem recoveryPinShare, savePinShare;
-   
+ 
+    struct InnerMpcMsg currMpcMsg;
+    uint8_t tag[SHA256_DIGEST_LEN];
+    crypto_aes256_init(outerMpcMsg->aesKey, NULL);
+    crypto_aes256_decrypt_sep((uint8_t *)(&currMpcMsg), aesCt, AES_CT_LEN);
+    crypto_hmac(outerMpcMsg->hmacKey, tag, aesCt, AES_CT_LEN);
+    if (memcmp(tag, aesCtTag, SHA256_DIGEST_LEN) != 0) return;
+
+    printf("decrypted buffer: ");
+    for (int i = 0; i < AES_CT_LEN; i++) {
+        printf("%02x", ((uint8_t *)(&currMpcMsg))[i]);
+    }
+    printf("\n");
+
+    printf("ciphertext: ");
+    for (int i = 0; i < AES_CT_LEN; i++) {
+        printf("%02x", aesCt[i]);
+    }
+    printf("\n");
+
+    printf("key: ");
+    for (int i = 0; i < KEY_LEN; i++) {
+        printf("%02x", outerMpcMsg->aesKey[i]);
+    }
+    printf("\n");
+
+
+
     /* Save msg. */
-    memcpy(msg, currMpcMsg->msg, FIELD_ELEM_LEN);
+    memcpy(msg, currMpcMsg.msg, FIELD_ELEM_LEN);
 
     /* Compute pin - pin' */
     uECC_bytesToFieldElem(recoveryPinShare, recoveryPinShareBuf);
-    uECC_bytesToFieldElem(savePinShare, currMpcMsg->savePinShare);
+    uECC_bytesToFieldElem(savePinShare, currMpcMsg.savePinShare);
     sub(pinDiffShare, recoveryPinShare, savePinShare);
     uint8_t pinDiffShareBytes[FIELD_ELEM_LEN];
     uECC_fieldElemToBytes(pinDiffShareBytes, pinDiffShare);
@@ -183,25 +216,25 @@ void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t dMacs[HSM_GROUP_S
     
     printf("a: ");
     for (int i = 0; i < FIELD_ELEM_LEN; i++) {
-        printf("%02x", currMpcMsg->a[i]);
+        printf("%02x", currMpcMsg.a[0][i]);
     }
     printf("\n");
 
     printf("b: ");
     for (int i = 0; i < FIELD_ELEM_LEN; i++) {
-        printf("%02x", currMpcMsg->b[i]);
+        printf("%02x", currMpcMsg.b[0][i]);
     }
     printf("\n");
 
     printf("c: ");
     for (int i = 0; i < FIELD_ELEM_LEN; i++) {
-        printf("%02x", currMpcMsg->c[i]);
+        printf("%02x", currMpcMsg.c[0][i]);
     }
     printf("\n");
 
     printf("rShare: ");
     for (int i = 0; i < FIELD_ELEM_LEN; i++) {
-        printf("%02x", currMpcMsg->rShare[i]);
+        printf("%02x", currMpcMsg.rShare[i]);
     }
     printf("\n");
 
@@ -209,10 +242,10 @@ void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t dMacs[HSM_GROUP_S
 
     /* Start computation for r * (pin - pin') */
     fieldElem dShare, eShare, rShare;
-    uECC_bytesToFieldElem(rShare, currMpcMsg->rShare);
-    uECC_bytesToFieldElem(a, currMpcMsg->a);
-    uECC_bytesToFieldElem(b, currMpcMsg->b);
-    uECC_bytesToFieldElem(c, currMpcMsg->c);
+    uECC_bytesToFieldElem(rShare, currMpcMsg.rShare);
+    uECC_bytesToFieldElem(a, currMpcMsg.a[0]);
+    uECC_bytesToFieldElem(b, currMpcMsg.b[0]);
+    uECC_bytesToFieldElem(c, currMpcMsg.c[0]);
     multiplyStart(dShare, eShare, rShare, pinDiffShare, a, b);
 
     uECC_fieldElemToBytes(dShareBuf, dShare);

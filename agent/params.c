@@ -236,3 +236,29 @@ int intsToBignums(BIGNUM **bns, uint8_t *ints, int len) {
 cleanup:
     return rv;
 }
+
+void hmac(uint8_t *key,  uint8_t *out, uint8_t *in, int inLen) {
+    uint8_t keyBuf[64];
+    uint8_t keyPadBuf[64];
+    uint8_t outBuf[32];
+    memset(keyBuf, 0, 64);
+    memcpy(keyBuf, key, KEY_LEN);
+    for (int i = 0; i < 64; i++) {
+        keyPadBuf[i] = keyBuf[i] ^ 0x36;
+    }
+    memset(outBuf, 0, 32);
+    memset(out, 0, 32);
+
+    EVP_MD_CTX *mdctx = EVP_MD_CTX_create();
+    EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL);
+    EVP_DigestUpdate(mdctx, keyPadBuf, 64);
+    EVP_DigestUpdate(mdctx,  in, inLen);
+    EVP_DigestFinal_ex(mdctx, outBuf, NULL);
+    for (int i = 0; i < 64; i++) {
+        keyPadBuf[i] = keyBuf[i] ^ 0x5c;
+    }
+    EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL);
+    EVP_DigestUpdate(mdctx, keyPadBuf, 64);
+    EVP_DigestUpdate(mdctx, outBuf, 32);
+    EVP_DigestFinal_ex(mdctx, out, NULL);
+}
