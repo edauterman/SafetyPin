@@ -53,7 +53,7 @@ Params *Params_new()
     sprintf(numLeavesBuf, "%d", NUM_LEAVES);
     BN_dec2bn(&params->numLeaves, numLeavesBuf);
 
-    // TODO: choose prime closer to 2^128
+    // TODO: delete this, using order instead of prime now 
     BN_hex2bn(&params->prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
 
     CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_secp256k1));

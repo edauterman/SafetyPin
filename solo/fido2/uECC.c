@@ -65,8 +65,6 @@ void uECC_modNeg(fieldElem result,
 /* Computes result = (1 / input) % mod.*/
 void uECC_modInv(fieldElem result,
                      const fieldElem input) {
-    printf("---- in mod inv\n");
-    printf("num_n_words = %d\n", uECC_curve_num_n_words(curve));
     uECC_vli_modInv(result, input, uECC_curve_n(curve), uECC_curve_num_n_words(curve));
 }
 

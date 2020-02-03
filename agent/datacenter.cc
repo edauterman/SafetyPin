@@ -169,8 +169,6 @@ int setMacKeys(Datacenter *d) {
         }
     }
 
-    if (NUM_HSMS % 2 != 0) printf("ERROR: NOT AN EVEN NUMBER OF HSMS %d\n", NUM_HSMS);
-
     for (int i = 0; i < NUM_HSMS; i++) {
     //for (int i = 0; i < NUM_HSMS / 2; i++) {
         for (int j = 0; j < NUM_HSMS; j++) {
