@@ -12,11 +12,11 @@
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32) 
 
-#define HSM_GROUP_SIZE 3
+#define HSM_GROUP_SIZE 100
 #define HSM_THRESHOLD_SIZE 1
 #define NUM_HSMS 1
 
-#define NUM_ATTEMPTS 1
+#define NUM_ATTEMPTS 5
 
 #define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
 

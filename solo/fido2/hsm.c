@@ -491,17 +491,19 @@ void getMsg(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *msg, uint8_t *l
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
 }
 
+uint8_t tmpNewCts[KEY_LEVELS][CT_LEN];
+
 void doPuncture(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen) {
-    uint8_t newCts[KEY_LEVELS][CT_LEN];
+    //uint8_t newCts[KEY_LEVELS][CT_LEN];
 
     printf1(TAG_GREEN, "going to puncture\n");
-    PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
+    PuncEnc_PunctureLeaf(req->treeCts, req->index, tmpNewCts);
     printf1(TAG_GREEN, "finished puncturing leaf\n");
-    if (out) {
+    /*if (out) {
         memcpy(out, newCts, KEY_LEVELS * CT_LEN);
     } else {
         u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
-    }
+    }*/
 }
 
 void mpcStep1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *msg, uint8_t *out, int *outLen) {
@@ -512,7 +514,9 @@ void mpcStep1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *msg, uint8_t 
     
     MPC_Step1(dShareBuf, eShareBuf, dMacs, eMacs, msg, req->pinShare, req->hsms, req->aesCt, req->aesCtTag);
 
+    //memset(dMacs, 0xff, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
     if (out) {
+        memcpy(out, tmpNewCts, KEY_LEVELS * CT_LEN);
         memcpy(out + (KEY_LEVELS * CT_LEN), dShareBuf, FIELD_ELEM_LEN);
         memcpy(out + (KEY_LEVELS * CT_LEN) + FIELD_ELEM_LEN, eShareBuf, FIELD_ELEM_LEN);
         memcpy(out + (KEY_LEVELS * CT_LEN) + 2 * FIELD_ELEM_LEN, dMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
@@ -520,6 +524,7 @@ void mpcStep1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *msg, uint8_t 
         //memcpy(out + 2 * FIELD_ELEM_LEN + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE), newCts, KEY_LEVELS * CT_LEN);
         *outLen = (2 * FIELD_ELEM_LEN) + (2 * SHA256_DIGEST_LEN * HSM_GROUP_SIZE) + (KEY_LEVELS * CT_LEN);
     } else {
+        u2f_response_writeback(tmpNewCts, KEY_LEVELS * CT_LEN);
         u2f_response_writeback(dShareBuf, FIELD_ELEM_LEN);
         u2f_response_writeback(eShareBuf, FIELD_ELEM_LEN);
         u2f_response_writeback(dMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);

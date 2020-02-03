@@ -329,6 +329,7 @@ int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *
         // NOTE: ASSUMING NUM_HSMS NEVER GREATER THAN 256
         h[i] = 0;
         BN_bn2bin(hsm, &h[i]);
+        h[i] = i % NUM_HSMS; // JUST FOR TESTING!!!
         debug_print("h[%d] = %d\n", i, h[i]);
     }
 cleanup:
@@ -361,7 +362,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     IBE_ciphertext *recoveryCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     uint8_t elGamalRandBuf[33];
     uint8_t keyBuf[AES256_KEY_LEN];
-    uint8_t list[6] = {1,2,3,4,5,6};
+    uint8_t list[HSM_GROUP_SIZE];
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
@@ -377,6 +378,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
             CHECK_A (bShares[j][i] = ShamirShare_new());
             CHECK_A (cShares[j][i] = ShamirShare_new());
         }
+        list[i] = i + 1;
     }
     CHECK_A (elGamalRandPt = EC_POINT_new(params->group));
     CHECK_A (elGamalRand = BN_new());
@@ -437,6 +439,25 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
         CHECK_C (EVP_EncryptUpdate(ctx, c->aesCts[i], &bytesFilled, (uint8_t *)&innerMpcMsg, AES_CT_LEN));
         hmac(mpcMsg.hmacKey, c->aesCtTags[i], c->aesCts[i], AES_CT_LEN);
 
+        printf("aesCtTag[%d]: ", i);
+        for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) {
+            printf("%02x", c->aesCtTags[i][j]);
+        }
+        printf("\n");
+       
+        printf("hmacKey[%d]: ", i);
+        for (int j = 0; j < KEY_LEN; j++) {
+            printf("%02x", mpcMsg.hmacKey[j]);
+        }
+        printf("\n");
+      
+        printf("aesCt[%d]: ", i);
+        for (int j = 0; j < AES_CT_LEN; j++) {
+            printf("%02x", c->aesCts[i][j]);
+        }
+        printf("\n");
+      
+
         debug_print("saveKeyShare[%d]: %s, %s\n", i, BN_bn2hex(saveKeyShares[i]->x), BN_bn2hex(saveKeyShares[i]->y));
         debug_print("aShare[%d]: %s\n", i, BN_bn2hex(aShares[0][i]->y));
         debug_print("bShare[%d]: %s\n", i, BN_bn2hex(bShares[0][i]->y));
@@ -469,6 +490,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     CHECK_C (hash_to_bytes(keyBuf, AES256_KEY_LEN, elGamalRandBuf, 33));
     CHECK_C (aesEncrypt(keyBuf, innerCtBuf, HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN, c->iv, c->ct));
 
+    printf("done with all the encryption\n");
 
     /*  TODO: need to use elGamalRand to generate pad to XOR ciphertexts with */
 
@@ -539,7 +561,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     thread t2[HSM_GROUP_SIZE];
     thread t3[HSM_GROUP_SIZE];
     BIGNUM *h1Bns[HSM_GROUP_SIZE];
-    uint8_t list[6] = {1,2,3,4,5,6};
+    uint8_t list[HSM_GROUP_SIZE];
     uint8_t dOrder[2 * HSM_THRESHOLD_SIZE];
     uint8_t eOrder[2 * HSM_THRESHOLD_SIZE];
     uint8_t resultOrder[2 * HSM_THRESHOLD_SIZE];
@@ -586,6 +608,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         for (int j = 0; j < PUNC_ENC_REPL; j++) {
             CHECK_A  (recoveryCts[i][j] = IBE_ciphertext_new(IBE_MSG_LEN));
         }
+        list[i] = i + 1;
     }
     CHECK_A (r = BN_new());
     CHECK_A (dVal = BN_new());

@@ -14,12 +14,12 @@
 
 //uint8_t msgBuf[1024];
 //uint8_t msgBuf[1];
-uint8_t msgBuf[3500];
+//uint8_t msgBuf[3500];
 
 //uint8_t msgBuf[3000]; // not used
 
 //uint8_t rsp[1024];
-uint8_t rsp[8288];
+uint8_t inOutBuf[8700];
 //uint8_t rsp[1];
 //uint8_t rsp[3500];
 uint8_t currSessionNum = 0;
@@ -31,12 +31,12 @@ static int ceil(double x) {
 
 // Buffer data and send in HID_MESSAGE_SIZE chunks
 // if len == 0, FLUSH
-static void cdc_write(uint8_t *data, int len, uint8_t msgType)
+static void cdc_write(uint8_t *data, int len, uint8_t msgType, uint8_t sessionNum)
 {
     int numRounds = len == 0 ? 1 : ceil((double)len / CDC_PAYLOAD_SZ);
     for (int i = 0; i < numRounds; i++) {
         struct CDCFrame frame;
-        frame.sessionNum = currSessionNum;
+        frame.sessionNum = sessionNum;
         /* Don't need to set msg type for responses. */
         frame.seqNo = i;
         int bytesToWrite = len - (i * CDC_PAYLOAD_SZ) < CDC_PAYLOAD_SZ ? len - (i * CDC_PAYLOAD_SZ) : CDC_PAYLOAD_SZ;
@@ -56,12 +56,12 @@ void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whe
         return;
     }
     if (frame->msgType == HSM_RESET) {
-        cdc_write(rsp, 0, frame->msgType);
+        cdc_write(inOutBuf, 0, frame->msgType, currSessionNum);
         currSessionNum = 0;
         return;
     }
     //currSessionNum = frame->sessionNum;
-    memcpy(msgBuf + frame->seqNo * CDC_PAYLOAD_SZ, frame->payload, CDC_PAYLOAD_SZ);
+    memcpy(inOutBuf + frame->seqNo * CDC_PAYLOAD_SZ, frame->payload, CDC_PAYLOAD_SZ);
     int reqLen = HSM_GetReqLenFromMsgType(frame->msgType);
 /*    if (frame->msgType == HSM_RETRIEVE) {
         uint8_t rsp[59];
@@ -90,15 +90,17 @@ void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whe
             HSM_Handle(frame->msgType, msgBuf, rsp, &sendLen);
         }*/
         //if (frame->msgType != HSM_RETRIEVE) {
-        HSM_Handle(frame->msgType, msgBuf, rsp, &sendLen);
-        cdc_write(rsp, sendLen, frame->msgType);
+        uint8_t sessionNum = currSessionNum;
+        currSessionNum = (currSessionNum + 1) % 256;
+        HSM_Handle(frame->msgType, inOutBuf, inOutBuf, &sendLen);
+        cdc_write(inOutBuf, sendLen, frame->msgType, sessionNum);
         //} else {
         //    cdc_write(msgBuf, reqLen, frame->msgType);
         //}
         //cdc_write(rsp, sendLen, frame->msgType);
         //}
-        currSessionNum = (currSessionNum + 1) % 256; /*else {
-            cdc_write(msgBuf, reqLen, frame->msgType);
+        //currSessionNum = (currSessionNum + 1) % 256; /*else {
+        /*    cdc_write(msgBuf, reqLen, frame->msgType);
         }*/
     }
 }
