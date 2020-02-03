@@ -351,18 +351,24 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     uint32_t t5 = millis();
     embedded_pairing_bls12_381_g2_multiply_affine(&g2_z2, &g2_z1_aff, &z2);
     uint32_t t6 = millis(); 
-    embedded_pairing_bls12_381_pairing(&res, &g1_z1, &g2_z1);
+    //embedded_pairing_bls12_381_pairing(&res, &g1_z1, &g2_z1);
     printf1(TAG_GREEN, "did pairing\n");
     uint32_t t7 = millis();
     embedded_pairing_bls12_381_gt_multiply(&res2, &res, &z1);
     uint32_t t8 =  millis();
     embedded_pairing_bls12_381_gt_multiply_random(&res2, &res, &z1, ctap_generate_rng);
     uint32_t t9 = millis();
-    crypto_aes256_init(key, NULL);
+    for (int i = 0; i < 100; i++) {
+        crypto_aes256_init(key, NULL);
+    }
     uint32_t t10 = millis();
-    crypto_aes256_encrypt(buf, 16);
+    for (int i = 0; i < 100; i++) {
+        crypto_aes256_encrypt(buf, 16);
+    }
     uint32_t t11 = millis();
-    crypto_hmac(key, buf, buf2,  16);
+    for (int i = 0; i < 100; i++) {
+        crypto_hmac(key, buf, buf2,  16);
+    }
     uint32_t t12 = millis();
 
     memset(buf, 0xff, 16);
@@ -380,6 +386,28 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
         printf("decryption matched\n");
     }
     //printf("key len: %d, aes256 = %d, aes128 = %d\n", AES_KEYLEN, AES256, AES128);
+    fieldElem x, y;
+    ecPoint gx, gy, gz;
+    uint8_t ct[66];
+    uint8_t pt[33];
+    uECC_randInt(x);
+    uECC_randInt(y);
+    uint32_t t13 = millis();
+    uECC_basePointMult(gx, x);
+    uint32_t t14 = millis();
+    uECC_pointMult(gy, gx,  y);
+    uint32_t t15 = millis();
+    uECC_bytesToPointCompressed(ct, gx);
+    uECC_bytesToPointCompressed(ct + 33, gy);
+    uint32_t t16 = millis();
+    ElGamal_Decrypt(ct, pt);
+    uint32_t t17 = millis();
+    uECC_pointAdd(gz, gx, gy);
+    uint32_t t18 = millis();
+    for (int i = 0; i < 1000; i++) {
+        raw_flash_read(ct, 0, 32);
+    }
+    uint32_t t19 = millis();
 
     printf1(TAG_GREEN, "g_1^x (generator): %d ms\n", t2 - t1);
     printf1(TAG_GREEN, "g_2^x (generator): %d ms\n", t3 - t2);
@@ -389,10 +417,14 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "g_t^x (random): %d ms\n", t9 - t8);
     printf1(TAG_GREEN, "projective -> affine (both): %d ms\n", t4 - t3);
     printf1(TAG_GREEN, "pairing: %d ms\n", t7 - t6);
-    printf1(TAG_GREEN, "aes init: %d ms\n", t10 - t9);
-    printf1(TAG_GREEN, "aes encrypt: %d ms\n", t11 - t10);
-    printf1(TAG_GREEN, "aes total: %d ms\n", t11 - t9);
-    printf1(TAG_GREEN, "hmac: %d ms\n", t12 - t11);
+    printf1(TAG_GREEN, "aes init (100): %d ms\n", t10 - t9);
+    printf1(TAG_GREEN, "aes encrypt (100): %d ms\n", t11 - t10);
+    printf1(TAG_GREEN, "hmac (100): %d ms\n", t12 - t11);
+    printf1(TAG_GREEN, "P256 base point mul: %d ms\n", t14 - t13);
+    printf1(TAG_GREEN, "P256 point mul: %d ms\n", t15 - t14);
+    printf1(TAG_GREEN, "P256 point add: %d ms\n", t18 - t17);
+    printf1(TAG_GREEN, "el gamal decrypt: %d ms\n", t17 - t16);
+    printf1(TAG_GREEN, "read from flash (100): %d ms\n", t19 - t18);
 
     *outLen = 0;
 
