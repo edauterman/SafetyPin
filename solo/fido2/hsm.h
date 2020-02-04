@@ -13,8 +13,8 @@
 #define CT_LEN (2 * KEY_LEN + 32) 
 
 #define HSM_GROUP_SIZE 100
-#define HSM_THRESHOLD_SIZE 1
-#define NUM_HSMS 1
+#define HSM_THRESHOLD_SIZE 34 
+#define NUM_HSMS 100
 
 #define NUM_ATTEMPTS 5
 

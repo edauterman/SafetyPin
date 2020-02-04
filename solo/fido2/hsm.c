@@ -528,9 +528,7 @@ uint8_t tmpNewCts[KEY_LEVELS][CT_LEN];
 void doPuncture(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen) {
     //uint8_t newCts[KEY_LEVELS][CT_LEN];
 
-    printf1(TAG_GREEN, "going to puncture\n");
     PuncEnc_PunctureLeaf(req->treeCts, req->index, tmpNewCts);
-    printf1(TAG_GREEN, "finished puncturing leaf\n");
     /*if (out) {
         memcpy(out, newCts, KEY_LEVELS * CT_LEN);
     } else {
@@ -563,13 +561,12 @@ void mpcStep1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *msg, uint8_t 
         u2f_response_writeback(eMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
         //u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
     }
-    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+    //printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
 
 
 }
 
 int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen) {
-    printf1(TAG_GREEN, "starting to decrypt\n");
     uint8_t leaf[CT_LEN];
     /*embedded_pairing_bls12_381_g2_t U;
     uint8_t V[IBE_MSG_LEN];
@@ -636,7 +633,7 @@ int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *ou
         u2f_response_writeback(eMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
         //u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
     }*/
-    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+    //printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
 
     return U2F_SW_NO_ERROR;
 }
@@ -645,7 +642,7 @@ int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *ou
     uint8_t resultShareBuf[FIELD_ELEM_LEN];
     uint8_t resultMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
    
-    printf("in the mpc auth decrypt 2 function\n");
+    //printf("in the mpc auth decrypt 2 function\n");
 
     if (MPC_Step2(resultShareBuf, resultMacs, req->d, req->e, req->dShares, req->eShares, req->dSharesX, req->eSharesX, req->dMacs, req->eMacs, req->validHsms, req->allHsms) != OKAY) {
         printf("error in MPC step 2\n");
@@ -661,28 +658,28 @@ int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *ou
         u2f_response_writeback(resultShareBuf, FIELD_ELEM_LEN);
         u2f_response_writeback(resultMacs, SHA256_DIGEST_LEN * HSM_GROUP_SIZE);
     }
-    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+    //printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
 
     return U2F_SW_NO_ERROR;
 }
 
 int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen) {
     uint8_t msg[KEY_LEN];
-    printf("in mpc step 3\n");
+    //printf("in mpc step 3\n");
     
     if (MPC_Step3(msg, req->result, req->resultShares, req->resultSharesX, req->resultMacs, req->validHsms) != OKAY) {
         printf("ERROR in mpc step 3\n");
-        memset(msg, 0, FIELD_ELEM_LEN);
+        //memset(msg, 0, FIELD_ELEM_LEN);
     }
 
-    printf("writing back\n");
+    //printf("writing back\n");
     if (out) {
         memcpy(out, msg, FIELD_ELEM_LEN);
         *outLen = FIELD_ELEM_LEN;
     } else {
         u2f_response_writeback(msg, FIELD_ELEM_LEN);
     }
-    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+    //printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
 
     return U2F_SW_NO_ERROR;
 }
