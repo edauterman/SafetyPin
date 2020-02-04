@@ -136,6 +136,7 @@ cleanup:
 }
 
 void scratch() {
+    int rv;
     Params *params =  Params_new();
     BIGNUM *x1 = BN_new();
     EC_POINT *gx1 = EC_POINT_new(params->group);
@@ -172,6 +173,169 @@ void scratch() {
     BN_hex2bn(&b, "fc57d5c233b49444fd122c62341b7f4cb52e31043be2a4a23560f2616a4429f9");
     BN_mod_mul(prod, d, b, params->order, params->bn_ctx);
     printf("prod: %s\n", BN_bn2hex(prod));
+
+
+    ShamirShare *aShares[6];
+    ShamirShare *bShares[6];
+    ShamirShare *cShares[6];
+    ShamirShare *dShares[6];
+    ShamirShare *eShares[6];
+    ShamirShare *resultShares[6];
+    ShamirShare *rShares[6];
+    ShamirShare *savePinShares[6];
+    ShamirShare *recoverPinShares[6];
+    ShamirShare *pinDiffShares[6];
+    BIGNUM *result = BN_new();
+    //BIGNUM *tmp1 = BN_new();
+    //BIGNUM *tmp2 = BN_new();
+    //BIGNUM *inv = BN_new();
+    //BIGNUM *d = BN_new();
+    BIGNUM *e = BN_new();
+    uint8_t two = 2;
+    BIGNUM *threshold = BN_bin2bn(&two, 1, NULL);
+    BN_zero(result);
+    for (uint8_t i = 0; i < 6; i++) {
+        uint8_t j = i + 1;
+        aShares[i] = ShamirShare_new();
+        aShares[i]->x = BN_bin2bn(&j, 1, NULL);
+        bShares[i] = ShamirShare_new();
+        bShares[i]->x = BN_bin2bn(&j, 1, NULL);
+        cShares[i] = ShamirShare_new();
+        cShares[i]->x = BN_bin2bn(&j, 1, NULL);
+        dShares[i] = ShamirShare_new();
+        dShares[i]->x = BN_bin2bn(&j, 1, NULL);
+        eShares[i] = ShamirShare_new();
+        eShares[i]->x = BN_bin2bn(&j, 1, NULL);
+        resultShares[i] = ShamirShare_new();
+        resultShares[i]->x = BN_bin2bn(&j, 1, NULL);
+        rShares[i] = ShamirShare_new();
+        rShares[i]->x = BN_bin2bn(&j, 1, NULL);
+        savePinShares[i] = ShamirShare_new();
+        savePinShares[i]->x = BN_bin2bn(&j, 1, NULL);
+        recoverPinShares[i] = ShamirShare_new();
+        recoverPinShares[i]->x = BN_bin2bn(&j, 1, NULL);
+        pinDiffShares[i] = ShamirShare_new();
+        pinDiffShares[i]->x = BN_bin2bn(&j, 1, NULL);
+    }
+    BN_hex2bn(&aShares[0]->y, "8262CDA786E5B79F7AC0637D7D9FD6B1DD6660DF80797F02549947267017721F");
+    BN_hex2bn(&aShares[1]->y, "4A389F47226B783C471B720EB135CA7E59287DF807728ED8EEF1FC3AAFACCE9C");
+    BN_hex2bn(&aShares[2]->y, "120E70E6BDF138D91376809FE4CBBE4AD4EA9B108E6B9EAF894AB14EEF422B19");
+    BN_hex2bn(&aShares[3]->y, "D9E442865976F975DFD18F311861B2160B5B950FC4AD4EC1E375C4EFFF0DC8D7");
+    BN_hex2bn(&aShares[4]->y, "A1BA1425F4FCBA12AC2C9DC24BF7A5E2871DB2284BA65E987DCE7A043EA32554");
+    BN_hex2bn(&aShares[5]->y, "698FE5C590827AAF7887AC537F8D99AF02DFCF40D29F6E6F18272F187E3881D1");
+
+    BN_hex2bn(&bShares[0]->y, "3C625C9EA5152D5FA2DD9419CD0C8E2C69FB3B1893162243BC2B61B0F4742D17");
+    BN_hex2bn(&bShares[1]->y, "AA65200C7946B05ACEF23F3E5D0F8B420CD373FB69C969603D5BF68F1F4CD25C");
+    BN_hex2bn(&bShares[2]->y, "1867E37A4D783355FB06EA62ED128858F4FCCFF791341040FEBA2CE079EF3660");
+    BN_hex2bn(&bShares[3]->y, "866AA6E821A9B651271B95877D15856E97D508DA67E7575D7FEAC1BEA4C7DBA5");
+    BN_hex2bn(&bShares[4]->y, "F46D6A55F5DB394C533040AC0D1882843AAD41BD3E9A9E7A011B569CCFA080EA");
+    BN_hex2bn(&bShares[5]->y, "62702DC3CA0CBC477F44EBD09D1B7F9B22D69DB96605455AC2798CEE2A42E4EE");
+
+    BN_hex2bn(&cShares[0]->y, "C94099869B660EF5CC71CFB5726F9B0207B5754273D673D3035085025C9B2B89");
+    BN_hex2bn(&cShares[1]->y, "14B668AD4EA2A0527078C9DFD41BB4FAA993066C5845723DCF0D538C8B74BF3E");
+    BN_hex2bn(&cShares[2]->y, "602C37D401DF31AF147FC40A35C7CEF2061F747CEBFD10E45A9C80A38A849434");
+    BN_hex2bn(&cShares[3]->y, "ABA206FAB51BC30BB886BE349773E8E962ABE28D7FB4AF8AE62BADBA8994692A");
+    BN_hex2bn(&cShares[4]->y, "F717D621685854685C8DB85EF92002E0BF38509E136C4E3171BADAD188A43E20");
+    BN_hex2bn(&cShares[5]->y, "428DA5481B94E5C50094B2895ACC1CD96115E1C7F7DB4C9C3D77A95BB77DD1D5");
+
+    /*BN_hex2bn(&dShares[0]->y, );
+    BN_hex2bn(&dShares[1]->y, );
+    BN_hex2bn(&dShares[2]->y, );
+    BN_hex2bn(&dShares[3]->y, );
+    BN_hex2bn(&dShares[4]->y, );
+    BN_hex2bn(&dShares[5]->y, );
+
+    BN_hex2bn(&eShares[0]->y, );
+    BN_hex2bn(&eShares[1]->y, );
+    BN_hex2bn(&eShares[2]->y, );
+    BN_hex2bn(&eShares[3]->y, );
+    BN_hex2bn(&eShares[4]->y, );
+    BN_hex2bn(&eShares[5]->y, );
+
+    BN_hex2bn(&resultShares[0]->y, );
+    BN_hex2bn(&resultShares[1]->y, );
+    BN_hex2bn(&resultShares[2]->y, );
+    BN_hex2bn(&resultShares[3]->y, );
+    BN_hex2bn(&resultShares[4]->y, );
+    BN_hex2bn(&resultShares[5]->y, );
+*/
+    BN_hex2bn(&rShares[0]->y, "7D872085EA124A8D3345FDE4416BF0CF79966DD0E26877EC7413A6CC6D260EF8");
+    BN_hex2bn(&rShares[1]->y, "26D2A435BC6BADEDA91285C93CF77D4160FDB9E5D569DC14336266EBDE5CBE95");
+    BN_hex2bn(&rShares[2]->y, "D01E27E58EC5114E1EDF0DAE388309B20313E2E177B3E077B28385981FC9AF73");
+    BN_hex2bn(&rShares[3]->y, "7969AB95611E74AE94AB9593340E9623EA7B2EF66AB5449F71D245B791005F10");
+    BN_hex2bn(&rShares[4]->y, "22B52F453377D80F0A781D782F9A2295D1E27B0B5DB6A8C7312105D702370EAD");
+    BN_hex2bn(&rShares[5]->y, "CC00B2F505D13B6F8044A55D2B25AF0673F8A4070000AD2AB042248343A3FF8B");
+
+    BN_hex2bn(&savePinShares[0]->y, "72A2BFF7031E506BC2072EF6E81BE3E270E723E0B775A224D49C8F9CA2A0F7CE");
+    BN_hex2bn(&savePinShares[1]->y, "3CE9040EE9575C33A313243F742DEFC0FE4F72D27118DA087745EA73E7496078");
+    BN_hex2bn(&savePinShares[2]->y, "072F4826CF9067FB841F1988003FFB9F8BB7C1C42ABC11EC19EF454B2BF1C922");
+    BN_hex2bn(&savePinShares[3]->y, "D1758C3EB5C973C3652B0ED08C52077CD3CEED9C93A7EA0B7C6AFEAF40D0730D");
+    BN_hex2bn(&savePinShares[4]->y, "9BBBD0569C027F8B463704191864135B61373C8E4D4B21EF1F1459868578DBB7");
+    BN_hex2bn(&savePinShares[5]->y, "6602146E823B8B532742F961A4761F39EE9F8B8006EE59D2C1BDB45DCA214461");
+
+
+    BN_hex2bn(&recoverPinShares[0]->y, "96258095A478EEFBCF694598BF9FD20DD09A902E12E7CF82828147B4807EB3B1");
+    BN_hex2bn(&recoverPinShares[1]->y, "83EE854C2C0C9953BDD751832335CC17BDB64B6D27FD34C3D30F5AA3A304D83E");
+    BN_hex2bn(&recoverPinShares[2]->y, "71B78A02B3A043ABAC455D6D86CBC621AAD206AC3D129A05239D6D92C58AFCCB");
+    BN_hex2bn(&recoverPinShares[3]->y, "5F808EB93B33EE039AB36957EA61C02B97EDC1EB5227FF46742B8081E8112158");
+    BN_hex2bn(&recoverPinShares[4]->y, "4D49936FC2C7985B892175424DF7BA3585097D2A673D6487C4B993710A9745E5");
+    BN_hex2bn(&recoverPinShares[5]->y, "3B1298264A5B42B3778F812CB18DB43F722538697C52C9C91547A6602D1D6A72");
+
+    for (int i = 0; i < 6; i++) {
+        BN_mod_sub(pinDiffShares[i]->y, recoverPinShares[i]->y, savePinShares[i]->y, params->order, params->bn_ctx);
+        BN_mod_sub(dShares[i]->y, rShares[i]->y, aShares[i]->y, params->order, params->bn_ctx);
+        printf("d[%d] = %s\n", i, BN_bn2hex(dShares[i]->y));
+        BN_mod_sub(eShares[i]->y, pinDiffShares[i]->y, bShares[i]->y, params->order, params->bn_ctx);
+        printf("e[%d] = %s\n", i, BN_bn2hex(eShares[i]->y));
+    }
+
+    BN_hex2bn(&d, "19AEA0CE2C58F02A0F142112FBD68178308ADDF4F5E6A498FA84549ACB6D49B9");
+    BN_hex2bn(&e, "31A066CF2F1C559B8937170AC2F66EE938DCFDCA439D24D8C505332D3664782E");
+
+    BIGNUM *tmp1 = BN_new();
+    BIGNUM *tmp2 = BN_new();
+    BIGNUM *inv = BN_new();
+    for (int i = 0; i < 6; i++) {
+        BN_zero(resultShares[i]->y);
+        BN_mod_mul(tmp1, d, e, params->order, params->bn_ctx);
+        BN_mod_inverse(inv, threshold, params->order, params->bn_ctx);
+        //BN_mod_mul(tmp1, tmp1, inv, params->order, params->bn_ctx);
+
+        BN_mod_mul(tmp2, d, bShares[i]->y, params->order, params->bn_ctx);
+        BN_mod_add(resultShares[i]->y, tmp1, tmp2, params->order, params->bn_ctx);
+
+        BN_mod_mul(tmp2, e, aShares[i]->y, params->order, params->bn_ctx);
+        BN_mod_add(resultShares[i]->y, resultShares[i]->y, tmp2, params->order, params->bn_ctx);
+
+        BN_mod_add(resultShares[i]->y, resultShares[i]->y, cShares[i]->y, params->order, params->bn_ctx);
+        printf("result[%d] = %s\n", i, BN_bn2hex(resultShares[i]->y));
+    }
+
+    Shamir_ReconstructShares(2, 6, resultShares, params->order, result);
+    printf("result = %s\n", BN_bn2hex(result));
+
+
+    BIGNUM *a = BN_new();
+    //BIGNUM *b = BN_new();
+    BIGNUM *c = BN_new();
+    Shamir_ReconstructShares(2, 6, aShares, params->order, a);
+    Shamir_ReconstructShares(2, 6, bShares, params->order, b);
+    Shamir_ReconstructShares(2, 6, cShares, params->order, c);
+    printf("a = %s\n", BN_bn2hex(a));
+    printf("b = %s\n", BN_bn2hex(b));
+    printf("c = %s\n", BN_bn2hex(c));
+    BN_mod_mul(c, a, b, params->order, params->bn_ctx);
+    printf("c_test = %s\n", BN_bn2hex(c));
+    Shamir_ReconstructShares(2, 6, recoverPinShares, params->order, c);
+    printf("recoverPin = %s\n", BN_bn2hex(c));
+    Shamir_ReconstructShares(2, 6, savePinShares, params->order, c);
+    printf("savePin = %s\n", BN_bn2hex(c));
+    Shamir_ReconstructShares(2, 6, pinDiffShares, params->order, c);
+    printf("pinDiff = %s\n", BN_bn2hex(c));
+    printf("threshold  %s\n", BN_bn2hex(threshold));
+cleanup:
+    printf("done\n");
+
 }
 
 void ElGamalTest() {
