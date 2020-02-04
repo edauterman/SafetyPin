@@ -71,6 +71,9 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_SET_MAC_KEYS:
             HSM_SetMacKeys((struct hsm_set_mac_keys_request *)(in), out, outLen);
             break;
+        case HSM_SET_PARAMS:
+            HSM_SetParams((struct hsm_set_params_request *)(in), out, outLen);
+            break;
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
     }
@@ -116,6 +119,8 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return sizeof(struct hsm_auth_mpc_decrypt_3_request);
         case HSM_SET_MAC_KEYS:
             return sizeof(struct hsm_set_mac_keys_request);
+        case HSM_SET_PARAMS:
+            return sizeof(struct hsm_set_params_request);
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
             return 0;
@@ -687,6 +692,17 @@ int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *ou
 int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "calling set mac keys mpc\n");
     MPC_SetMacKeys((uint8_t *)req->macKeys);
+
+    if (out) {
+        *outLen = 0;
+    }
+
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen) {
+    printf1(TAG_GREEN, "calling set params\n");
+    MPC_SetParams(req->groupSize, req->thresholdSize);
 
     if (out) {
         *outLen = 0;

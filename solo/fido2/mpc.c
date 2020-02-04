@@ -26,11 +26,12 @@ fieldElem a, b, c, pinDiffShare;
 uint8_t msg[FIELD_ELEM_LEN];
 //uint8_t macKeys[KEY_LEN][100];
 //uint8_t macKeys[KEY_LEN][NUM_HSMS];
-fieldElem pinDiffShare;
-fieldElem thresholdSize;
+fieldElem thresholdSizeFE;
 
-fieldElem sharesX[2 * HSM_THRESHOLD_SIZE];
-fieldElem sharesY[2 * HSM_THRESHOLD_SIZE];
+//fieldElem sharesX[2 * HSM_THRESHOLD_SIZE];
+//fieldElem sharesY[2 * HSM_THRESHOLD_SIZE];
+
+uint8_t groupSize, thresholdSize;
 
 void getMacKey(uint8_t *key, int index) {
     raw_flash_read(key, index * KEY_LEN, KEY_LEN);
@@ -99,11 +100,11 @@ void multiplyFinish(fieldElem res, fieldElem a, fieldElem b, fieldElem c, fieldE
 /* PLACEHOLDER */
 int validateShares(fieldElem *sharesX, fieldElem *sharesY) {
     fieldElem numerator, denominator, denominatorInv, currLambda, lambda, currTerm, y;
-    for (int checkPt = HSM_THRESHOLD_SIZE; checkPt < 2 * HSM_THRESHOLD_SIZE; checkPt++) {
+    for (int checkPt = thresholdSize; checkPt < 2 * thresholdSize; checkPt++) {
         uECC_setZero(y);
-        for (int i = 0; i < HSM_THRESHOLD_SIZE; i++) {
+        for (int i = 0; i < thresholdSize; i++) {
             uECC_setOne(lambda);
-            for (int j = 0; j < HSM_THRESHOLD_SIZE; j++) {
+            for (int j = 0; j < thresholdSize; j++) {
                 if (i == j) continue;
                 /* lambda = \prod_{j=1, j!=i}^t -x_j / (x_i - x_j) */
                 uECC_modSub(numerator, sharesX[checkPt], sharesX[j]);
@@ -147,9 +148,9 @@ int checkReconstruction(fieldElem *sharesX, fieldElem *sharesY, fieldElem result
     fieldElem numerator, denominator, denominatorInv, currLambda, lambda, currTerm, zero, resultTest;
     uECC_setZero(zero);
     uECC_setZero(resultTest);
-    for (int i = 0; i < HSM_THRESHOLD_SIZE; i++) {
+    for (int i = 0; i < thresholdSize; i++) {
         uECC_setOne(lambda);
-        for (int j = 0; j < HSM_THRESHOLD_SIZE; j++)  {
+        for (int j = 0; j < thresholdSize; j++)  {
             if (i == j) continue;
             /* lambda = \prod_{j=1, j!=i}^t -x_j / (x_i - x_j) */
             uECC_modSub(numerator, zero, sharesX[j]);
@@ -268,7 +269,7 @@ void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t dMacs[HSM_GROUP_S
     printf("\n");
 */
     /* MAC results. */ 
-    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+    for (int i = 0; i < groupSize; i++) {
         uint8_t macKey[KEY_LEN];
         getMacKey(macKey, hsms[i]);
         crypto_hmac(macKey, dMacs[i], dShareBuf, FIELD_ELEM_LEN);
@@ -294,10 +295,13 @@ void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t dMacs[HSM_GROUP_S
 int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN], uint8_t *dBuf, uint8_t *eBuf, uint8_t dShareBufs[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN], uint8_t eShareBufs[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN], uint8_t dShareXBufs[2 * HSM_THRESHOLD_SIZE], uint8_t eShareXBufs[2 * HSM_THRESHOLD_SIZE], uint8_t dMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN], uint8_t eMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN], uint8_t *validHsms, uint8_t *allHsms) {
     fieldElem resultShare;
 
+    fieldElem sharesX[2 * HSM_THRESHOLD_SIZE];
+    fieldElem sharesY[2 * HSM_THRESHOLD_SIZE];
+
     //printf("do the mac checks\n");
 
     /* Check MACs for shares returned. */
-    for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
+    for (int i = 0; i < 2 * thresholdSize; i++) {
       /*  printf("dShare[%d]: ", i);
         for (int j = 0; j < FIELD_ELEM_LEN; j++) {
             printf("%02x", dShareBufs[i][j]);
@@ -309,7 +313,6 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
         }
         printf("\n");
 */
-
 
         uint8_t mac[SHA256_DIGEST_LEN];
         uint8_t macKey[KEY_LEN];
@@ -330,6 +333,7 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
         printf("\n");
     */    
 
+        // COMMENT THIS CHECK BACK IN
         if (memcmp(mac, dMacs[i], SHA256_DIGEST_LEN) != 0) return ERROR;
       //  printf1(TAG_GREEN, "past dMac");
         crypto_hmac(macKey, mac, eShareBufs[i], FIELD_ELEM_LEN);
@@ -362,7 +366,7 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
     if (checkReconstruction(dSharesX, dSharesY, d) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
     if (checkReconstruction(eSharesX, eSharesY, e) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
 */
-     for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
+     for (int i = 0; i < 2 * thresholdSize; i++) {
         uECC_bytesToFieldElem(sharesY[i], dShareBufs[i]);
         uECC_word_t word = dShareXBufs[i] & 0xff;
         uECC_setWord(sharesX[i], word);
@@ -370,7 +374,7 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
     if (validateShares(sharesX, sharesY) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
     if (checkReconstruction(sharesX, sharesY, d) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
     
-    for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
+    for (int i = 0; i < 2 * thresholdSize; i++) {
         uECC_bytesToFieldElem(sharesY[i], eShareBufs[i]);
         uECC_word_t word = eShareXBufs[i] & 0xff;
         uECC_setWord(sharesX[i], word);
@@ -384,13 +388,13 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
     //printf("going to finish multiplication step\n");
 
     /* Finish computing r * (pin - pin') */
-    multiplyFinish(resultShare, a, b, c, d, e, thresholdSize);
+    multiplyFinish(resultShare, a, b, c, d, e, thresholdSizeFE);
    
     //printf("finished multiplication step\n");
 
     /* MAC and return resultShare. */
     uECC_fieldElemToBytes(resultShareBuf, resultShare);
-    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+    for (int i = 0; i < groupSize; i++) {
         uint8_t macKey[KEY_LEN];
         getMacKey(macKey, allHsms[i]);
         crypto_hmac(macKey, resultMacs[i], resultShareBuf, FIELD_ELEM_LEN);
@@ -409,15 +413,19 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[2 
     fieldElem result;
     fieldElem zero;
     uint8_t resultBytes[FIELD_ELEM_LEN];
+    fieldElem sharesX[2 * HSM_THRESHOLD_SIZE];
+    fieldElem sharesY[2 * HSM_THRESHOLD_SIZE];
+
     uECC_setZero(zero);
 
     /* Check MACs for shares returned */
-    for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
+    for (int i = 0; i < 2 * thresholdSize; i++) {
         uint8_t mac[SHA256_DIGEST_LEN];
         uint8_t macKey[KEY_LEN];
         getMacKey(macKey, validHsms[i]);
         crypto_hmac(macKey, mac, resultShareBufs[i], FIELD_ELEM_LEN);
         //crypto_hmac(macKeys[validHsms[i]], mac, resultShareBufs[i], FIELD_ELEM_LEN);
+        // COMMENT THIS BACK IN
         if (memcmp(mac, resultMacs[i], SHA256_DIGEST_LEN) != 0) {
             memset(returnMsg, 0xaa, FIELD_ELEM_LEN);
             return ERROR;
@@ -427,7 +435,7 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[2 
 
     /* Check that shares actually produce the correct result. */
     uECC_bytesToFieldElem(result, resultBuf);
-    for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
+    for (int i = 0; i < 2 * thresholdSize; i++) {
         uECC_bytesToFieldElem(sharesY[i], resultShareBufs[i]);
         uECC_word_t word = resultShareXBufs[i] & 0xff;
         uECC_setWord(sharesX[i], word);
@@ -454,12 +462,18 @@ void MPC_SetMacKeys(uint8_t *macKeysIn) {
     printf1(TAG_GREEN, "inside\n");
     raw_flash_write(macKeysIn, 100 * KEY_LEN);
     printf1(TAG_GREEN, "after flash write\n");
-    uECC_setWord(thresholdSize, HSM_THRESHOLD_SIZE);
+    /*uECC_setWord(thresholdSize, HSM_THRESHOLD_SIZE);
     uint8_t thresholdSizeBytes[FIELD_ELEM_LEN];
     uECC_fieldElemToBytes(thresholdSizeBytes, thresholdSize);
     printf("threshold size: ");
     for (int i = 0; i < FIELD_ELEM_LEN; i++) {
         printf("%02x", thresholdSizeBytes[i]);
     }
-    printf("\n");
+    printf("\n");*/
+}
+
+void MPC_SetParams(uint8_t newGroupSize, uint8_t newThresholdSize) {
+    groupSize = newGroupSize;
+    thresholdSize = newThresholdSize;
+    uECC_setWord(thresholdSizeFE, newThresholdSize);
 }

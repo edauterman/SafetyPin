@@ -19,9 +19,14 @@ extern "C" {
 //#define HID
 
 #define NUM_HSMS 1
-#define HSM_GROUP_SIZE 100
+#define HSM_GROUP_SIZE 3
 //#define HSM_GROUP_SIZE 5
 #define HSM_THRESHOLD_SIZE 1 
+
+//#define HSM_MAX_GROUP_SIZE 3
+#define HSM_MAX_GROUP_SIZE 100
+//#define HSM_MAX_THRESHOLD_SIZE 1 
+#define HSM_MAX_THRESHOLD_SIZE 34
 
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)
@@ -35,7 +40,7 @@ extern "C" {
 
 #define PUNC_ENC_REPL 80
 //#define PUNC_ENC_REPL 1
-#define NUM_ATTEMPTS 5
+#define NUM_ATTEMPTS 1
 
 #define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
 
@@ -76,6 +81,7 @@ extern "C" {
 #define HSM_AUTH_MPC_DECRYPT_2 0x81
 #define HSM_AUTH_MPC_DECRYPT_3 0x82
 #define HSM_SET_MAC_KEYS       0x83
+#define HSM_SET_PARAMS         0x84
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -156,41 +162,41 @@ typedef struct {
     uint8_t aesCt[AES_CT_LEN];
     uint8_t aesCtTag[SHA256_DIGEST_LENGTH];
     uint8_t pinShare[FIELD_ELEM_LEN];
-    uint8_t hsms[HSM_GROUP_SIZE];
+    uint8_t hsms[HSM_MAX_GROUP_SIZE];
 } HSM_AUTH_MPC_DECRYPT_1_REQ;
 
 typedef struct {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
     uint8_t dShare[FIELD_ELEM_LEN];
     uint8_t eShare[FIELD_ELEM_LEN];
-    uint8_t dMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t eMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t dMacs[HSM_MAX_GROUP_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t eMacs[HSM_MAX_GROUP_SIZE][SHA256_DIGEST_LENGTH];
 } HSM_AUTH_MPC_DECRYPT_1_RESP;
 
 typedef struct {
     uint8_t d[FIELD_ELEM_LEN];
     uint8_t e[FIELD_ELEM_LEN];
-    uint8_t dShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t eShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t dSharesX[2 * HSM_THRESHOLD_SIZE];
-    uint8_t eSharesX[2 * HSM_THRESHOLD_SIZE];
-    uint8_t dMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t eMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
-    uint8_t allHsms[HSM_GROUP_SIZE];
+    uint8_t dShares[2 * HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t eShares[2 * HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t dSharesX[2 * HSM_MAX_THRESHOLD_SIZE];
+    uint8_t eSharesX[2 * HSM_MAX_THRESHOLD_SIZE];
+    uint8_t dMacs[2 * HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t eMacs[2 * HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t validHsms[2 * HSM_MAX_THRESHOLD_SIZE];
+    uint8_t allHsms[HSM_MAX_GROUP_SIZE];
 } HSM_AUTH_MPC_DECRYPT_2_REQ;
 
 typedef struct {
     uint8_t resultShare[FIELD_ELEM_LEN];
-    uint8_t resultMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t resultMacs[HSM_MAX_GROUP_SIZE][SHA256_DIGEST_LENGTH];
 } HSM_AUTH_MPC_DECRYPT_2_RESP;
 
 typedef struct {
     uint8_t result[FIELD_ELEM_LEN];
-    uint8_t resultShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t resultSharesX[2 * HSM_THRESHOLD_SIZE];
-    uint8_t resultMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
+    uint8_t resultShares[2 * HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t resultSharesX[2 * HSM_MAX_THRESHOLD_SIZE];
+    uint8_t resultMacs[2 * HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t validHsms[2 * HSM_MAX_THRESHOLD_SIZE];
 } HSM_AUTH_MPC_DECRYPT_3_REQ;
 
 typedef struct {
@@ -240,6 +246,10 @@ typedef struct {
     uint8_t msg[ELGAMAL_PT_LEN];
 } HSM_ELGAMAL_DECRYPT_RESP;
 
+typedef struct {
+    uint8_t groupSize;
+    uint8_t thresholdSize;
+} HSM_SET_PARAMS_REQ;
 
 /* ---------------------------------- */
 
@@ -266,6 +276,7 @@ int HSM_SmallSetup(HSM *h);
 int HSM_TestSetup(HSM *h);
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk);
 int HSM_SetMacKeys(HSM *h, uint8_t **macKeys);
+int HSM_SetParams(HSM *h);
 
 /* Testing tree. */
 int HSM_Retrieve(HSM *h, uint32_t index);

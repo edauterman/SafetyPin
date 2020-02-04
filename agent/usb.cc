@@ -47,8 +47,11 @@ UsbDevice *UsbDevice_new(const char *handle) {
     cfsetospeed(&tty, B115200);
     //cfsetospeed(&tty, B9600);
 
-    dev->sessionCtr = 0;
+    printf("going to exchange\n");
+    if (dev->fd) UsbDevice_exchange(dev, HSM_RESET, NULL, 0, NULL, 0);
+    printf("reset\n");
 
+    dev->sessionCtr = 0;
 cleanup:
     if (rv == ERROR) {
         printf("Error opening device: %s\n", handle);

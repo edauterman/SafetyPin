@@ -100,7 +100,9 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
     /* Test u = rP */
     embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_zero, &r);
     if (!embedded_pairing_bls12_381_g2_equal(&U_test, U)) {
+        memset(msg, 0x8, msgLen);
         printf("--------- ERROR IN DECRYPTION ----------\n");
+        return;
     }
 
     memcpy(msg, sigma_M + msgLen, msgLen);

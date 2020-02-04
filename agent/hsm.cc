@@ -901,3 +901,26 @@ cleanup:
     pthread_mutex_unlock(&h->m);
     return rv;
 }
+
+int HSM_SetParams(HSM *h) {
+    int rv;
+    HSM_SET_PARAMS_REQ req;
+    string resp_str;
+
+    pthread_mutex_lock(&h->m);
+
+    req.groupSize = HSM_GROUP_SIZE;
+    req.thresholdSize = HSM_THRESHOLD_SIZE;
+
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_SET_PARAMS, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SET_PARAMS, (uint8_t *)&req,
+                sizeof(req), NULL, 0));
+#endif
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    return rv;
+}

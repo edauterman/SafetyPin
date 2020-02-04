@@ -102,7 +102,6 @@ int main(int argc, char *argv[])
         {
             heartbeat();
             t1 = millis();
-        
 /*            fieldElem x1;
             fieldElem x2;
             ecPoint gx1;

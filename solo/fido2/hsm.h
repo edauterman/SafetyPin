@@ -12,11 +12,14 @@
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32) 
 
+//#define HSM_GROUP_SIZE 3
 #define HSM_GROUP_SIZE 100
+//#define HSM_THRESHOLD_SIZE 1
 #define HSM_THRESHOLD_SIZE 34 
-#define NUM_HSMS 100
+#define NUM_HSMS 1
+//#define NUM_HSMS 100
 
-#define NUM_ATTEMPTS 5
+#define NUM_ATTEMPTS 1
 
 #define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
 
@@ -67,6 +70,7 @@
 #define HSM_AUTH_MPC_DECRYPT_2  0x81
 #define HSM_AUTH_MPC_DECRYPT_3  0x82
 #define HSM_SET_MAC_KEYS        0x83
+#define HSM_SET_PARAMS          0x84
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -185,6 +189,11 @@ struct hsm_auth_mpc_decrypt_3_request {
     uint8_t resultSharesX[2 * HSM_THRESHOLD_SIZE];
     uint8_t resultMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
     uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
+};
+
+struct hsm_set_params_request {
+    uint8_t groupSize;
+    uint8_t thresholdSize;
 };
 
 uint8_t pingKey[KEY_LEN];

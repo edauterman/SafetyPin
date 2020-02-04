@@ -1785,17 +1785,19 @@ void ctap_init()
             );
     crypto_ecc256_init();
 
+    printf1(TAG_ERR, "read state before\n");
     authenticator_read_state(&STATE);
+    printf1(TAG_ERR, "read state after\n");
 
     device_set_status(CTAPHID_STATUS_IDLE);
 
     if (STATE.is_initialized == INITIALIZED_MARKER)
     {
-        printf1(TAG_STOR,"Auth state is initialized\n");
+        printf1(TAG_ERR,"Auth state is initialized\n");
     }
     else
     {
-        printf1(TAG_STOR,"Auth state is NOT initialized.  Initializing..\n");
+        printf1(TAG_ERR,"Auth state is NOT initialized.  Initializing..\n");
         if (authenticator_is_backup_initialized())
         {
             printf1(TAG_ERR,"Warning: memory corruption detected.  restoring from backup..\n");
@@ -1811,17 +1813,23 @@ void ctap_init()
         }
     }
 
-    do_migration_if_required(&STATE);
+    printf1(TAG_ERR, "going to migrate\n");
+
+    //do_migration_if_required(&STATE);
+
+    printf1(TAG_ERR, "did migration\n");
 
     crypto_load_master_secret(STATE.key_space);
 
+    printf1(TAG_ERR, "loaded master secret\n");
+
     if (ctap_is_pin_set())
     {
-        printf1(TAG_STOR, "attempts_left: %d\n", STATE.remaining_tries);
+        printf1(TAG_ERR, "attempts_left: %d\n", STATE.remaining_tries);
     }
     else
     {
-        printf1(TAG_STOR,"pin not set.\n");
+        printf1(TAG_ERR,"pin not set.\n");
     }
     if (ctap_device_locked())
     {
@@ -1833,6 +1841,8 @@ void ctap_init()
         printf2(TAG_ERR,"Error, rng failed\n");
         exit(1);
     }
+
+    printf1(TAG_ERR, "at bottom\n");
 
     ctap_reset_key_agreement();
 

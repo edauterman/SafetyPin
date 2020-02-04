@@ -20,7 +20,8 @@
 
 //uint8_t rsp[1024];
 
-uint8_t inOutBuf[8900];
+//uint8_t inOutBuf[1];
+uint8_t inOutBuf[9100];
 //uint8_t inOutBuf[1];
 
 //uint8_t rsp[1];
@@ -54,13 +55,13 @@ static void cdc_write(uint8_t *data, int len, uint8_t msgType, uint8_t sessionNu
 
 void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whead)
 {
-    if (frame->sessionNum != currSessionNum) {
-        //if ((currSessionNum != 0xff) && (frame->sessionNum != 0)) return;
-        return;
-    }
     if (frame->msgType == HSM_RESET) {
         cdc_write(inOutBuf, 0, frame->msgType, currSessionNum);
         currSessionNum = 0;
+        return;
+    }
+    if (frame->sessionNum != currSessionNum) {
+        //if ((currSessionNum != 0xff) && (frame->sessionNum != 0)) return;
         return;
     }
     //currSessionNum = frame->sessionNum;

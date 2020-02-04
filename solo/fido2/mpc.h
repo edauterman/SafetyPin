@@ -2,6 +2,7 @@
 #define _MPC_H_
 
 void MPC_SetMacKeys(uint8_t *macKeysIn);
+void MPC_SetParams(uint8_t groupSize, uint8_t thresholdSize);
 
 void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t dMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN], uint8_t eMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN], uint8_t *msg, uint8_t *recoveryPinShareBuf, uint8_t *hsms, uint8_t *aesCt, uint8_t *aesCtTag);
 //void MPC_Step1(uint8_t *dShareBuf, uint8_t *eShareBuf, uint8_t *dMacs, uint8_t *eMacs, uint8_t *msg, uint8_t *recoveryPinShareBuf, uint8_t *hsms);
