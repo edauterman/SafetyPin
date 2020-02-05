@@ -96,6 +96,59 @@ void multiplyFinish(fieldElem res, fieldElem a, fieldElem b, fieldElem c, fieldE
     uECC_modAdd(res, scratch2, c);
 }
 
+void getCoefficients(fieldElem *sharesX, fieldElem *sharesY, fieldElem *cfs) {
+    fieldElem denominator, denominatorInverse;
+
+    for (int i = 0; i < thresholdSize; i++) {
+        uECC_setOne(cfs[i]);
+        for (int j = 0; j < thresholdSize; j++) {
+            if (i == j) continue;
+            uECC_modSub(denominator, sharesX[i], sharesX[j]);
+            uECC_modInv(denominatorInverse, denominator);
+            uECC_modMult(cfs[i], cfs[i], denominatorInverse);
+        }
+        uECC_modMult(cfs[i], cfs[i], sharesY[i]);
+    }
+}
+
+void evalWithCoefficients(fieldElem *sharesX, fieldElem *sharesY, fieldElem *cfs, fieldElem x, fieldElem y) {
+    fieldElem tmp, prod, tmpInv, curr;
+    uECC_setOne(prod);
+    uECC_setZero(y);
+
+    for (int i = 0; i < thresholdSize; i++) {
+        uECC_modSub(tmp, x, sharesX[i]);
+        uECC_modMult(prod, prod, tmp);
+    }
+
+    for (int i = 0; i < thresholdSize; i++) {
+        uECC_modSub(tmp, x, sharesX[i]);
+        uECC_modInv(tmpInv, tmp);
+        uECC_modMult(curr, prod, tmpInv);
+        uECC_modMult(curr, curr, cfs[i]);
+        uECC_modAdd(y, y, curr);
+    }
+}
+
+int checkShares(fieldElem *sharesX, fieldElem *sharesY, fieldElem result) {
+    fieldElem cfs[HSM_THRESHOLD_SIZE];
+    fieldElem y;
+    fieldElem x;
+    uECC_setZero(x);
+    
+    getCoefficients(sharesX, sharesY, cfs);
+
+    evalWithCoefficients(sharesX, sharesY, cfs, x, y);
+    if (uECC_equal(y, result) == 0) return ERROR;
+
+    for (int i = thresholdSize; i < 2 * thresholdSize; i++) {
+        evalWithCoefficients(sharesX, sharesY, cfs, sharesX[i], y);
+        if (uECC_equal(y, sharesY[i]) == 0) return ERROR;
+    }
+
+    return OKAY;
+}
+
 /* PLACEHOLDER */
 int validateShares(fieldElem *sharesX, fieldElem *sharesY) {
     fieldElem numerator, denominator, denominatorInv, currLambda, lambda, currTerm, y;
@@ -370,16 +423,19 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
         uECC_word_t word = dShareXBufs[i] & 0xff;
         uECC_setWord(sharesX[i], word);
     }
-    if (validateShares(sharesX, sharesY) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
+    /*if (validateShares(sharesX, sharesY) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
     if (checkReconstruction(sharesX, sharesY, d) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
-    
+    */
+     if (checkShares(sharesX, sharesY, d) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
+
     for (int i = 0; i < 2 * thresholdSize; i++) {
         uECC_bytesToFieldElem(sharesY[i], eShareBufs[i]);
         uECC_word_t word = eShareXBufs[i] & 0xff;
         uECC_setWord(sharesX[i], word);
     }
-    if (validateShares(sharesX, sharesY) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
-    if (checkReconstruction(sharesX, sharesY, e) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
+    /*if (validateShares(sharesX, sharesY) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
+    if (checkReconstruction(sharesX, sharesY, e) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;} */
+     if (checkShares(sharesX, sharesY, e) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
     
     
 
@@ -440,8 +496,9 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[2 
         uECC_word_t word = resultShareXBufs[i] & 0xff;
         uECC_setWord(sharesX[i], word);
     }
-    if (validateShares(sharesX, sharesY) != OKAY) {memset(returnMsg, 0xbb, FIELD_ELEM_LEN); return ERROR;}
-    if (checkReconstruction(sharesX, sharesY, result) != OKAY) {memset(returnMsg, 0xcc, FIELD_ELEM_LEN); return ERROR;}
+    /*if (validateShares(sharesX, sharesY) != OKAY) {memset(returnMsg, 0xbb, FIELD_ELEM_LEN); return ERROR;}
+    if (checkReconstruction(sharesX, sharesY, result) != OKAY) {memset(returnMsg, 0xcc, FIELD_ELEM_LEN); return ERROR;}*/
+    if (checkShares(sharesX, sharesY, result) != OKAY) {memset(returnMsg, 0xcc, FIELD_ELEM_LEN); return ERROR;}
     //printf("got past share checks\n");
 
     uECC_fieldElemToBytes(resultBytes, result);
