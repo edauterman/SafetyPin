@@ -81,112 +81,124 @@ cleanup:
     return rv;
 }
 
-int Shamir_ReconstructShares(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM *secret) {
+int getCoefficients(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM **cfs, BN_CTX *ctx) {
     int rv;
-    BIGNUM *currTerm = NULL;
-    BIGNUM *numerator = NULL;
     BIGNUM *denominator = NULL;
     BIGNUM *denominatorInverse = NULL;
-    BIGNUM *lambda = NULL;
-    BIGNUM *currLambda = NULL;
-    BIGNUM *zero = NULL;
-    BN_CTX *ctx = NULL;
 
-    CHECK_A (currTerm = BN_new());
-    CHECK_A (numerator = BN_new());
     CHECK_A (denominator = BN_new());
     CHECK_A (denominatorInverse = BN_new());
-    CHECK_A (lambda = BN_new());
-    CHECK_A (currLambda = BN_new());
-    CHECK_A (zero = BN_new());
-    CHECK_A (ctx = BN_CTX_new());
-    BN_zero(secret);
-    BN_zero(zero);
 
     for (int i = 0; i < t; i++) {
-        BN_one(lambda);
+        BN_one(cfs[i]);
         for (int j = 0; j < t; j++) {
             if (i == j) continue;
-            /* lambda = \prod_{j=1, j!=i}^t -x_j / (x_i - x_j) */
-            CHECK_C (BN_mod_sub(numerator, zero, shares[j]->x, prime, ctx));
+            /* lambda = \prod_{j=1, j!=i}^t 1 / (x_i - x_j) */
             CHECK_C (BN_mod_sub(denominator, shares[i]->x, shares[j]->x, prime, ctx));
             BN_mod_inverse(denominatorInverse, denominator, prime, ctx);
-            CHECK_C (BN_mod_mul(currLambda, numerator, denominatorInverse, prime, ctx));
-            CHECK_C (BN_mod_mul(lambda, lambda, currLambda, prime, ctx));
+            CHECK_C (BN_mod_mul(cfs[i], cfs[i], denominatorInverse, prime, ctx));
         }
-        /* Add up lambda * y_i */
-        CHECK_C (BN_mod_mul(currTerm, lambda, shares[i]->y, prime, ctx));
-        CHECK_C (BN_mod_add(secret, secret, currTerm, prime, ctx));
+        CHECK_C (BN_mod_mul(cfs[i], cfs[i], shares[i]->y, prime, ctx));
     }
 
 cleanup:
-    if (currTerm) BN_free(currTerm);
-    if (numerator) BN_free(numerator);
     if (denominator) BN_free(denominator);
     if (denominatorInverse) BN_free(denominatorInverse);
-    if (lambda) BN_free(lambda);
-    if (currLambda) BN_free(currLambda);
+    return rv;
+}
+
+int evalWithCoefficients(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM **cfs, BIGNUM *x, BIGNUM *result, BN_CTX *ctx) {
+    int rv;
+    BIGNUM *prod = NULL;
+    BIGNUM *tmp = NULL;
+    BIGNUM *tmpInv = NULL;
+    BIGNUM *curr = NULL;
+
+    CHECK_A (prod = BN_new());
+    CHECK_A (tmp = BN_new());
+    CHECK_A (tmpInv = BN_new());
+    CHECK_A (curr = BN_new());
+    BN_one(prod);
+    BN_zero(result);
+
+    /* \prod_{j=1}^t (x - x_j) */
+    for (int i = 0; i < t; i++) {
+        CHECK_C (BN_mod_sub(tmp, x, shares[i]->x, prime, ctx));
+        CHECK_C (BN_mod_mul(prod, prod, tmp, prime, ctx));
+    }
+
+    for (int i = 0; i < t; i++) {
+        /* Divide out (x - x_i) */
+        CHECK_C (BN_mod_sub(tmp, x, shares[i]->x, prime, ctx));
+        BN_mod_inverse(tmpInv, tmp, prime, ctx);
+        CHECK_C (BN_mod_mul(curr, prod, tmpInv, prime, ctx));
+        /* Multiply by coefficient and add */
+        CHECK_C (BN_mod_mul(curr, curr, cfs[i], prime, ctx));
+        CHECK_C (BN_mod_add(result, result, curr, prime, ctx));
+    }
+
+cleanup:
+    if (prod) BN_free(prod);
+    if (tmp) BN_free(tmp);
+    if (tmpInv) BN_free(tmpInv);
+    if (curr) BN_free(curr);
+    return rv;
+}
+
+int Shamir_ReconstructShares(int t, int n, ShamirShare **shares, BIGNUM *prime, BIGNUM *secret) {
+    int rv;
+    BIGNUM *cfs[t];
+    BIGNUM *zero;
+    BN_CTX *ctx;
+
+    for (int i = 0; i < t; i++) {
+        CHECK_A (cfs[i] = BN_new());
+    }
+    CHECK_A (zero = BN_new());
+    CHECK_A (ctx = BN_CTX_new());
+    BN_zero(zero);
+
+    CHECK_C (getCoefficients(t, n, shares, prime, cfs, ctx));
+    CHECK_C (evalWithCoefficients(t, n, shares, prime, cfs, zero, secret, ctx));
+
+cleanup:
+    if (zero) BN_free(zero);
     if (ctx) BN_CTX_free(ctx);
+    for (int i = 0; i < t; i++) {
+        if (cfs[i]) BN_free(cfs[i]);
+    }
     return rv;
 }
 
 /*  validShareIndexes of length t, if NULL don't fill in */
 int Shamir_ValidateShares(int t, int n, ShamirShare **shares, BIGNUM *prime) {
     int rv;
+    BIGNUM *cfs[t];
+    BIGNUM *y;
+    BN_CTX *ctx;
     int ctr = 0;
-    BIGNUM *currTerm = NULL;
-    BIGNUM *numerator = NULL;
-    BIGNUM *denominator = NULL;
-    BIGNUM *denominatorInverse = NULL;
-    BIGNUM *lambda = NULL;
-    BIGNUM *currLambda = NULL;
-    BIGNUM *y = NULL;
-    BN_CTX *ctx = NULL;
 
-    CHECK_A (currTerm = BN_new());
-    CHECK_A (numerator = BN_new());
-    CHECK_A (denominator = BN_new());
-    CHECK_A (denominatorInverse = BN_new());
-    CHECK_A (lambda = BN_new());
-    CHECK_A (currLambda = BN_new());
+    for (int i = 0; i < t; i++) {
+        CHECK_A (cfs[i] = BN_new());
+    }
     CHECK_A (y = BN_new());
     CHECK_A (ctx = BN_CTX_new());
-    BN_zero(y);
 
-    /* Check remaining points on same polynomial */
-    for (int checkPt = t; checkPt < n; checkPt++) {
-        BN_zero(y);
-        for (int i = 0; i < t; i++) {
-            BN_one(lambda);
-            for (int j = 0; j < t; j++) {
-                if (i == j) continue;
-                /* lambda = \prod_{j=1, j!=i}^t x - x_j / (x_i - x_j) */
-                CHECK_C (BN_mod_sub(numerator, shares[checkPt]->x, shares[j]->x, prime, ctx));
-                CHECK_C (BN_mod_sub(denominator, shares[i]->x, shares[j]->x, prime, ctx));
-                BN_mod_inverse(denominatorInverse, denominator, prime, ctx);
-                CHECK_C (BN_mod_mul(currLambda, numerator, denominatorInverse, prime, ctx));
-                CHECK_C (BN_mod_mul(lambda, lambda, currLambda, prime, ctx));
-            }
-            /* Add up lambda * y_i */
-            CHECK_C (BN_mod_mul(currTerm, lambda, shares[i]->y, prime, ctx));
-            CHECK_C (BN_mod_add(y, y, currTerm, prime, ctx));
-        }
-        /* Check if g(x_checkPt) = y_checkPt  */
-        if (BN_cmp(y, shares[checkPt]->y) == 0) {
+    CHECK_C (getCoefficients(t, n, shares, prime, cfs, ctx));
+    for (int i = t; i < n; i++) {
+        CHECK_C (evalWithCoefficients(t, n, shares, prime, cfs, shares[i]->x, y, ctx));
+        if (BN_cmp(y, shares[i]->y) == 0) {
             ctr++;
         }
     }
-    rv = ctr >= t ? OKAY : ERROR;
+    return ctr >= t ? OKAY : ERROR; 
 
 cleanup:
-    if (currTerm) BN_free(currTerm);
     if (y) BN_free(y);
-    if (numerator) BN_free(numerator);
-    if (denominator) BN_free(denominator);
-    if (denominatorInverse) BN_free(denominatorInverse);
-    if (lambda) BN_free(lambda);
-    if (currLambda) BN_free(currLambda);
     if (ctx) BN_CTX_free(ctx);
+    for (int i = 0; i < t; i++) {
+        if (cfs[i]) BN_free(cfs[i]);
+    }
     return rv;
 }
 
