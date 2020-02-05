@@ -47,7 +47,8 @@ UsbDevice *UsbDevice_new(const char *handle) {
     cfsetospeed(&tty, B115200);
     //cfsetospeed(&tty, B9600);
 
-    printf("going to exchange\n");
+    dev->sessionCtr = 0;
+    printf("going to exchange with %s\n", handle);
     if (dev->fd) UsbDevice_exchange(dev, HSM_RESET, NULL, 0, NULL, 0);
     printf("reset\n");
 
@@ -194,7 +195,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
             debug_print("%x", frame.payload[i]);
         }
         debug_print("\n");
-        if (frame.sessionNum != sessionNum) continue;
+        if (frame.sessionNum != sessionNum && frame.msgType != HSM_RESET) continue;
         if (respLen > 0) {
             int bytesToCopy = respLen - (frame.seqNo * CDC_PAYLOAD_SZ) < CDC_PAYLOAD_SZ ? respLen - (frame.seqNo * CDC_PAYLOAD_SZ) : CDC_PAYLOAD_SZ;
             memcpy(resp + frame.seqNo * CDC_PAYLOAD_SZ, frame.payload, bytesToCopy);
