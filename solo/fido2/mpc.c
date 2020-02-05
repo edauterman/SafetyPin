@@ -26,7 +26,6 @@ fieldElem a, b, c, pinDiffShare;
 uint8_t msg[FIELD_ELEM_LEN];
 //uint8_t macKeys[KEY_LEN][100];
 //uint8_t macKeys[KEY_LEN][NUM_HSMS];
-fieldElem thresholdSizeFE;
 
 //fieldElem sharesX[2 * HSM_THRESHOLD_SIZE];
 //fieldElem sharesY[2 * HSM_THRESHOLD_SIZE];
@@ -52,14 +51,14 @@ void multiplyStart(fieldElem d, fieldElem e, fieldElem y, fieldElem z, fieldElem
 
 /* Takes as input secret shares of beaver triples a,b,c and values d,e
  * computed in multiplyStart */
-void multiplyFinish(fieldElem res, fieldElem a, fieldElem b, fieldElem c, fieldElem d, fieldElem e, fieldElem numParties) {
-    fieldElem term1, term2, term3, scratch1, scratch2, numPartiesInverse;
+void multiplyFinish(fieldElem res, fieldElem a, fieldElem b, fieldElem c, fieldElem d, fieldElem e) {
+    fieldElem term1, term2, term3, scratch1, scratch2/*, numPartiesInverse*/;
 
     /* d * e / numParties */
     //uECC_modMult(term1, d, e);
-    uECC_modMult(scratch1, d, e);
-    uECC_modInv(numPartiesInverse, numParties);
-    uECC_modMult(term1, scratch1, numPartiesInverse);
+    uECC_modMult(term1, d, e);
+    //uECC_modInv(numPartiesInverse, numParties);
+    //uECC_modMult(term1, scratch1, numPartiesInverse);
 
     /* d * [b] */
     uECC_modMult(term2, d, b);
@@ -388,7 +387,8 @@ int MPC_Step2(uint8_t *resultShareBuf, uint8_t resultMacs[HSM_GROUP_SIZE][SHA256
     //printf("going to finish multiplication step\n");
 
     /* Finish computing r * (pin - pin') */
-    multiplyFinish(resultShare, a, b, c, d, e, thresholdSizeFE);
+    uECC_setZero(resultShare);
+    multiplyFinish(resultShare, a, b, c, d, e);
    
     //printf("finished multiplication step\n");
 
@@ -475,5 +475,4 @@ void MPC_SetMacKeys(uint8_t *macKeysIn) {
 void MPC_SetParams(uint8_t newGroupSize, uint8_t newThresholdSize) {
     groupSize = newGroupSize;
     thresholdSize = newThresholdSize;
-    uECC_setWord(thresholdSizeFE, newThresholdSize);
 }
