@@ -772,7 +772,7 @@ int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_
         //printf("finished ciphertexts %d/%d\n", i, PUNC_ENC_REPL);
     }
 
-    //printf("finished retrieving auth decryption\n");
+    printf("finished retrieving auth decryption\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
