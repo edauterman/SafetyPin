@@ -66,11 +66,13 @@
 #define HSM_RESET           0x7d
 #define HSM_ELGAMAL_PK      0x7e
 #define HSM_ELGAMAL_DECRYPT 0x7f
-#define HSM_AUTH_MPC_DECRYPT_1  0x80
-#define HSM_AUTH_MPC_DECRYPT_2  0x81
-#define HSM_AUTH_MPC_DECRYPT_3  0x82
-#define HSM_SET_MAC_KEYS        0x83
-#define HSM_SET_PARAMS          0x84
+#define HSM_AUTH_MPC_DECRYPT_1_COMMIT   0x80
+#define HSM_AUTH_MPC_DECRYPT_1_OPEN     0x81
+#define HSM_AUTH_MPC_DECRYPT_2_COMMIT   0x82
+#define HSM_AUTH_MPC_DECRYPT_2_OPEN     0x83
+#define HSM_AUTH_MPC_DECRYPT_3          0x84
+#define HSM_SET_MAC_KEYS                0x85
+#define HSM_SET_PARAMS                  0x86
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -160,35 +162,44 @@ struct hsm_set_mac_keys_request {
     uint8_t macKeys[100][KEY_LEN];
 };
 
-struct hsm_auth_mpc_decrypt_1_request {
+struct hsm_auth_mpc_decrypt_1_commit_request {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
     uint8_t aesCt[AES_CT_LEN];
     uint8_t aesCtTag[SHA256_DIGEST_LEN];
     uint8_t pinShare[FIELD_ELEM_LEN];
+};
+
+struct hsm_auth_mpc_decrypt_1_open_request {
+    uint8_t dCommits[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+    uint8_t eCommits[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
     uint8_t hsms[HSM_GROUP_SIZE];
 };
 
-struct hsm_auth_mpc_decrypt_2_request {
+struct hsm_auth_mpc_decrypt_2_commit_request {
     uint8_t d[FIELD_ELEM_LEN];
     uint8_t e[FIELD_ELEM_LEN];
-    uint8_t dShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t eShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t dSharesX[2 * HSM_THRESHOLD_SIZE];
-    uint8_t eSharesX[2 * HSM_THRESHOLD_SIZE];
-    uint8_t dMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
-    uint8_t eMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
-    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
-    uint8_t allHsms[HSM_GROUP_SIZE];
+    uint8_t dShares[HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t eShares[HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t dOpenings[HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t eOpenings[HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t dMacs[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+    uint8_t eMacs[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+    uint8_t hsms[HSM_GROUP_SIZE];
+};
+
+struct hsm_auth_mpc_decrypt_2_open_request {
+    uint8_t resultCommits[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+    uint8_t hsms[HSM_GROUP_SIZE];
 };
 
 struct hsm_auth_mpc_decrypt_3_request {
     uint8_t result[FIELD_ELEM_LEN];
-    uint8_t resultShares[2 * HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t resultSharesX[2 * HSM_THRESHOLD_SIZE];
-    uint8_t resultMacs[2 * HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
-    uint8_t validHsms[2 * HSM_THRESHOLD_SIZE];
+    uint8_t resultShares[HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t resultOpenings[HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t resultMacs[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+    uint8_t hsms[HSM_GROUP_SIZE];
 };
 
 struct hsm_set_params_request {

@@ -145,15 +145,27 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished el gamal decrypt\n");
                 break;
 
-          case HSM_AUTH_MPC_DECRYPT_1:
+          case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
                 printf1(TAG_GREEN, "starting mpc decrypt 1\n");
-                rcode = HSM_AuthMPCDecrypt_1((struct hsm_auth_mpc_decrypt_1_request *)payload, NULL, NULL);
+                rcode = HSM_AuthMPCDecrypt_1_Commit((struct hsm_auth_mpc_decrypt_1_commit_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished mpc decrypt 1\n");
                 break;
 
-        case HSM_AUTH_MPC_DECRYPT_2:
+         case HSM_AUTH_MPC_DECRYPT_1_OPEN:
+                printf1(TAG_GREEN, "starting mpc decrypt 1\n");
+                rcode = HSM_AuthMPCDecrypt_1_Open((struct hsm_auth_mpc_decrypt_1_open_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished mpc decrypt 1\n");
+                break;
+
+        case HSM_AUTH_MPC_DECRYPT_2_COMMIT:
                 printf1(TAG_GREEN, "starting mpc decrypt 2\n");
-                rcode = HSM_AuthMPCDecrypt_2((struct hsm_auth_mpc_decrypt_2_request *)payload, NULL, NULL);
+                rcode = HSM_AuthMPCDecrypt_2_Commit((struct hsm_auth_mpc_decrypt_2_commit_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished mpc decrypt 2\n");
+                break;
+
+       case HSM_AUTH_MPC_DECRYPT_2_OPEN:
+                printf1(TAG_GREEN, "starting mpc decrypt 2\n");
+                rcode = HSM_AuthMPCDecrypt_2_Open((struct hsm_auth_mpc_decrypt_2_open_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished mpc decrypt 2\n");
                 break;
 

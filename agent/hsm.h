@@ -77,11 +77,13 @@ extern "C" {
 #define HSM_RESET           0x7d
 #define HSM_ELGAMAL_PK      0x7e
 #define HSM_ELGAMAL_DECRYPT 0x7f
-#define HSM_AUTH_MPC_DECRYPT_1 0x80
-#define HSM_AUTH_MPC_DECRYPT_2 0x81
-#define HSM_AUTH_MPC_DECRYPT_3 0x82
-#define HSM_SET_MAC_KEYS       0x83
-#define HSM_SET_PARAMS         0x84
+#define HSM_AUTH_MPC_DECRYPT_1_COMMIT   0x80
+#define HSM_AUTH_MPC_DECRYPT_1_OPEN     0x81
+#define HSM_AUTH_MPC_DECRYPT_2_COMMIT   0x82
+#define HSM_AUTH_MPC_DECRYPT_2_OPEN     0x83
+#define HSM_AUTH_MPC_DECRYPT_3          0x84
+#define HSM_SET_MAC_KEYS                0x85
+#define HSM_SET_PARAMS                  0x86
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -162,41 +164,62 @@ typedef struct {
     uint8_t aesCt[AES_CT_LEN];
     uint8_t aesCtTag[SHA256_DIGEST_LENGTH];
     uint8_t pinShare[FIELD_ELEM_LEN];
-    uint8_t hsms[HSM_MAX_GROUP_SIZE];
-} HSM_AUTH_MPC_DECRYPT_1_REQ;
+} HSM_AUTH_MPC_DECRYPT_1_COMMIT_REQ;
 
 typedef struct {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
+    uint8_t dCommit[SHA256_DIGEST_LENGTH];
+    uint8_t eCommit[SHA256_DIGEST_LENGTH];
+} HSM_AUTH_MPC_DECRYPT_1_COMMIT_RESP;
+
+typedef struct {
+    uint8_t dCommits[HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t eCommits[HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t hsms[HSM_GROUP_SIZE];
+} HSM_AUTH_MPC_DECRYPT_1_OPEN_REQ;
+
+typedef struct {
     uint8_t dShare[FIELD_ELEM_LEN];
     uint8_t eShare[FIELD_ELEM_LEN];
+    uint8_t dOpening[FIELD_ELEM_LEN];
+    uint8_t eOpening[FIELD_ELEM_LEN];
     uint8_t dMacs[HSM_MAX_GROUP_SIZE][SHA256_DIGEST_LENGTH];
     uint8_t eMacs[HSM_MAX_GROUP_SIZE][SHA256_DIGEST_LENGTH];
-} HSM_AUTH_MPC_DECRYPT_1_RESP;
+} HSM_AUTH_MPC_DECRYPT_1_OPEN_RESP;
 
 typedef struct {
     uint8_t d[FIELD_ELEM_LEN];
     uint8_t e[FIELD_ELEM_LEN];
-    uint8_t dShares[2 * HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t eShares[2 * HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t dSharesX[2 * HSM_MAX_THRESHOLD_SIZE];
-    uint8_t eSharesX[2 * HSM_MAX_THRESHOLD_SIZE];
-    uint8_t dMacs[2 * HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t eMacs[2 * HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t validHsms[2 * HSM_MAX_THRESHOLD_SIZE];
-    uint8_t allHsms[HSM_MAX_GROUP_SIZE];
-} HSM_AUTH_MPC_DECRYPT_2_REQ;
+    uint8_t dShares[HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t eShares[HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t dOpenings[HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t eOpenings[HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t dMacs[HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t eMacs[HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t hsms[HSM_MAX_GROUP_SIZE];
+} HSM_AUTH_MPC_DECRYPT_2_COMMIT_REQ;
+
+typedef struct {
+    uint8_t resultCommit[SHA256_DIGEST_LENGTH];
+} HSM_AUTH_MPC_DECRYPT_2_COMMIT_RESP;
+
+typedef struct {
+    uint8_t resultCommits[HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t hsms[HSM_MAX_GROUP_SIZE];
+} HSM_AUTH_MPC_DECRYPT_2_OPEN_REQ;
 
 typedef struct {
     uint8_t resultShare[FIELD_ELEM_LEN];
+    uint8_t resultOpening[FIELD_ELEM_LEN];
     uint8_t resultMacs[HSM_MAX_GROUP_SIZE][SHA256_DIGEST_LENGTH];
-} HSM_AUTH_MPC_DECRYPT_2_RESP;
+} HSM_AUTH_MPC_DECRYPT_2_OPEN_RESP;
 
 typedef struct {
     uint8_t result[FIELD_ELEM_LEN];
-    uint8_t resultShares[2 * HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
-    uint8_t resultSharesX[2 * HSM_MAX_THRESHOLD_SIZE];
-    uint8_t resultMacs[2 * HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t validHsms[2 * HSM_MAX_THRESHOLD_SIZE];
+    uint8_t resultShares[HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t resultOpenings[HSM_MAX_THRESHOLD_SIZE][FIELD_ELEM_LEN];
+    uint8_t resultMacs[HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t hsms[HSM_MAX_GROUP_SIZE];
 } HSM_AUTH_MPC_DECRYPT_3_REQ;
 
 typedef struct {
@@ -291,9 +314,12 @@ int HSM_ElGamalGetPk(HSM *h);
 int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
 int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
 
-int HSM_AuthMPCDecrypt1(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t **dMacs, uint8_t **eMacs, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *aesCt, uint8_t *aesCtTag, ShamirShare *pinShare, uint8_t *hsms, uint8_t reconstructIndex);
-int HSM_AuthMPCDecrypt2(HSM *h, ShamirShare *resultShare, uint8_t **resultMacs, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t *dSharesX, uint8_t *eSharesX, uint8_t **dMacs, uint8_t **eMacs, uint8_t *validHsms, uint8_t *allHsms, uint8_t reconstructIndex);
-int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t *resultSharesX, uint8_t **resultMacs, uint8_t *validHsms, uint8_t reconstructIndex);
+int HSM_AuthMPCDecrypt1Commit(HSM *h, uint8_t *dCommit, uint8_t *eCommit, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *aesCt, uint8_t *aesCtTag, ShamirShare *pinShare);
+int HSM_AuthMPCDecrypt1Open(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t *dOpening, uint8_t *eOpening, uint8_t **dMacs, uint8_t **eMacs, uint8_t **dCommits, uint8_t **eCommits, uint8_t *hsms, uint8_t reconstructIndex);
+int HSM_AuthMPCDecrypt2Commit(HSM *h, uint8_t *resultCommit, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t **dOpenings, uint8_t **eOpenings, uint8_t **dMacs, uint8_t **eMacs, uint8_t *hsms);
+int HSM_AuthMPCDecrypt2Open(HSM *h, ShamirShare *resultShare, uint8_t *resultOpening, uint8_t **resultMacs, uint8_t **resultCommits, uint8_t *hsms, uint8_t reconstructIndex);
+int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultOpenings, uint8_t **resultMacs, uint8_t *hsms, uint8_t reconstructIndex);
+
 
 /* Run microbenchmarks. */
 int HSM_MicroBench(HSM *h);
