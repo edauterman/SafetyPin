@@ -612,7 +612,7 @@ int HSM_AuthMPCDecrypt_1_Open(struct hsm_auth_mpc_decrypt_1_open_request *req, u
 int HSM_AuthMPCDecrypt_2_Commit(struct hsm_auth_mpc_decrypt_2_commit_request *req, uint8_t *out, int *outLen) {
     uint8_t resultCommit[SHA256_DIGEST_LEN];
     if (MPC_Step2_Commit(resultCommit, req->d, req->e, req->dShares, req->eShares, req->dOpenings, req->eOpenings, req->dMacs, req->eMacs, req->hsms) != OKAY) {
-        memset(resultCommit, 0, SHA256_DIGEST_LEN);
+        //memset(resultCommit, 0, SHA256_DIGEST_LEN);
     }
 
     if (out) {
@@ -630,7 +630,7 @@ int HSM_AuthMPCDecrypt_2_Open(struct hsm_auth_mpc_decrypt_2_open_request *req, u
     uint8_t resultMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
 
     if (MPC_Step2_Open(resultShareBuf, resultOpening, resultMacs, req->resultCommits, req->hsms) != OKAY) {
-        memset(resultShareBuf, 0, FIELD_ELEM_LEN);
+        //memset(resultShareBuf, 0, FIELD_ELEM_LEN);
     }
 
     if (out) {

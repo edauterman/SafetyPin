@@ -79,8 +79,16 @@ void ShamirTest() {
     CHECK_C (Shamir_CreateShares(t, n, secret, prime, shares, NULL));
     CHECK_C (Shamir_ValidateShares(t, n, shares, prime));
     CHECK_C (Shamir_ReconstructShares(t, n, shares, prime, secret_test));
+    if (BN_cmp(secret, secret_test) != 0) {
+        printf("Shamir secret sharing FAILED\n");
+        printf("secret: %s\n", BN_bn2hex(secret));
+        printf("reconstructed secret: %s\n", BN_bn2hex(secret_test));
+    } else {
+        printf("Shamir secret sharing successful: %s\n", BN_bn2hex(secret_test));
+    }
+    
     CHECK_C (Shamir_ReconstructSharesWithValidation(t, n, shares, prime, secret_test));
-    printf("before find valid shares\n");
+    //printf("before find valid shares\n");
     CHECK_C (Shamir_FindValidShares(t, n, shares, sharesOut, order, prime, secret_test));
     printf("after find valid shares\n");
     printf("order of valid shares: "); 
@@ -174,6 +182,19 @@ void scratch() {
     BN_mod_mul(prod, d, b, params->order, params->bn_ctx);
     printf("prod: %s\n", BN_bn2hex(prod));
 
+    ShamirShare *testShares[2];
+    BIGNUM  *testVal = BN_new();
+    uint8_t x = 1;
+    testShares[0] = ShamirShare_new();
+    testShares[0]->x = BN_bin2bn(&x, 1, NULL);
+    BN_hex2bn(&testShares[0]->y, "B458030068030000B45803004C580300A510020884000000F8660020");
+    x = 2;
+    testShares[1] = ShamirShare_new();
+    testShares[1]->x = BN_bin2bn(&x, 1, NULL);
+    BN_hex2bn(&testShares[1]->y, "C3BF00205A3C0300680300005A3C0300503C0300A510020884000000F8660020");
+    Shamir_ReconstructShares(2, 2, testShares, params->order, testVal);
+    printf("testVal: %s\n", BN_bn2hex(testVal));
+ 
 
     ShamirShare *aShares[6];
     ShamirShare *bShares[6];

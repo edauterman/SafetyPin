@@ -893,6 +893,7 @@ int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **
     for (int i = 0; i < HSM_THRESHOLD_SIZE; i++)  {
         Shamir_MarshalCompressed(req.resultShares[i], resultShares[i]);
         memcpy(req.resultMacs[i], resultMacs[i], SHA256_DIGEST_LENGTH);
+        memcpy(req.resultOpenings[i], resultOpenings[i], FIELD_ELEM_LEN);
     }
     memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
 #ifdef HID

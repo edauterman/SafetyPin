@@ -25,7 +25,7 @@
 
 using namespace std;
 
-const char *HANDLES[] = {"/dev/cu.usbmodem205F32A1304B2"};
+const char *HANDLES[] = {"/dev/cu.usbmodem2086366155482", "/dev/cu.usbmodem2052338246482"};
 //const char *HANDLES[] = {"/dev/cu.usbmodem208133B646482"};
 /*const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
@@ -807,7 +807,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        t2[i] = thread(HSM_AuthMPCDecrypt1Open, d->hsms[h1[i]], dShares[i], eShares[i], dOpenings[i], eOpenings[i], dMacs[i], eMacs[i], dCommits, eCommits, h1, userID + i);
+        t2[i] = thread(HSM_AuthMPCDecrypt1Open, d->hsms[h1[i]], dShares[i], eShares[i], dOpenings[i], eOpenings[i], dMacs[i], eMacs[i], dCommits, eCommits, h1, i + 1);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
 	    printf("finished opening stage 1 %d/%d\n", i, HSM_GROUP_SIZE);
@@ -853,7 +853,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
 
     /* Run stage 2 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        for (int j = 0; j < 2 * HSM_THRESHOLD_SIZE; j++) {
+        for (int j = 0; j < HSM_THRESHOLD_SIZE; j++) {
             eMacsCurr[i][j] = eMacs[j][i];
             dMacsCurr[i][j] = dMacs[j][i];
             
@@ -873,6 +873,11 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t3[i].join();
+        printf("resultCommit[%d] = ");
+        for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) {
+            printf("%02x", resultCommits[i][j]);
+        }
+        printf("\n");
     }
 
     for (int i = 0; i <  HSM_GROUP_SIZE; i++) {
@@ -901,7 +906,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
 
     /* Run stage 3 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        for (int j = 0; j < 2 * HSM_THRESHOLD_SIZE; j++) {
+        for (int j = 0; j < HSM_THRESHOLD_SIZE; j++) {
             resultMacsCurr[i][j] = resultMacs[j][i];
         }
         t5[i] = thread(HSM_AuthMPCDecrypt3, d->hsms[h1[i]], saveKeyShares[i], result, resultShares, resultOpenings, resultMacsCurr[i], h1, i + 1);

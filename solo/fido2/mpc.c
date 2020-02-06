@@ -110,7 +110,8 @@ void multiplyFinish(fieldElem res, fieldElem a, fieldElem b, fieldElem c, fieldE
 }
 
 void precomputeLambdas() {
-    fieldElem denominator, denominatorInverse, x_i, x_j;
+    fieldElem numerator, denominator, denominatorInverse, x_i, x_j, zero;
+    uECC_setZero(zero);
 
     for (int i = 0; i < thresholdSize; i++) {
         uECC_setOne(lambdas[i]);
@@ -118,41 +119,30 @@ void precomputeLambdas() {
         for (int j = 0; j < thresholdSize; j++) {
             if (i == j) continue;
             uECC_setWord(x_j, j + 1);
+            uECC_modSub(numerator, zero, x_j);
             uECC_modSub(denominator, x_i, x_j);
             uECC_modInv(denominatorInverse, denominator);
+            uECC_modMult(lambdas[i], lambdas[i], numerator);
             uECC_modMult(lambdas[i], lambdas[i], denominatorInverse);
         }
     }
 }
 
 /* will only call this to evaluate that the reconstruction is correct, can change 2 * t to t */
-void evalWithLambdas(fieldElem *sharesY, fieldElem x, fieldElem y) {
+void evalWithLambdas(fieldElem *sharesY, fieldElem y) {
     fieldElem tmp, prod, tmpInv, curr, x_i;
     uECC_setOne(prod);
     uECC_setZero(y);
 
     for (int i = 0; i < thresholdSize; i++) {
-        uECC_setWord(x_i, i + 1);
-        uECC_modSub(tmp, x, x_i);
-        uECC_modMult(prod, prod, tmp);
-    }
-
-    for (int i = 0; i < thresholdSize; i++) {
-        uECC_setWord(x_i, i + 1);
-        uECC_modSub(tmp, x, x_i);
-        uECC_modInv(tmpInv, tmp);
-        uECC_modMult(curr, prod, tmpInv);
-        uECC_modMult(curr, curr, lambdas[i]);
-        uECC_modMult(curr, curr, sharesY[i]);
+        uECC_modMult(curr, lambdas[i], sharesY[i]);
         uECC_modAdd(y, y, curr);
     }
 }
 
 int checkReconstructionWithLambdas(fieldElem *sharesY, fieldElem result) {
-    fieldElem result_test, zero;
-    uECC_setZero(zero);
-
-    evalWithLambdas(sharesY, zero, result_test);
+    fieldElem result_test;
+    evalWithLambdas(sharesY, result_test);
     return (uECC_equal(result_test, result) == 0) ? ERROR : OKAY;
 }
 
@@ -366,9 +356,9 @@ int MPC_Step2_Commit(uint8_t *resultCommit, uint8_t *dBuf, uint8_t *eBuf, uint8_
         uint8_t macKey[KEY_LEN];
         getMacKey(macKey, hsms[i]);
         crypto_hmac(macKey, mac, dShareBufs[i], FIELD_ELEM_LEN);
-        if (memcmp(mac, dMacs[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        if (memcmp(mac, dMacs[i], SHA256_DIGEST_LEN) != 0) {memset(resultShareBuf, 3, FIELD_ELEM_LEN); return ERROR;}
         crypto_hmac(macKey, mac, eShareBufs[i], FIELD_ELEM_LEN);
-        if (memcmp(mac, eMacs[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        if (memcmp(mac, eMacs[i], SHA256_DIGEST_LEN) != 0) {memset(resultShareBuf, 3, FIELD_ELEM_LEN); return ERROR;}
     }
 
     /* Check commits. */
@@ -378,13 +368,13 @@ int MPC_Step2_Commit(uint8_t *resultCommit, uint8_t *dBuf, uint8_t *eBuf, uint8_
         crypto_sha256_update(dShareBufs[i], FIELD_ELEM_LEN);
         crypto_sha256_update(dOpenings[i], FIELD_ELEM_LEN);
         crypto_sha256_final(testCommit);
-        if (memcmp(testCommit, commits1[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        if (memcmp(testCommit, commits1[i], SHA256_DIGEST_LEN) != 0) {memset(resultShareBuf, 4, FIELD_ELEM_LEN); return ERROR;}
 
         crypto_sha256_init();
         crypto_sha256_update(eShareBufs[i], FIELD_ELEM_LEN);
         crypto_sha256_update(eOpenings[i], FIELD_ELEM_LEN);
         crypto_sha256_final(testCommit);
-        if (memcmp(testCommit, commits2[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        if (memcmp(testCommit, commits2[i], SHA256_DIGEST_LEN) != 0) {memset(resultShareBuf, 4, FIELD_ELEM_LEN); return ERROR;}
     }
 
     /* Check that shares actually produce the correct result. */
@@ -446,7 +436,6 @@ int MPC_Step2_Open(uint8_t *resultShareBuf_out, uint8_t *resultOpening_out, uint
     for (int i = 0; i < thresholdSize; i++) {
         memcpy(commits1[i], resultCommits_in[i], SHA256_DIGEST_LEN);
     }
-
 }
 
 int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN], uint8_t resultOpenings[HSM_THRESHOLD_SIZE][FIELD_ELEM_LEN], uint8_t resultMacs[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN], uint8_t *hsms) {
@@ -456,6 +445,7 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[HS
     fieldElem sharesY[HSM_THRESHOLD_SIZE];
 
     uECC_setZero(zero);
+    memset(returnMsg, 0xff, FIELD_ELEM_LEN);
 
     /* Check MACs for shares returned */
     for (int i = 0; i < thresholdSize; i++) {
@@ -476,7 +466,7 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[HS
         crypto_sha256_update(resultShareBufs[i], FIELD_ELEM_LEN);
         crypto_sha256_update(resultOpenings[i], FIELD_ELEM_LEN);
         crypto_sha256_final(testCommit);
-        if (memcmp(testCommit, commits1[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        if (memcmp(testCommit, commits1[i], SHA256_DIGEST_LEN) != 0) {memcpy(returnMsg, testCommit, FIELD_ELEM_LEN); return ERROR;}
     }
 
 
