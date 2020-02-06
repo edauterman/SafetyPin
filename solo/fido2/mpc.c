@@ -34,9 +34,8 @@ uint8_t dOpening[FIELD_ELEM_LEN];
 uint8_t eOpening[FIELD_ELEM_LEN];
 uint8_t resultOpening[FIELD_ELEM_LEN];
 
-uint8_t dCommits[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
-uint8_t eCommits[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
-uint8_t resultCommits[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+uint8_t commits1[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
+uint8_t commits2[HSM_THRESHOLD_SIZE][SHA256_DIGEST_LEN];
 
 //uint8_t macKeys[KEY_LEN][100];
 //uint8_t macKeys[KEY_LEN][NUM_HSMS];
@@ -347,8 +346,8 @@ void MPC_Step1_Open(uint8_t *dShareBuf_out, uint8_t *eShareBuf_out, uint8_t *dOp
     memcpy(eOpening_out, eOpening, FIELD_ELEM_LEN);
 
     for (int i = 0; i < thresholdSize; i++) {
-        memcpy(dCommits[i], dCommits_in[i], SHA256_DIGEST_LEN);
-        memcpy(eCommits[i], eCommits_in[i], SHA256_DIGEST_LEN);
+        memcpy(commits1[i], dCommits_in[i], SHA256_DIGEST_LEN);
+        memcpy(commits2[i], eCommits_in[i], SHA256_DIGEST_LEN);
     }
 }
 
@@ -379,13 +378,13 @@ int MPC_Step2_Commit(uint8_t *resultCommit, uint8_t *dBuf, uint8_t *eBuf, uint8_
         crypto_sha256_update(dShareBufs[i], FIELD_ELEM_LEN);
         crypto_sha256_update(dOpenings[i], FIELD_ELEM_LEN);
         crypto_sha256_final(testCommit);
-        if (memcmp(testCommit, dCommits[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        if (memcmp(testCommit, commits1[i], SHA256_DIGEST_LEN) != 0) return ERROR;
 
         crypto_sha256_init();
         crypto_sha256_update(eShareBufs[i], FIELD_ELEM_LEN);
         crypto_sha256_update(eOpenings[i], FIELD_ELEM_LEN);
         crypto_sha256_final(testCommit);
-        if (memcmp(testCommit, eCommits[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        if (memcmp(testCommit, commits2[i], SHA256_DIGEST_LEN) != 0) return ERROR;
     }
 
     /* Check that shares actually produce the correct result. */
@@ -445,7 +444,7 @@ int MPC_Step2_Open(uint8_t *resultShareBuf_out, uint8_t *resultOpening_out, uint
     memcpy(resultOpening_out, resultOpening, FIELD_ELEM_LEN);
 
     for (int i = 0; i < thresholdSize; i++) {
-        memcpy(resultCommits[i], resultCommits_in[i], SHA256_DIGEST_LEN);
+        memcpy(commits1[i], resultCommits_in[i], SHA256_DIGEST_LEN);
     }
 
 }
@@ -477,7 +476,7 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[HS
         crypto_sha256_update(resultShareBufs[i], FIELD_ELEM_LEN);
         crypto_sha256_update(resultOpenings[i], FIELD_ELEM_LEN);
         crypto_sha256_final(testCommit);
-        if (memcmp(testCommit, resultCommits[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+        if (memcmp(testCommit, commits1[i], SHA256_DIGEST_LEN) != 0) return ERROR;
     }
 
 

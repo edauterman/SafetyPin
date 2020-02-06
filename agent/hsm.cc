@@ -788,7 +788,7 @@ int HSM_AuthMPCDecrypt1Open(HSM *h, ShamirShare *dShare, ShamirShare *eShare, ui
                     string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
         memcpy(&resp, resp_str.data(), resp_str.size());
 #else
-        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_1_COMMIT, (uint8_t *)&req,
+        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_1_OPEN, (uint8_t *)&req,
                     sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
  
@@ -829,7 +829,7 @@ int HSM_AuthMPCDecrypt2Commit(HSM *h, uint8_t *resultCommit, BIGNUM *d, BIGNUM *
     }
     memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
 #ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_2_CP<<OT, 0, 0,
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_2_COMMIT, 0, 0,
                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
     memcpy(&resp, resp_str.data(), resp_str.size());
 #else
@@ -857,6 +857,7 @@ int HSM_AuthMPCDecrypt2Open(HSM *h, ShamirShare *resultShare, uint8_t *resultOpe
         memcpy(req.resultCommits[i], resultCommits[i], SHA256_DIGEST_LENGTH);
     }
     memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
+    printf("sending decrypt 2 open\n");
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_2_OPEN, 0, 0,
                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
@@ -865,6 +866,7 @@ int HSM_AuthMPCDecrypt2Open(HSM *h, ShamirShare *resultShare, uint8_t *resultOpe
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_2_OPEN, (uint8_t *)&req,
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
+    printf("got response for decrypt 2 open\n");
     
     memcpy(resultOpening, resp.resultOpening, FIELD_ELEM_LEN);
     Shamir_UnmarshalCompressed(resp.resultShare, reconstructIndex, resultShare);

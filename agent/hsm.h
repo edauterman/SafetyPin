@@ -24,8 +24,10 @@ extern "C" {
 #define HSM_THRESHOLD_SIZE 1
 
 //#define HSM_MAX_GROUP_SIZE 3
+//#define HSM_MAX_GROUP_SIZE 6
 #define HSM_MAX_GROUP_SIZE 100
 //#define HSM_MAX_THRESHOLD_SIZE 1 
+//#define HSM_MAX_THRESHOLD_SIZE 2
 #define HSM_MAX_THRESHOLD_SIZE 34
 
 #define KEY_LEN 32
@@ -175,7 +177,7 @@ typedef struct {
 typedef struct {
     uint8_t dCommits[HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
     uint8_t eCommits[HSM_MAX_THRESHOLD_SIZE][SHA256_DIGEST_LENGTH];
-    uint8_t hsms[HSM_GROUP_SIZE];
+    uint8_t hsms[HSM_MAX_GROUP_SIZE];
 } HSM_AUTH_MPC_DECRYPT_1_OPEN_REQ;
 
 typedef struct {

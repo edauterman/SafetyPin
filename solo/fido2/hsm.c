@@ -538,23 +538,12 @@ void getMsg(struct hsm_auth_mpc_decrypt_1_commit_request *req, uint8_t *msg, uin
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
 }
 
-uint8_t tmpNewCts[KEY_LEVELS][CT_LEN];
-
-void doPuncture(struct hsm_auth_mpc_decrypt_1_commit_request *req, uint8_t *out, int *outLen) {
-    //uint8_t newCts[KEY_LEVELS][CT_LEN];
-
-    PuncEnc_PunctureLeaf(req->treeCts, req->index, tmpNewCts);
-    /*if (out) {
-        memcpy(out, newCts, KEY_LEVELS * CT_LEN);
-    } else {
-        u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
-    }*/
-}
-
 void mpcStep1(struct hsm_auth_mpc_decrypt_1_commit_request *req, uint8_t *msg, uint8_t *out, int *outLen) {
     uint8_t dCommit[SHA256_DIGEST_LEN];
     uint8_t eCommit[SHA256_DIGEST_LEN];
-    
+    uint8_t tmpNewCts[KEY_LEVELS][CT_LEN];
+
+    PuncEnc_PunctureLeaf(req->treeCts, req->index, tmpNewCts);
     MPC_Step1_Commit(dCommit, eCommit, msg, req->pinShare, req->aesCt, req->aesCtTag);
 
     //memset(dMacs, 0xff, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
@@ -584,8 +573,6 @@ int HSM_AuthMPCDecrypt_1_Commit(struct hsm_auth_mpc_decrypt_1_commit_request *re
         return U2F_SW_NO_ERROR;
     }
     getMsg(req, msg, leaf);
-
-    doPuncture(req, out, outLen);
 
     mpcStep1(req, msg, out, outLen);
 
@@ -650,7 +637,7 @@ int HSM_AuthMPCDecrypt_2_Open(struct hsm_auth_mpc_decrypt_2_open_request *req, u
         memcpy(out, resultShareBuf, FIELD_ELEM_LEN);
         memcpy(out + FIELD_ELEM_LEN, resultOpening, FIELD_ELEM_LEN);
         memcpy(out + 2 * FIELD_ELEM_LEN, resultMacs, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-        *outLen = (2 * FIELD_ELEM_LEN) * (HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
+        *outLen = (2 * FIELD_ELEM_LEN) + (HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
     } else {
         u2f_response_writeback(resultShareBuf, FIELD_ELEM_LEN);
         u2f_response_writeback(resultOpening, FIELD_ELEM_LEN);
