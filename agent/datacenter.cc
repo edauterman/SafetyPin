@@ -687,6 +687,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     EC_POINT *elGamalRand =  NULL;
     uint8_t elGamalRandBuf[33];
     uint8_t keyBuf[AES256_KEY_LEN];
+    LogProof *logProofs[HSM_GROUP_SIZE];
 
     CHECK_A (dShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
     CHECK_A (eShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
@@ -738,6 +739,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         CHECK_A (dOpenings[i] = (uint8_t *)malloc(FIELD_ELEM_LEN));
         CHECK_A (eOpenings[i] = (uint8_t *)malloc(FIELD_ELEM_LEN));
         CHECK_A (resultOpenings[i] = (uint8_t *)malloc(FIELD_ELEM_LEN));
+        CHECK_A (logProofs[i] = LogProof_new());
     }
     CHECK_A (r = BN_new());
     CHECK_A (dVal = BN_new());
@@ -777,6 +779,16 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     printf("bns[1] = %s\n", BN_bn2hex(h1Bns[1]));
     printf("bns[2] = %s\n", BN_bn2hex(h1Bns[2]));
 */
+
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        CHECK_C (Log_Prove(params, logProofs[i], c->elGamalCts[i]->ct, h1));
+        t0[i] = thread(HSM_LogProof, d->hsms[h1[i]], c->elGamalCts[i]->ct, h1, logProofs[i]);
+    }
+    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+        t0[i].join();
+    }
+ 
+
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         elGamalRandShares[i]->x = h1Bns[i];
         //HSM_ElGamalDecrypt(d->hsms[h1[i]], elGamalRandShares[i]->msg, c->elGamalCts[i]->ct);
