@@ -26,6 +26,7 @@
 #include "hidapi.h"
 #include "hsm.h"
 #include "ibe.h"
+#include "log.h"
 #include "params.h"
 #include "punc_enc.h"
 #include "u2f.h"
@@ -936,7 +937,7 @@ cleanup:
     return rv;
 }
 
-int HSM_SetParams(HSM *h) {
+int HSM_SetParams(HSM *h, uint8_t *logPk) {
     int rv;
     HSM_SET_PARAMS_REQ req;
     string resp_str;
@@ -945,6 +946,7 @@ int HSM_SetParams(HSM *h) {
 
     req.groupSize = HSM_GROUP_SIZE;
     req.thresholdSize = HSM_THRESHOLD_SIZE;
+    memcpy(req.logPk, logPk, COMPRESSED_PT_SZ);
 
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_SET_PARAMS, 0, 0,
@@ -953,6 +955,42 @@ int HSM_SetParams(HSM *h) {
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SET_PARAMS, (uint8_t *)&req,
                 sizeof(req), NULL, 0));
 #endif
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    return rv;
+}
+
+int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
+    int rv;
+    HSM_LOG_PROOF_REQ req;
+    HSM_LOG_PROOF_RESP resp;
+    string resp_str;
+
+    pthread_mutex_lock(&h->m);
+
+    ElGamal_Marshal(h->params, req.ct, c);
+    memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
+    for (int i = 0; i < PROOF_LEVELS; i++) {
+        memcpy(req.proof[i], p->merkleProof[i], SHA256_DIGEST_LENGTH);
+    }
+    memcpy(req.rootSig, p->rootSig, SIG_LEN);
+    memcpy(req.opening, p->opening, FIELD_ELEM_LEN);
+
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_PROOF, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_PROOF, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+
+    if (resp.result > 0) {
+        printf("Log proof success\n");
+    } else {
+        printf("LOG PROOF FAIL: %d\n", resp.result);
+    }
 
 cleanup:
     pthread_mutex_unlock(&h->m);

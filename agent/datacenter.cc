@@ -12,6 +12,7 @@
 #include "datacenter.h"
 #include "hidapi.h"
 #include "hsm.h"
+#include "log.h"
 #include "mpc.h"
 #include "params.h"
 #include "punc_enc.h"
@@ -25,8 +26,8 @@
 
 using namespace std;
 
-const char *HANDLES[] = {"/dev/cu.usbmodem2086366155482", "/dev/cu.usbmodem2052338246482"};
-//const char *HANDLES[] = {"/dev/cu.usbmodem208133B646482"};
+//const char *HANDLES[] = {"/dev/cu.usbmodem2086366155482", "/dev/cu.usbmodem2052338246482"};
+const char *HANDLES[] = {"/dev/cu.usbmodem206A36AC55482"};
 /*const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
 			"/dev/ttyACM2",
@@ -338,6 +339,7 @@ int Datacenter_TestSetup(Datacenter *d) {
     uint8_t msk[KEY_LEN];
     uint8_t hmacKey[KEY_LEN];
     embedded_pairing_bls12_381_g2_t mpk;
+    uint8_t logPk[COMPRESSED_PT_SZ];
 
     CHECK_A (cts = (uint8_t *)malloc(TREE_SIZE * CT_LEN));
 
@@ -346,9 +348,10 @@ int Datacenter_TestSetup(Datacenter *d) {
     printf("AES_CT_LEN = %d, sizeof = %d\n", AES_CT_LEN, sizeof(InnerMpcMsg));
 
     printf("going to build tree\n");
+    Log_Init(d->hsms[0]->params, logPk);
     PuncEnc_BuildTree(cts, msk, hmacKey, &mpk);
     for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_SetParams(d->hsms[i]));
+        CHECK_C (HSM_SetParams(d->hsms[i], logPk));
         CHECK_C (HSM_GetMpk(d->hsms[i]));
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
         CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, &mpk));

@@ -8,7 +8,7 @@
 uECC_Curve curve;
 
 void uECC_init() {
-    curve =  uECC_secp256k1();
+    curve =  uECC_secp256r1();
 }
 
 void uECC_setZero(fieldElem vli) {
@@ -140,4 +140,13 @@ void uECC_pointAdd(ecPoint result,
 
 void uECC_randInt(fieldElem vli) {
     uECC_generate_random_int(vli, uECC_curve_n(curve), uECC_curve_num_n_words(curve));
+}
+
+int uECC_ecdsaVerify(const uint8_t *public_key,
+                     const uint8_t *message_hash,
+                     unsigned hash_size,
+                     const uint8_t *signature) {
+    uint8_t pk[64];
+    uECC_decompress(public_key, pk, curve);
+    return uECC_verify(pk, message_hash, hash_size, signature, curve);
 }

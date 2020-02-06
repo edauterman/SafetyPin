@@ -8,6 +8,7 @@
 #include "hsm.h"
 #include "ibe.h"
 #include "log.h"
+#include "log_proof.h"
 #include "mpc.h"
 #include "punc_enc.h"
 #include "u2f.h"
@@ -80,6 +81,9 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_SET_PARAMS:
             HSM_SetParams((struct hsm_set_params_request *)(in), out, outLen);
             break;
+        case HSM_LOG_PROOF:
+            HSM_LogProof((struct hsm_log_proof_request *)(in), out, outLen);
+            break;
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
     }
@@ -131,6 +135,8 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return sizeof(struct hsm_set_mac_keys_request);
         case HSM_SET_PARAMS:
             return sizeof(struct hsm_set_params_request);
+        case HSM_LOG_PROOF:
+            return sizeof(struct hsm_log_proof_request);
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
             return 0;
@@ -681,10 +687,26 @@ int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outL
 int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "calling set params\n");
     MPC_SetParams(req->groupSize, req->thresholdSize);
+    Log_SetParams(req->logPk, req->groupSize);
 
     if (out) {
         *outLen = 0;
     }
 
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen) {
+    printf1(TAG_GREEN, "calling log proof\n");
+    uint8_t resp = Log_Verify(req->ct, req->hsms, req->proof, req->rootSig, req->opening);
+
+    printf("result: %d\n", resp);
+
+    if (out) {
+        memcpy(out, resp, 1);
+        *outLen = 1;
+    } else {
+        u2f_response_writeback(resp, 1);
+    }
     return U2F_SW_NO_ERROR;
 }

@@ -6,6 +6,7 @@
 
 #include "ibe.h"
 #include "bls12_381/bls12_381.h"
+#include "log.h"
 #include "params.h"
 #include "elgamal.h"
 #include "shamir.h"
@@ -16,12 +17,12 @@
 extern "C" {
 #endif
 
-//#define HID
+#define HID
 
-#define NUM_HSMS 2
-#define HSM_GROUP_SIZE 2
+#define NUM_HSMS 1
+#define HSM_GROUP_SIZE 1
 //#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 2
+#define HSM_THRESHOLD_SIZE 1
 
 //#define HSM_MAX_GROUP_SIZE 3
 //#define HSM_MAX_GROUP_SIZE 6
@@ -86,6 +87,7 @@ extern "C" {
 #define HSM_AUTH_MPC_DECRYPT_3          0x84
 #define HSM_SET_MAC_KEYS                0x85
 #define HSM_SET_PARAMS                  0x86
+#define HSM_LOG_PROOF                   0x87
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -274,7 +276,22 @@ typedef struct {
 typedef struct {
     uint8_t groupSize;
     uint8_t thresholdSize;
+    uint8_t logPk[COMPRESSED_PT_SZ];
 } HSM_SET_PARAMS_REQ;
+
+typedef struct {
+    uint8_t ct[ELGAMAL_CT_LEN];
+    uint8_t hsms[HSM_MAX_GROUP_SIZE];
+    uint8_t proof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t rootSig[SIG_LEN];
+    uint8_t opening[FIELD_ELEM_LEN];
+} HSM_LOG_PROOF_REQ;
+
+typedef struct {
+    uint8_t result;
+} HSM_LOG_PROOF_RESP;
+
+
 
 /* ---------------------------------- */
 
@@ -301,7 +318,7 @@ int HSM_SmallSetup(HSM *h);
 int HSM_TestSetup(HSM *h);
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk);
 int HSM_SetMacKeys(HSM *h, uint8_t **macKeys);
-int HSM_SetParams(HSM *h);
+int HSM_SetParams(HSM *h, uint8_t *logPk);
 
 /* Testing tree. */
 int HSM_Retrieve(HSM *h, uint32_t index);
@@ -322,6 +339,7 @@ int HSM_AuthMPCDecrypt2Commit(HSM *h, uint8_t *resultCommit, BIGNUM *d, BIGNUM *
 int HSM_AuthMPCDecrypt2Open(HSM *h, ShamirShare *resultShare, uint8_t *resultOpening, uint8_t **resultMacs, uint8_t **resultCommits, uint8_t *hsms, uint8_t reconstructIndex);
 int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultOpenings, uint8_t **resultMacs, uint8_t *hsms, uint8_t reconstructIndex);
 
+int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p);
 
 /* Run microbenchmarks. */
 int HSM_MicroBench(HSM *h);

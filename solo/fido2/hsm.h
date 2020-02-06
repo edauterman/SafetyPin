@@ -23,6 +23,9 @@
 
 #define NUM_ATTEMPTS 1
 
+#define PROOF_LEVELS 30
+#define SIG_LEN (FIELD_ELEM_LEN * 2)
+
 #define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
 
 #define COMPRESSED_PT_SZ 33
@@ -75,6 +78,7 @@
 #define HSM_AUTH_MPC_DECRYPT_3          0x84
 #define HSM_SET_MAC_KEYS                0x85
 #define HSM_SET_PARAMS                  0x86
+#define HSM_LOG_PROOF                   0x87
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -207,6 +211,15 @@ struct hsm_auth_mpc_decrypt_3_request {
 struct hsm_set_params_request {
     uint8_t groupSize;
     uint8_t thresholdSize;
+    uint8_t logPk[COMPRESSED_PT_SZ];
+};
+
+struct hsm_log_proof_request {
+    uint8_t ct[ELGAMAL_CT_LEN];
+    uint8_t hsms[HSM_GROUP_SIZE];
+    uint8_t proof[PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t rootSig[SIG_LEN];
+    uint8_t opening[FIELD_ELEM_LEN];
 };
 
 uint8_t pingKey[KEY_LEN];
@@ -233,5 +246,6 @@ int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outL
 int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen);
 int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *out, int *outLen);
 int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen);
+int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen);
 
 #endif

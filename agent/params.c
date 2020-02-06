@@ -56,7 +56,7 @@ Params *Params_new()
     // TODO: delete this, using order instead of prime now 
     BN_hex2bn(&params->prime, "EC35D1D9CD0BEC4A13186ED1DDFE0CF3");
 
-    CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_secp256k1));
+    CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1));
     CHECK_C (EC_GROUP_get_order(params->group, params->order, params->bn_ctx));
 
     printf("finished params\n");
