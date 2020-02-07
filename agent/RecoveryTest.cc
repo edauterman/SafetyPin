@@ -39,9 +39,14 @@ int main(int argc, char *argv[]) {
   BN_rand_range(saveKey, params->order);
   BN_rand_range(pin, params->order);
   RecoveryCiphertext *c = RecoveryCiphertext_new(params);
+  LogProof *logProofs[HSM_GROUP_SIZE];
+  for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+    logProofs[i] = LogProof_new();
+  }
 
   Datacenter_Save(d, params, saveKey, 0, pin, c);
-  Datacenter_Recover(d, params, saveKeyTest, 0, pin, c);
+  Datacenter_GenerateLogProofs(d, params, logProofs, pin, c);
+  Datacenter_Recover(d, params, saveKeyTest, 0, pin, c, logProofs);
 
   if (BN_cmp(saveKey, saveKeyTest) != 0) {
     printf("FAIL: expected to recover:\n %s\n but recovered:\n %s\n", BN_bn2hex(saveKey), BN_bn2hex(saveKeyTest));

@@ -16,7 +16,8 @@ typedef struct {
 LogProof *LogProof_new();
 void LogProof_free(LogProof *p);
 
-int Log_Init(Params *params, uint8_t *logPk);
+int Log_Init(Params *params);
+int Log_GetPk(Params *params, uint8_t *logPk);
 int Log_Prove(Params *params, LogProof *p, ElGamal_ciphertext *c, uint8_t *hsms);
 
 #endif

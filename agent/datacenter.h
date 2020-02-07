@@ -6,10 +6,10 @@
 #include "params.h"
 #include "punc_enc.h"
 
-#define NUM_HSMS 1
-#define HSM_GROUP_SIZE 1
+#define NUM_HSMS 40
+#define HSM_GROUP_SIZE 40
 //#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 1
+#define HSM_THRESHOLD_SIZE 14
 //#define HSM_THRESHOLD_SIZE 3
 #define PIN_LEN 10
 
@@ -42,5 +42,6 @@ int Datacenter_TestSetup(Datacenter *d);
 int Datacenter_VirtualSetup(Datacenter *d);
 
 int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c);
-int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c);
+int Datacenter_GenerateLogProofs(Datacenter *d, Params *params, LogProof **logProofs, BIGNUM *pin, RecoveryCiphertext *c);
+int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c, LogProof **logProofs);
 #endif

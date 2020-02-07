@@ -42,6 +42,10 @@ int main(int argc, char *argv[]) {
   BN_rand_range(saveKey, params->order);
   BN_rand_range(pin, params->order);
   RecoveryCiphertext *c = RecoveryCiphertext_new(params);
+  LogProof *logProofs[HSM_GROUP_SIZE];
+  for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+    logProofs[i] = LogProof_new();
+  }
 
   Datacenter_TestSetup(d);
 
@@ -51,7 +55,10 @@ int main(int argc, char *argv[]) {
   Datacenter_Save(d, params, saveKey, 0, pin, c);
   gettimeofday(&t2, NULL);
   //clock_t t2 = clock();
-  Datacenter_Recover(d, params, saveKeyTest, 0, pin, c);
+  //
+  Datacenter_GenerateLogProofs(d, params, logProofs, pin, c);
+
+  Datacenter_Recover(d, params, saveKeyTest, 0, pin, c, logProofs);
   gettimeofday(&t3, NULL);
   //clock_t t3 = clock();
 

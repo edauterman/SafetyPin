@@ -9,6 +9,7 @@
 #include <string.h>
 #include <time.h>
 #include <map>
+#include <sys/time.h>
 
 #include "datacenter.h"
 #include "hsm.h"
@@ -29,7 +30,8 @@ int main(int argc, char *argv[]) {
   LogProof *p = LogProof_new();
   EC_POINT *msg = EC_POINT_new(d->hsms[0]->params->group);
 
-  Log_Init(d->hsms[0]->params, logPk);
+  Log_Init(d->hsms[0]->params);
+  Log_GetPk(d->hsms[0]->params, logPk);
 
   for (int i = 0; i < NUM_HSMS; i++) {
     ElGamal_ciphertext *c = ElGamalCiphertext_new(d->hsms[i]->params); 
