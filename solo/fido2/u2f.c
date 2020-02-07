@@ -194,6 +194,14 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished log proof\n");
                 break;
 
+        case HSM_BASELINE:
+                printf1(TAG_GREEN, "starting baseline\n");
+                rcode = HSM_Baseline((struct hsm_baseline_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished baseline\n");
+                break;
+
+
+
 
             case U2F_REGISTER:
                 printf1(TAG_U2F, "U2F_REGISTER\n");

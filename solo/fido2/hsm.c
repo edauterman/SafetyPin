@@ -12,6 +12,8 @@
 #include "mpc.h"
 #include "punc_enc.h"
 #include "u2f.h"
+#include "../crypto/cifra/src/modes.h"
+#include "../crypto/cifra/src/aes.h"
 
 void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
     switch (msgType) {
@@ -84,6 +86,9 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_LOG_PROOF:
             HSM_LogProof((struct hsm_log_proof_request *)(in), out, outLen);
             break;
+        case HSM_BASELINE:
+            HSM_Baseline((struct hsm_baseline_request *)(in), out, outLen);
+            break;
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
     }
@@ -137,6 +142,8 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return sizeof(struct hsm_set_params_request);
         case HSM_LOG_PROOF:
             return sizeof(struct hsm_log_proof_request);
+        case HSM_BASELINE:
+            return sizeof(struct hsm_baseline_request);
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
             return 0;
@@ -708,5 +715,44 @@ int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen) {
     } else {
         u2f_response_writeback(resp, 1);
     }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_Baseline(struct hsm_baseline_request *req, uint8_t *out, int *outLen) {
+    uint8_t k[33];
+    uint8_t kHash[32];
+    uint8_t msg[SHA256_DIGEST_LEN + KEY_LEN];
+    uint8_t tagTest[SHA256_DIGEST_LEN];
+    uint8_t outputKey[KEY_LEN];
+
+    ElGamal_Decrypt(req->elGamalCt, k);
+
+    crypto_sha256_init();
+    crypto_sha256_update(k, 33);
+    crypto_sha256_final(kHash);
+
+    /* Decrypt aes ciphertext. */
+    crypto_aes256_init(kHash, NULL);
+    crypto_aes256_decrypt_sep(msg, req->aesCt, SHA256_DIGEST_LEN + KEY_LEN);
+    /*printf("going to decrypt\n");
+    cf_aes_context ctx;
+    cf_aes_init(&ctx, kHash, 32);
+    cf_gcm_decrypt(&cf_aes, &ctx, req->aesCt, SHA256_DIGEST_LEN + KEY_LEN, NULL, 0, NULL, 0, req->tag, 32, msg);
+*/
+
+    /* Check pin hash and HMAC. */
+    if (memcmp(msg, req->pinHash, SHA256_DIGEST_LEN) == 0) {
+        memcpy(outputKey, msg + SHA256_DIGEST_LEN, KEY_LEN);
+    } else {
+        memset(outputKey, 0, KEY_LEN);
+    }
+
+    if (out) {
+        memcpy(out, outputKey, KEY_LEN);
+        *outLen = KEY_LEN;
+    } else {
+        u2f_response_writeback(outputKey, KEY_LEN);
+    }
+
     return U2F_SW_NO_ERROR;
 }

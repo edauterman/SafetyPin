@@ -17,7 +17,7 @@ SRC += ../../fido2/extensions/wallet.c
 SRC += ../../fido2/hsm.c ../../fido2/punc_enc.c ../../fido2/ibe.c ../../fido2/cdc.c ../../fido2/mpc.c  ../../fido2/shamir.c ../../crypto/cifra/src/arm/unacl/scalarmult.c ../../fido2/uECC.c ../../fido2/elgamal.c ../../fido2/log_proof.c
 
 # Crypto libs
-SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c
+SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c ../../crypto/cifra/src/aes.c ../../crypto/cifra/src/modes.c ../../crypto/cifra/src/gcm.c ../../crypto/cifra/src/gf128.c ../../crypto/cifra/src/ccm.c
 SRC += ../../crypto/cifra/src/sha512.c ../../crypto/cifra/src/blockwise.c
 #LDFLAGS += ../../crypto/jedi-pairing/pairing.a
 

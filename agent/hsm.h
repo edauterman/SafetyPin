@@ -17,12 +17,12 @@
 extern "C" {
 #endif
 
-//#define HID
+#define HID
 
-#define NUM_HSMS 40
-#define HSM_GROUP_SIZE 40
+#define NUM_HSMS 1
+#define HSM_GROUP_SIZE 1
 //#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 14
+#define HSM_THRESHOLD_SIZE 1
 
 //#define HSM_MAX_GROUP_SIZE 3
 //#define HSM_MAX_GROUP_SIZE 6
@@ -88,6 +88,7 @@ extern "C" {
 #define HSM_SET_MAC_KEYS                0x85
 #define HSM_SET_PARAMS                  0x86
 #define HSM_LOG_PROOF                   0x87
+#define HSM_BASELINE                    0x88
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -274,6 +275,16 @@ typedef struct {
 } HSM_ELGAMAL_DECRYPT_RESP;
 
 typedef struct {
+    uint8_t elGamalCt[ELGAMAL_CT_LEN];
+    uint8_t aesCt[SHA256_DIGEST_LENGTH + KEY_LEN];
+    uint8_t pinHash[SHA256_DIGEST_LENGTH];
+} HSM_BASELINE_REQ;
+
+typedef struct {
+    uint8_t key[KEY_LEN];
+} HSM_BASELINE_RESP;
+
+typedef struct {
     uint8_t groupSize;
     uint8_t thresholdSize;
     uint8_t logPk[COMPRESSED_PT_SZ];
@@ -346,6 +357,7 @@ int HSM_MicroBench(HSM *h);
 int HSM_LongMsg(HSM *h);
 int HSM_Mac(HSM *h1, HSM *h2, uint8_t *nonce, uint8_t *mac);
 
+int HSM_Baseline(HSM *h, uint8_t *key, ElGamal_ciphertext *c, uint8_t *aesCt, uint8_t *pinHash);
 #ifdef __cplusplus
 }
 #endif

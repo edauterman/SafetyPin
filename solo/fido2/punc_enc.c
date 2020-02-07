@@ -9,6 +9,7 @@
 #include "ibe.h"
 #include "log.h"
 #include "hsm.h"
+#include "punc_enc.h"
 
 //#define NUM_LEAVES 256
 //#define LEVELS 8 // log2(NUM_LEAVES)

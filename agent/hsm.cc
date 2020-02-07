@@ -996,3 +996,31 @@ cleanup:
     pthread_mutex_unlock(&h->m);
     return rv;
 }
+
+int HSM_Baseline(HSM *h, uint8_t *key, ElGamal_ciphertext *c, uint8_t *aesCt, uint8_t *pinHash) {
+    int rv;
+    HSM_BASELINE_REQ req;
+    HSM_BASELINE_RESP resp;
+    string resp_str;
+
+    pthread_mutex_lock(&h->m);
+
+    ElGamal_Marshal(h->params, req.elGamalCt, c);
+    memcpy(req.aesCt, aesCt, SHA256_DIGEST_LENGTH + KEY_LEN);
+    memcpy(req.pinHash, pinHash, SHA256_DIGEST_LENGTH);
+
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_BASELINE, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_BASELINE, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+
+    memcpy(key, resp.key, KEY_LEN);
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    return rv; 
+}

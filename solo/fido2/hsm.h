@@ -79,6 +79,7 @@
 #define HSM_SET_MAC_KEYS                0x85
 #define HSM_SET_PARAMS                  0x86
 #define HSM_LOG_PROOF                   0x87
+#define HSM_BASELINE                    0x88
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -164,6 +165,12 @@ struct hsm_elgamal_decrypt_response {
     uint8_t msg[ELGAMAL_PT_LEN];
 };
 
+struct hsm_baseline_request {
+    uint8_t elGamalCt[ELGAMAL_CT_LEN];
+    uint8_t aesCt[SHA256_DIGEST_LEN + KEY_LEN];
+    uint8_t pinHash[SHA256_DIGEST_LEN];
+};
+
 struct hsm_set_mac_keys_request {
     uint8_t macKeys[100][KEY_LEN];
 };
@@ -247,5 +254,6 @@ int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *ou
 int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *out, int *outLen);
 int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen);
 int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen);
+int HSM_Baseline(struct hsm_baseline_request *req, uint8_t *out, int *outLen);
 
 #endif
