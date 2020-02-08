@@ -296,40 +296,20 @@ int HSM_Decrypt(struct hsm_decrypt_request *req, uint8_t *out, int *outLen) {
     return U2F_SW_NO_ERROR;
 }
 
-int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *outLen) {
-    printf1(TAG_GREEN, "starting to decrypt\n");
-    uint8_t leaf[CT_LEN];
+void ibeDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *leaf, uint8_t *msg) {
     embedded_pairing_bls12_381_g2_t U;
     uint8_t V[IBE_MSG_LEN];
     uint8_t W[IBE_MSG_LEN];
     embedded_pairing_bls12_381_g1_t sk;
-    uint8_t msg[IBE_MSG_LEN];
-    uint8_t newCts[KEY_LEVELS][CT_LEN];
-
-    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
-        printf("Couldn't retrieve leaf\n");
-        if (out) {
-            memset(msg, 0, IBE_MSG_LEN +  (KEY_LEVELS * CT_LEN));
-            *outLen = IBE_MSG_LEN + (KEY_LEVELS * CT_LEN);
-        } else {
-            memset(msg, 0, IBE_MSG_LEN + (KEY_LEVELS * CT_LEN));
-            u2f_response_writeback(msg, IBE_MSG_LEN  + (KEY_LEVELS * CT_LEN));
-        }
-        return U2F_SW_NO_ERROR;
-    }
+ 
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
     IBE_UnmarshalSk(leaf, &sk);
     printf("unmarshalled, going to decrypt\n");
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
+}
 
-    printf1(TAG_GREEN, "finished decryption\n");
-    if (memcmp(msg + 32, req->pinHash, SHA256_DIGEST_LEN) != 0) {
-        printf("BAD PIN HASH -- WILL NOT DECRYPT\n");
-        //memset(msg, 0xaa, IBE_MSG_LEN);
-    }  else {
-        printf("Pin hash check passed.\n");
-    }
-
+void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, uint8_t *out, int*outLen) {
+    uint8_t newCts[KEY_LEVELS][CT_LEN];
     printf1(TAG_GREEN, "going to puncture\n");
     PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
     printf1(TAG_GREEN, "finished puncturing leaf\n");
@@ -343,6 +323,38 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
         u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
     }
     printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
+
+
+}
+
+int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *outLen) {
+    printf1(TAG_GREEN, "starting to decrypt\n");
+    uint8_t leaf[CT_LEN];
+    uint8_t msg[IBE_MSG_LEN];
+
+    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
+        printf("Couldn't retrieve leaf\n");
+        if (out) {
+            memset(msg, 0, IBE_MSG_LEN +  (KEY_LEVELS * CT_LEN));
+            *outLen = IBE_MSG_LEN + (KEY_LEVELS * CT_LEN);
+        } else {
+            memset(msg, 0, IBE_MSG_LEN + (KEY_LEVELS * CT_LEN));
+            u2f_response_writeback(msg, IBE_MSG_LEN  + (KEY_LEVELS * CT_LEN));
+        }
+        return U2F_SW_NO_ERROR;
+    }
+
+    ibeDecrypt(req, leaf, msg);
+
+    printf1(TAG_GREEN, "finished decryption\n");
+    if (memcmp(msg + 32, req->pinHash, SHA256_DIGEST_LEN) != 0) {
+        printf("BAD PIN HASH -- WILL NOT DECRYPT\n");
+        //memset(msg, 0xaa, IBE_MSG_LEN);
+    }  else {
+        printf("Pin hash check passed.\n");
+    }
+
+    punctureAndWriteback(req, msg, out, outLen);
 
     return U2F_SW_NO_ERROR;
 }
@@ -365,7 +377,7 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     uint8_t key1[32];
     uint8_t key2[32];
     memset(key, 0xff, 16);
-    embedded_pairing_bls12_381_zp_random(&z1, ctap_generate_rng);
+    /*embedded_pairing_bls12_381_zp_random(&z1, ctap_generate_rng);
     uint32_t t1 = millis();
     embedded_pairing_bls12_381_g1_multiply_affine(&g1_z1, embedded_pairing_bls12_381_g1affine_generator, &z1);
     uint32_t t2 = millis();
@@ -412,7 +424,7 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
         printf("DEC FAILED\n");
     } else {
         printf("decryption matched\n");
-    }
+    }*/
     //printf("key len: %d, aes256 = %d, aes128 = %d\n", AES_KEYLEN, AES256, AES128);
     fieldElem x, y;
     ecPoint gx, gy, gz;
@@ -437,7 +449,20 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     }
     uint32_t t19 = millis();
 
-    printf1(TAG_GREEN, "g_1^x (generator): %d ms\n", t2 - t1);
+    uint8_t sig[64];
+    uint8_t pk[33];
+    uint8_t msg[32];
+    fieldElem r, s;
+    uECC_randInt(r);
+    uECC_randInt(s);
+    uECC_bytesToPointCompressed(pk, gx);
+    uECC_fieldElemToBytes(sig, r);
+    uECC_fieldElemToBytes(s + 32, s);
+    uint32_t t20 = millis();
+    uECC_ecdsaVerify(pk, msg, 32, sig);
+    uint32_t t21 = millis();
+
+    /*printf1(TAG_GREEN, "g_1^x (generator): %d ms\n", t2 - t1);
     printf1(TAG_GREEN, "g_2^x (generator): %d ms\n", t3 - t2);
     printf1(TAG_GREEN, "g_1^x (not generator): %d ms\n", t5 - t4);
     printf1(TAG_GREEN, "g_2^x (not generator): %d ms\n", t6 - t5);
@@ -448,11 +473,12 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "aes init (100): %d ms\n", t10 - t9);
     printf1(TAG_GREEN, "aes encrypt (100): %d ms\n", t11 - t10);
     printf1(TAG_GREEN, "hmac (100): %d ms\n", t12 - t11);
-    printf1(TAG_GREEN, "P256 base point mul: %d ms\n", t14 - t13);
+    */printf1(TAG_GREEN, "P256 base point mul: %d ms\n", t14 - t13);
     printf1(TAG_GREEN, "P256 point mul: %d ms\n", t15 - t14);
     printf1(TAG_GREEN, "P256 point add: %d ms\n", t18 - t17);
     printf1(TAG_GREEN, "el gamal decrypt: %d ms\n", t17 - t16);
     printf1(TAG_GREEN, "read from flash (100): %d ms\n", t19 - t18);
+    printf1(TAG_GREEN, "ecdsa verify: %d ms\n", t21 - t20);
 
     *outLen = 0;
 

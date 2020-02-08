@@ -50,6 +50,7 @@ void IBE_Extract(uint16_t index, embedded_pairing_bls12_381_g1_t *sk) {
 }
 
 void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381_g2_t *U, uint8_t *V, uint8_t *W, uint8_t *msg, int msgLen) {
+    uint32_t t1 = millis();
     embedded_pairing_bls12_381_g1affine_t sk_affine;
     embedded_pairing_bls12_381_g2affine_t U_affine;
     embedded_pairing_bls12_381_fq12_t U_sk;
@@ -64,14 +65,10 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
     embedded_pairing_core_bigint_256_t r;
     embedded_pairing_bls12_381_g2_t U_test;
 
-    printf("starting decrypt\n");
-
     /* \sigma = V XOR H(e(sk, U)) */
     embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, sk);
     embedded_pairing_bls12_381_g2affine_from_projective(&U_affine, U);
-    printf("before pairing\n");
     embedded_pairing_bls12_381_pairing(&U_sk, &sk_affine, &U_affine);
-    printf("after pairing\n");
     embedded_pairing_bls12_381_gt_marshal(U_sk_buf, &U_sk);
     hashToLength(U_sk_buf, embedded_pairing_bls12_381_gt_marshalled_size, tmp, msgLen);
     //hashToLength(U_sk_buf, embedded_pairing_bls12_381_gt_marshalled_size, U_sk_buf_msg_len, msgLen);
@@ -79,23 +76,17 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
         sigma_M[i] = tmp[i] ^ V[i];
     }
 
-    printf("finished 1\n");
-
     /* M = W XOR H(\sigma) */
     hashToLength(sigma_M, msgLen, tmp, msgLen);
     for (int i = 0; i < msgLen; i++) {
         sigma_M[i + msgLen] =  W[i] ^  tmp[i];
     }
 
-    printf("finished 2\n");
-
     /* r = H(\sigma, M) */
     //memcpy(sigma_M, sigma, msgLen);
     //memcpy(sigma_M + msgLen, M, msgLen);
     hashToLength(sigma_M, 2 * msgLen, sigma_M_hash, SHA256_DIGEST_LEN);
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
-
-    printf("finished 3\n");
 
     /* Test u = rP */
     embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_zero, &r);
@@ -106,7 +97,8 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
     }
 
     memcpy(msg, sigma_M + msgLen, msgLen);
-    printf("finished decrypt\n");
+    uint32_t t2 = millis();
+    printf("ibe decrypt: %d\n", t2 - t1);
 }
 
 void IBE_MarshalCt(uint8_t *buf, int msgLen, embedded_pairing_bls12_381_g2_t *U, uint8_t *V, uint8_t *W) {

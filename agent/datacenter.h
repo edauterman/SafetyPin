@@ -7,7 +7,7 @@
 #include "punc_enc.h"
 
 #define NUM_HSMS 1
-#define HSM_GROUP_SIZE 1
+#define HSM_GROUP_SIZE 3
 //#define HSM_GROUP_SIZE 5
 #define HSM_THRESHOLD_SIZE 1
 //#define HSM_THRESHOLD_SIZE 3
@@ -20,7 +20,7 @@ typedef struct {
 typedef struct {
     IBE_ciphertext *recoveryCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     BIGNUM *r;
-    //BIGNUM *s;
+    BIGNUM *s;
 //    IBE_ciphertext *saltCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     uint8_t iv[AES256_IV_LEN];
     uint8_t ct[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];

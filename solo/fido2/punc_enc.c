@@ -39,7 +39,6 @@ void crypto_aes256_encrypt_sep(uint8_t *out, uint8_t *in, int length) {
 
 /* Decrypt with separate input and output buffers. */
 void crypto_aes256_decrypt_sep(uint8_t *out, uint8_t *in, int length) {
-    printf("in aes256 decrypt, length = %d\n", length);
     for (int i = 0; i < length / 16; i++) {
         uint8_t tmp[16];
         memcpy(tmp, in + (i * 16), 16);
@@ -113,11 +112,6 @@ void setIBELeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], int start) {
         embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
         embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
         memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
-        printf("leaf %d: ", i);
-        for (int j = 0; j < 48; j++) {
-            printf("%x ", buf[j]);
-        }
-        printf("\n"); 
         //memset(leaves[i], 0xff, CT_LEN);
     }
 }
@@ -303,19 +297,15 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
     uint32_t currCmp = numLeaves / 2;
     //uint16_t currCmp = NUM_LEAVES / 2;
     uint32_t currIndex = index;
-   
-    memcpy(currKey, msk, KEY_LEN);
+    uint32_t t3, t4;
 
-    printf1(TAG_GREEN, "trying to retrieve %d\n", index);
+    uint32_t t1 = millis();   
+    memcpy(currKey, msk, KEY_LEN);
 
     /* Walk down the tree. */
     for (int i = 0; i < levels - 1; i++) {
-        printf("ct[%d]: ", i);
-        for (int j = 0; j < CT_LEN; j++) {
-            printf("%x ", cts[i][j]);
-        }
-        printf("\n");
         /* Decrypt current ciphertext. */
+        t3 = millis();
         if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[i]) == ERROR) {
             printf("ERROR IN DECRYPTION OF INNER NODE\n");
             return ERROR;
@@ -348,6 +338,7 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
 */
         currCmp /= 2;
         //currIndex /= 2;
+        t4 = millis();
     }
     /* Set final leaf value. */
     if (decryptKeysAndCheckTag(currKey, hmacKey, leftKey, rightKey, cts[levels - 1]) == ERROR) {
@@ -356,7 +347,9 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
     }
     memcpy(leaf, leftKey, KEY_LEN);
     memcpy(leaf + KEY_LEN, rightKey, KEY_LEN);
-    printf("finished\n");
+    uint32_t t2 = millis();
+    //printf1(TAG_GREEN, "retrieve time: %d\n", t2 - t1);
+    //printf1(TAG_GREEN, "inner loop: %d\n", t4 - t3);
     return OKAY;
 }
 
@@ -372,11 +365,14 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, ui
     uint8_t pathDirs[keyLevels];
     uint32_t currCmp = numLeaves / 2;
     uint32_t currIndex = index;
-    
+   
+    uint32_t t1= millis(); 
+    uint32_t t3, t4, t5, t6;
     memcpy(currKey, msk, KEY_LEN);
 
     /* Walk down to the leaf, recording information to create new set of cts. */
     for (int i = 0; i < keyLevels; i++) {
+        t3 = millis();
         memcpy(pathKeys[i], currKey, KEY_LEN);
 
         /* Decrypt ciphertext. */
@@ -400,6 +396,7 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, ui
         }
        
         currCmp /= 2;
+        t4 = millis();
     }
 
     /* Zero out leaf. */
@@ -408,6 +405,7 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, ui
 
     /* Generate new ciphertexts along path. */
     for (int i = keyLevels - 1; i >= 0; i--) {
+        t5 = millis();
         uint8_t plaintext[CT_LEN];
         /* Decide which key to leave and which to replace. */
         if (pathDirs[i] == 0) {
@@ -426,7 +424,12 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, ui
         //crypto_aes256_init(newKey, NULL);
         //crypto_aes256_encrypt_sep(newCts[KEY_LEVELS - i - 1], plaintext, KEY_LEN);
         //crypto_aes256_encrypt_sep((uint8_t *)newCts[KEY_LEVELS - i - 1] + KEY_LEN, (uint8_t *)plaintext +  KEY_LEN, KEY_LEN);
+        t6 = millis();
     }
 
     memcpy(msk, newKey, KEY_LEN);
+    uint32_t t2 = millis();
+    //printf("puncture time: %d\n", t2 - t1);
+    //printf("decrypting inner loop %d\n", t4 - t3);
+    //printf("encrypting inner loop %d\n", t6 - t5);
 }

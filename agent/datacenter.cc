@@ -157,7 +157,7 @@ RecoveryCiphertext *RecoveryCiphertext_new(Params *params) {
         CHECK_A (c->elGamalCts[i] = ElGamalCtShare_new(params));
     }
     CHECK_A (c->r = BN_new());
-    //CHECK_A (c->s = BN_new());
+    CHECK_A (c->s = BN_new());
 cleanup:
     if (rv == ERROR) {
         RecoveryCiphertext_free(c);
@@ -175,7 +175,7 @@ void RecoveryCiphertext_free(RecoveryCiphertext *c) {
         free(c->elGamalCts[i]);
     }
     if (c && c->r) BN_free(c->r);
-    //if (c && c->s) BN_free(c->s);
+    if (c && c->s) BN_free(c->s);
     if (c) free(c);
 }
 
@@ -449,6 +449,20 @@ cleanup:
     return rv;
 }
 
+int hashPinAndSalt(BIGNUM *pin, BIGNUM *salt, uint8_t *out) {
+    int rv;
+    /* Salted hash of pin. */
+    uint8_t *in = NULL;
+    int len = BN_num_bytes(salt) + BN_num_bytes(pin);
+    CHECK_A (in = (uint8_t *)malloc(len));
+    BN_bn2bin(salt, in);
+    BN_bn2bin(pin, in + BN_num_bytes(salt));
+    hash_to_bytes(out, SHA256_DIGEST_LENGTH, in, len);
+cleanup:
+    if (in) free(in);
+    return rv;
+}
+
 /* bns: prime, numHsms
  * bn_ctx 
  * make IBE_MSG_LEN = 32 + 16 = 48*/
@@ -459,6 +473,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     uint8_t h2[HSM_GROUP_SIZE];
     BIGNUM *r = NULL;
     BIGNUM *saltHashes[HSM_GROUP_SIZE];
+    uint8_t saltHash[SHA256_DIGEST_LENGTH];
     BIGNUM *elGamalRand = NULL;
     EC_POINT *elGamalRandPt = NULL;
     ShamirShare *saveKeyShares[HSM_GROUP_SIZE];
@@ -475,6 +490,10 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     uint8_t elGamalRandBuf[33];
     uint8_t keyBuf[AES256_KEY_LEN];
     uint8_t list[HSM_GROUP_SIZE];
+    BIGNUM *encryptedSaveKey;
+    uint8_t encryptedSaveKeyBuf[FIELD_ELEM_LEN];
+    uint8_t saveKeyBuf[FIELD_ELEM_LEN];
+    int bytesFilled = 0;
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
@@ -494,11 +513,13 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     }
     CHECK_A (elGamalRandPt = EC_POINT_new(params->group));
     CHECK_A (elGamalRand = BN_new());
+    CHECK_A (encryptedSaveKey = BN_new());
     
     debug_print("start save key: %s\n", BN_bn2hex(saveKey));
 
     /* Choose salts. */
     CHECK_A (r = BN_new());
+    CHECK_C (BN_rand_range(c->s, params->order));
     CHECK_C (BN_rand_range(c->r, params->order));
     CHECK_C (BN_rand_range(r, params->order));
 
@@ -509,8 +530,19 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
 
     debug_print("hashed salt and pin to find HSMs\n");
 
+    /* Salted hash of pin. */
+    CHECK_C (hashPinAndSalt(pin, c->s, saltHash));
+    memset(saveKeyBuf, 0, FIELD_ELEM_LEN);
+    BN_bn2bin(saveKey, saveKeyBuf + FIELD_ELEM_LEN - BN_num_bytes(saveKey));
+    EVP_CIPHER_CTX *ctx; 
+    CHECK_A (ctx = EVP_CIPHER_CTX_new());
+    CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, saltHash, NULL));
+    CHECK_C (EVP_EncryptUpdate(ctx, encryptedSaveKeyBuf, &bytesFilled, saveKeyBuf, FIELD_ELEM_LEN));
+    BN_bin2bn(encryptedSaveKeyBuf, FIELD_ELEM_LEN, encryptedSaveKey);
+
     /* Split saveKey into shares */
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKey, params->order, saveKeyShares, h1Bns));
+    //CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, encryptedSaveKey, params->order, saveKeyShares, h1Bns));
 
     debug_print("created shares of save key\n");
 
@@ -528,7 +560,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     /* Encrypt [saveKey]_i, H(pin, salt) to each HSM. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         debug_print("starting ct %d\n", i);
-        int bytesFilled = 0;
+        bytesFilled = 0;
 
         InnerMpcMsg innerMpcMsg;
         Shamir_MarshalCompressed(innerMpcMsg.msg, saveKeyShares[i]);
@@ -545,7 +577,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
         CHECK_C (RAND_bytes(mpcMsg.aesKey, KEY_LEN));
         CHECK_C (RAND_bytes(mpcMsg.hmacKey, KEY_LEN));
 
-        EVP_CIPHER_CTX *ctx;
+        EVP_CIPHER_CTX *ctx; 
         CHECK_A (ctx = EVP_CIPHER_CTX_new());
         CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, mpcMsg.aesKey, NULL));
         CHECK_C (EVP_EncryptUpdate(ctx, c->aesCts[i], &bytesFilled, (uint8_t *)&innerMpcMsg, AES_CT_LEN));
@@ -708,6 +740,11 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     EC_POINT *elGamalRand =  NULL;
     uint8_t elGamalRandBuf[33];
     uint8_t keyBuf[AES256_KEY_LEN];
+    BIGNUM *encryptedSaveKey;
+    uint8_t encryptedSaveKeyBuf[FIELD_ELEM_LEN];
+    uint8_t saveKeyBuf[FIELD_ELEM_LEN];
+    uint8_t saltHash[SHA256_DIGEST_LENGTH];
+    int bytesFilled = 0;
 
     CHECK_A (dShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
     CHECK_A (eShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
@@ -765,6 +802,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     CHECK_A (eVal = BN_new());
     CHECK_A (result = BN_new());
     CHECK_A (elGamalRand = EC_POINT_new(params->group));
+    CHECK_A (encryptedSaveKey = BN_new());
 
     /* Hash meta-salt to find salt HSMs. */
 /*    chooseHsmsFromSalt(params, h2, c->s);
@@ -931,6 +969,18 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
 
     /* Reassemble original saveKey. */
     CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, saveKey));
+    //CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, encryptedSaveKey));
+
+    /* Salted hash of pin. */
+    /*CHECK_C (hashPinAndSalt(pin, c->s, saltHash));
+    memset(encryptedSaveKeyBuf, 0, FIELD_ELEM_LEN);
+    BN_bn2bin(encryptedSaveKey, encryptedSaveKeyBuf + FIELD_ELEM_LEN - BN_num_bytes(encryptedSaveKey));
+    EVP_CIPHER_CTX *ctx; 
+    CHECK_A (ctx = EVP_CIPHER_CTX_new());
+    CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, saltHash, NULL));
+    CHECK_C (EVP_EncryptUpdate(ctx, saveKeyBuf, &bytesFilled, encryptedSaveKeyBuf, SHA256_DIGEST_LENGTH));
+    BN_bin2bn(saveKeyBuf, FIELD_ELEM_LEN, saveKey);
+*/
     //printf("done: %s\n", BN_bn2hex(saveKey));
 
 cleanup:
