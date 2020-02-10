@@ -30,7 +30,7 @@ void IBE_Setup(embedded_pairing_core_bigint_256_t *msk, embedded_pairing_bls12_3
     memset(hash, 0xff, 32);
     /* USING A DUMMY MSK ONLY FOR TESTING PURPOSES. */
     embedded_pairing_bls12_381_zp_from_hash(msk, hash);
-    embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_zero, msk);
+    embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_generator, msk);
     //embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_generator, msk);
 
 }
@@ -85,11 +85,12 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, IBE_ciphertext *c, uint8_t
     memcpy(sigma_M, sigma, msgLen);
     memcpy(sigma_M + msgLen, M, msgLen);
     hash_to_bytes(sigma_M_hash, SHA256_DIGEST_LENGTH, sigma_M, 2 * msgLen);
+
     //hashToLength(sigma_M, 2 * IBE_MSG_LEN, sigma_M_hash, SHA256_DIGEST_LEN);
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
 
     /* Test u = rP */
-    embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_zero, &r);
+    embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_generator, &r);
     //embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_generator, &r);
     if (!embedded_pairing_bls12_381_g2_equal(&U_test, &c->U)) {
         printf("--------- ERROR IN DECRYPTION ----------\n");
@@ -106,7 +107,7 @@ int IBE_Encrypt(embedded_pairing_bls12_381_g2_t *mpk, uint16_t index, uint8_t *m
     uint8_t sigma_M[2 * msgLen];
     uint8_t sigma_M_hash[SHA256_DIGEST_LENGTH];
     embedded_pairing_bls12_381_g2affine_t mpk_affine;
-    embedded_pairing_bls12_381_fq12_t pt_mpk;
+    embedded_pairing_bls12_381_fq12_t pt_mpk, pt_mpk_r;
     uint8_t pt_mpk_buf[embedded_pairing_bls12_381_gt_marshalled_size];
     uint8_t pt_mpk_buf_msg_len[msgLen];
     uint8_t sigma_hash[msgLen];
@@ -125,16 +126,19 @@ int IBE_Encrypt(embedded_pairing_bls12_381_g2_t *mpk, uint16_t index, uint8_t *m
     memcpy(sigma_M, sigma, msgLen);
     memcpy(sigma_M + msgLen, msg, msgLen);
     CHECK_C (hash_to_bytes(sigma_M_hash, SHA256_DIGEST_LENGTH, sigma_M, 2 * msgLen));
+
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
 
     /* U = rP */
-    embedded_pairing_bls12_381_g2_multiply_affine(&c->U, embedded_pairing_bls12_381_g2affine_zero, &r);
+    embedded_pairing_bls12_381_g2_multiply_affine(&c->U, embedded_pairing_bls12_381_g2affine_generator, &r);
     //embedded_pairing_bls12_381_g2_multiply_affine(&c->U, embedded_pairing_bls12_381_g2affine_generator, &r);
 
     /* V = \sigma XOR H(e(pt, mpk)) */
+    /* V = \sigma XOR H(e(pt, mpk)^r) */
     embedded_pairing_bls12_381_g2affine_from_projective(&mpk_affine, mpk);
     embedded_pairing_bls12_381_pairing(&pt_mpk, &pt_affine, &mpk_affine);
-    embedded_pairing_bls12_381_gt_marshal(pt_mpk_buf, &pt_mpk);
+    embedded_pairing_bls12_381_gt_multiply(&pt_mpk_r, &pt_mpk, &r);
+    embedded_pairing_bls12_381_gt_marshal(pt_mpk_buf, &pt_mpk_r);
     CHECK_C (hash_to_bytes(pt_mpk_buf_msg_len, msgLen, pt_mpk_buf, embedded_pairing_bls12_381_gt_marshalled_size));
     for (int i = 0; i < msgLen; i++)  {
         c->V[i] = sigma[i] ^  pt_mpk_buf_msg_len[i];
