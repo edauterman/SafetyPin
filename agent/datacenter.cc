@@ -27,8 +27,8 @@
 using namespace std;
 
 //const char *HANDLES[] = {"/dev/cu.usbmodem2086366155482", "/dev/cu.usbmodem2052338246482"};
-const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
-/*const char *HANDLES[] = {"/dev/ttyACM0",
+//const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
+const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
 			"/dev/ttyACM2",
 			"/dev/ttyACM3",
@@ -129,7 +129,7 @@ const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
 			"/dev/ttyACM98",
 			"/dev/ttyACM99",
 };
-*/
+
 
 typedef struct {
     uint8_t aesKey[KEY_LEN];
@@ -539,10 +539,11 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, saltHash, NULL));
     CHECK_C (EVP_EncryptUpdate(ctx, encryptedSaveKeyBuf, &bytesFilled, saveKeyBuf, FIELD_ELEM_LEN));
     BN_bin2bn(encryptedSaveKeyBuf, FIELD_ELEM_LEN, encryptedSaveKey);
+    printf("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
 
     /* Split saveKey into shares */
-    CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKey, params->order, saveKeyShares, h1Bns));
-    //CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, encryptedSaveKey, params->order, saveKeyShares, h1Bns));
+    //CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKey, params->order, saveKeyShares, h1Bns));
+    CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, encryptedSaveKey, params->order, saveKeyShares, h1Bns));
 
     debug_print("created shares of save key\n");
 
@@ -968,19 +969,20 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
 
     /* Reassemble original saveKey. */
-    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, saveKey));
-    //CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, encryptedSaveKey));
+//    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, saveKey));
+    CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, encryptedSaveKey));
 
     /* Salted hash of pin. */
-    /*CHECK_C (hashPinAndSalt(pin, c->s, saltHash));
+    printf("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
+    CHECK_C (hashPinAndSalt(pin, c->s, saltHash));
     memset(encryptedSaveKeyBuf, 0, FIELD_ELEM_LEN);
     BN_bn2bin(encryptedSaveKey, encryptedSaveKeyBuf + FIELD_ELEM_LEN - BN_num_bytes(encryptedSaveKey));
     EVP_CIPHER_CTX *ctx; 
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
-    CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, saltHash, NULL));
-    CHECK_C (EVP_EncryptUpdate(ctx, saveKeyBuf, &bytesFilled, encryptedSaveKeyBuf, SHA256_DIGEST_LENGTH));
+    CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, saltHash, NULL));
+    CHECK_C (EVP_DecryptUpdate(ctx, saveKeyBuf, &bytesFilled, encryptedSaveKeyBuf, SHA256_DIGEST_LENGTH));
     BN_bin2bn(saveKeyBuf, FIELD_ELEM_LEN, saveKey);
-*/
+
     //printf("done: %s\n", BN_bn2hex(saveKey));
 
 cleanup:
