@@ -15,7 +15,7 @@ void IBE_Setup() {
     /* Choose msk in Z_q^* */
     embedded_pairing_bls12_381_zp_random(&msk, ctap_generate_rng);
     /* Set mpk */
-    embedded_pairing_bls12_381_g2_multiply_affine(&mpk, embedded_pairing_bls12_381_g2affine_zero, &msk);
+    embedded_pairing_bls12_381_g2_multiply_affine(&mpk, embedded_pairing_bls12_381_g2affine_generator, &msk);
 
 }
 
@@ -89,12 +89,12 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
 
     /* Test u = rP */
-    embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_zero, &r);
+    /*embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_zero, &r);
     if (!embedded_pairing_bls12_381_g2_equal(&U_test, U)) {
         memset(msg, 0x8, msgLen);
         printf("--------- ERROR IN DECRYPTION ----------\n");
         return;
-    }
+    }*/
 
     memcpy(msg, sigma_M + msgLen, msgLen);
     uint32_t t2 = millis();

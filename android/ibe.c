@@ -21,18 +21,20 @@ void IBE_ciphertext_free(IBE_ciphertext *c) {
     free(c);
 }
 
-void IBE_Setup(embedded_pairing_core_bigint_256_t *msk, embedded_pairing_bls12_381_g2_t *mpk) {
+void IBE_Setup(embedded_pairing_core_bigint_256_t *msk, embedded_pairing_bls12_381_g2_t *mpk, embedded_pairing_bls12_381_g2prepared_t *mpkPrepared) {
     /* Choose msk in Z_q^* */
 //    embedded_pairing_bls12_381_zp_random(&msk, RAND_bytes);
     /* Set mpk */
     //embedded_pairing_bls12_381_g1_multiply_affine(&mpk, embedded_pairing_bls12_381_g1affine_zero, &msk);
     uint8_t hash[32];
     memset(hash, 0xff, 32);
+    embedded_pairing_bls12_381_g2affine_t mpkAffine;
     /* USING A DUMMY MSK ONLY FOR TESTING PURPOSES. */
     embedded_pairing_bls12_381_zp_from_hash(msk, hash);
     embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_generator, msk);
     //embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_generator, msk);
-
+    embedded_pairing_bls12_381_g2affine_from_projective(&mpkAffine, mpk);
+    embedded_pairing_bls12_381_g2prepared_prepare(mpkPrepared, &mpkAffine);
 }
 
 void IBE_Extract(embedded_pairing_core_bigint_256_t *msk, uint16_t index, embedded_pairing_bls12_381_g1_t *sk) {
@@ -99,7 +101,7 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, IBE_ciphertext *c, uint8_t
     memcpy(msg, M, msgLen);
 }
 
-int IBE_Encrypt(embedded_pairing_bls12_381_g2_t *mpk, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c) {
+int IBE_Encrypt(embedded_pairing_bls12_381_g2_t *mpk, embedded_pairing_bls12_381_g2prepared_t *mpkPrepared, uint16_t index, uint8_t *msg, int msgLen, IBE_ciphertext *c) {
     int rv;
     embedded_pairing_bls12_381_g1affine_t pt_affine;
     uint8_t indexHash[BASEFIELD_SZ_G1];
@@ -135,8 +137,9 @@ int IBE_Encrypt(embedded_pairing_bls12_381_g2_t *mpk, uint16_t index, uint8_t *m
 
     /* V = \sigma XOR H(e(pt, mpk)) */
     /* V = \sigma XOR H(e(pt, mpk)^r) */
-    embedded_pairing_bls12_381_g2affine_from_projective(&mpk_affine, mpk);
-    embedded_pairing_bls12_381_pairing(&pt_mpk, &pt_affine, &mpk_affine);
+    //embedded_pairing_bls12_381_g2affine_from_projective(&mpk_affine, mpk);
+    embedded_pairing_bls12_381_prepared_pairing(&pt_mpk, &pt_affine, mpkPrepared);
+    //embedded_pairing_bls12_381_pairing(&pt_mpk, &pt_affine, &mpk_affine);
     embedded_pairing_bls12_381_gt_multiply(&pt_mpk_r, &pt_mpk, &r);
     embedded_pairing_bls12_381_gt_marshal(pt_mpk_buf, &pt_mpk_r);
     CHECK_C (hash_to_bytes(pt_mpk_buf_msg_len, msgLen, pt_mpk_buf, embedded_pairing_bls12_381_gt_marshalled_size));
