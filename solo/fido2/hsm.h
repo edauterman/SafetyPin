@@ -14,12 +14,12 @@
 
 //#define HSM_GROUP_SIZE 3
 //#define HSM_GROUP_SIZE 6
-#define HSM_GROUP_SIZE 1
-//#define HSM_GROUP_SIZE 100
+//#define HSM_GROUP_SIZE 1
+#define HSM_GROUP_SIZE 100
 //#define HSM_THRESHOLD_SIZE 1
 //#define HSM_THRESHOLD_SIZE 2
-#define HSM_THRESHOLD_SIZE 1
-//#define HSM_THRESHOLD_SIZE 34 
+//#define HSM_THRESHOLD_SIZE 1
+#define HSM_THRESHOLD_SIZE 34 
 #define NUM_HSMS 1
 //#define NUM_HSMS 100
 

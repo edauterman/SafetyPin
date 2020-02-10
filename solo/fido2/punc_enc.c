@@ -177,16 +177,16 @@ void processSubTreeRoot(uint8_t root[KEY_LEN]) {
 void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], uint8_t cts[SUB_TREE_SIZE][CT_LEN]) {
     /* For each level in subtree, choose random key, encrypt two children keys or leaf */
     isSmall = false;
-    printf1(TAG_GREEN, "in build subtree\n");
+//    printf1(TAG_GREEN, "in build subtree\n");
 
-    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d ctr[3] = %d\n", currLevel, ctr[0], ctr[1], ctr[2], ctr[3]);
+//    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d ctr[3] = %d\n", currLevel, ctr[0], ctr[1], ctr[2], ctr[3]);
 
     int index = 0;
     int currNumLeaves = NUM_SUB_LEAVES;
     uint8_t *currLeaves = leaves;
     uint8_t keys[SUB_TREE_SIZE][KEY_LEN];
 
-    printf1(TAG_GREEN, "NUM_SUB_LEAVES = %d, SUB_TREE_SIZE = %d\n", NUM_SUB_LEAVES, SUB_TREE_SIZE);
+//    printf1(TAG_GREEN, "NUM_SUB_LEAVES = %d, SUB_TREE_SIZE = %d\n", NUM_SUB_LEAVES, SUB_TREE_SIZE);
 
     /* Repeat for each level in tree. */
     while (currNumLeaves >= 1) {
@@ -204,26 +204,26 @@ void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], uint8_t cts[
             //currLeaves += KEY_LEN;
             currLeaves += LEAF_LEN;
             /* Next index. */
-            printf1(TAG_GREEN, "index = %d/%d\n", index, SUB_TREE_SIZE);
+//            printf1(TAG_GREEN, "index = %d/%d\n", index, SUB_TREE_SIZE);
             index++;
         }
         currLeaves = (uint8_t *)keys + (initialIndex * KEY_LEN);
-        printf1(TAG_GREEN, "old currNumLeaves = %d\n", currNumLeaves);
+//        printf1(TAG_GREEN, "old currNumLeaves = %d\n", currNumLeaves);
         currNumLeaves /= 2.0;
-        printf1(TAG_GREEN, "new currNumLeaves = %d\n", currNumLeaves);
+//        printf1(TAG_GREEN, "new currNumLeaves = %d\n", currNumLeaves);
     }
 
-    printf("going to process and increment\n");
+//    printf("going to process and increment\n");
 
-    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
+//    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
     /* Set key for root. */
     processSubTreeRoot(keys[SUB_TREE_SIZE - 1]);
-    printf("processed root, going to increment\n");
+//    printf("processed root, going to increment\n");
     increment();
     //memcpy(finalKey, keys[SUB_TREE_SIZE - 1], KEY_LEN);
-    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
+//    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
 
-    printf1(TAG_GREEN, "done building subtree\n");
+//    printf1(TAG_GREEN, "done building subtree\n");
 }
 
 void PuncEnc_BuildSmallTree(uint8_t cts[SUB_TREE_SIZE][CT_LEN]) {
