@@ -346,13 +346,12 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
 
     ibeDecrypt(req, leaf, msg);
 
-    printf1(TAG_GREEN, "finished decryption\n");
-    if (memcmp(msg + 32, req->pinHash, SHA256_DIGEST_LEN) != 0) {
+    /*if (memcmp(msg + 32, req->pinHash, SHA256_DIGEST_LEN) != 0) {
         printf("BAD PIN HASH -- WILL NOT DECRYPT\n");
-        //memset(msg, 0xaa, IBE_MSG_LEN);
+        memset(msg, 0xaa, IBE_MSG_LEN);
     }  else {
         printf("Pin hash check passed.\n");
-    }
+    }*/
 
     punctureAndWriteback(req, msg, out, outLen);
 
@@ -376,8 +375,8 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     uint8_t buf2[16];
     uint8_t key1[32];
     uint8_t key2[32];
-    memset(key, 0xff, 16);
-    /*embedded_pairing_bls12_381_zp_random(&z1, ctap_generate_rng);
+    /*memset(key, 0xff, 16);
+    embedded_pairing_bls12_381_zp_random(&z1, ctap_generate_rng);
     uint32_t t1 = millis();
     embedded_pairing_bls12_381_g1_multiply_affine(&g1_z1, embedded_pairing_bls12_381_g1affine_generator, &z1);
     uint32_t t2 = millis();
@@ -391,7 +390,7 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     uint32_t t5 = millis();
     embedded_pairing_bls12_381_g2_multiply_affine(&g2_z2, &g2_z1_aff, &z2);
     uint32_t t6 = millis(); 
-    //embedded_pairing_bls12_381_pairing(&res, &g1_z1, &g2_z1);
+    embedded_pairing_bls12_381_pairing(&res, &g1_z1, &g2_z1);
     printf1(TAG_GREEN, "did pairing\n");
     uint32_t t7 = millis();
     embedded_pairing_bls12_381_gt_multiply(&res2, &res, &z1);

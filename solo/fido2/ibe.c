@@ -68,7 +68,9 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
     /* \sigma = V XOR H(e(sk, U)) */
     embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, sk);
     embedded_pairing_bls12_381_g2affine_from_projective(&U_affine, U);
+    uint32_t t3 = millis();
     embedded_pairing_bls12_381_pairing(&U_sk, &sk_affine, &U_affine);
+    uint32_t t4 = millis();
     embedded_pairing_bls12_381_gt_marshal(U_sk_buf, &U_sk);
     hashToLength(U_sk_buf, embedded_pairing_bls12_381_gt_marshalled_size, tmp, msgLen);
     //hashToLength(U_sk_buf, embedded_pairing_bls12_381_gt_marshalled_size, U_sk_buf_msg_len, msgLen);
@@ -98,7 +100,8 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
 
     memcpy(msg, sigma_M + msgLen, msgLen);
     uint32_t t2 = millis();
-    printf("ibe decrypt: %d\n", t2 - t1);
+    //printf("ibe decrypt: %d\n", t2 - t1);
+    //printf("pairing: %d\n", t4 - t3);
 }
 
 void IBE_MarshalCt(uint8_t *buf, int msgLen, embedded_pairing_bls12_381_g2_t *U, uint8_t *V, uint8_t *W) {
