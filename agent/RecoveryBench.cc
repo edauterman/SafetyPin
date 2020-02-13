@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 
   Datacenter_TestSetup(d);
 
-  struct timeval t1, t2, t3;
+  struct timeval t1, t2, t3, t4;
   //clock_t t1 = clock();
   gettimeofday(&t1, NULL);
   Datacenter_Save(d, params, saveKey, 0, pin, c);
@@ -58,8 +58,9 @@ int main(int argc, char *argv[]) {
   //
   Datacenter_GenerateLogProofs(d, params, logProofs, pin, c);
 
-  Datacenter_Recover(d, params, saveKeyTest, 0, pin, c, logProofs);
   gettimeofday(&t3, NULL);
+  Datacenter_Recover(d, params, saveKeyTest, 0, pin, c, logProofs);
+  gettimeofday(&t4, NULL);
   //clock_t t3 = clock();
 
   if (BN_cmp(saveKey, saveKeyTest) != 0) {
@@ -70,8 +71,8 @@ int main(int argc, char *argv[]) {
 
   long saveSeconds = (t2.tv_sec - t1.tv_sec);
   long saveMicros = (t2.tv_usec - t1.tv_usec);
-  long recoverSeconds = (t3.tv_sec - t2.tv_sec);
-  long recoverMicros = (t3.tv_usec - t2.tv_usec);
+  long recoverSeconds = (t4.tv_sec - t3.tv_sec);
+  long recoverMicros = (t4.tv_usec - t3.tv_usec);
   double saveTime = saveSeconds + (saveMicros / 1000000.0);
   double recoverTime = recoverSeconds + (recoverMicros / 1000000.0);
   //double saveTime = ((double) (t2 - t1)) / CLOCKS_PER_SEC;

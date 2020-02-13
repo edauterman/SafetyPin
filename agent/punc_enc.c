@@ -75,7 +75,7 @@ void PuncEnc_BuildTree(uint8_t *cts, uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_
     uint8_t hash[32];
     memset(hash, 0xff, 32);
     embedded_pairing_bls12_381_zp_from_hash(&ibeMsk, hash);
-    embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_zero, &ibeMsk);
+    embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_generator, &ibeMsk);
     setIBELeaves(&ibeMsk, leaves);
 
     printf("set ibe leaves\n");
