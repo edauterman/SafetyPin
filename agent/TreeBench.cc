@@ -45,6 +45,25 @@ int main(int argc, char *argv[]) {
   HSM_Puncture(d->hsms[0], 0);
   gettimeofday(&t3, NULL);
 
+
+  struct timeval t4, t5, t6;
+  uint8_t msg[IBE_MSG_LEN];
+  uint8_t msgTest[IBE_MSG_LEN];
+  uint8_t pin[PIN_LEN];
+  memset(msg, 0xff, IBE_MSG_LEN);
+  memset(pin, 0xff, PIN_LEN);
+  IBE_ciphertext *cts[PUNC_ENC_REPL];
+  for (int i = 0; i < PUNC_ENC_REPL; i++) {
+    cts[i] = IBE_ciphertext_new(IBE_MSG_LEN);
+  }
+    
+  gettimeofday(&t4, NULL);
+  HSM_Encrypt(d->hsms[0], 0, msg, IBE_MSG_LEN, cts);
+  gettimeofday(&t5, NULL);
+  HSM_AuthDecrypt(d->hsms[0], 0, cts, msgTest, IBE_MSG_LEN, pin);
+  gettimeofday(&t6, NULL);
+
+
   long retrieveSeconds = (t2.tv_sec - t1.tv_sec);
   long retrieveMicros = (t2.tv_usec - t1.tv_usec);
   long punctureSeconds = (t3.tv_sec - t2.tv_sec);
@@ -55,6 +74,20 @@ int main(int argc, char *argv[]) {
   //double recoverTime = ((double) (t3 - t2)) / CLOCKS_PER_SEC;
   printf("**** Retrieve time: %f, %ld seconds, %ld microseconds\n", retrieveTime, retrieveSeconds, retrieveMicros);
   printf("**** Puncture time: %f, %ld seconds, %ld microseconds\n", punctureTime, punctureSeconds, punctureMicros);
+
+
+  long encryptSeconds = (t5.tv_sec - t4.tv_sec);
+  long encryptMicros = (t5.tv_usec - t4.tv_usec);
+  long decryptSeconds = (t6.tv_sec - t5.tv_sec);
+  long decryptMicros = (t6.tv_usec - t5.tv_usec);
+  double encryptTime = encryptSeconds + (encryptMicros / 1000000.0);
+  double decryptTime = decryptSeconds + (decryptMicros / 1000000.0);
+  //double saveTime = ((double) (t2 - t1)) / CLOCKS_PER_SEC;
+  //double recoverTime = ((double) (t3 - t2)) / CLOCKS_PER_SEC;
+  printf("**** Encrypt time: %f, %ld seconds, %ld microseconds\n", encryptTime, encryptSeconds, encryptMicros);
+  printf("**** Decrypt time: %f, %ld seconds, %ld microseconds\n", decryptTime, decryptSeconds, decryptMicros);
+
+
 
   string filename = "../out/tree";
   FILE *f = fopen(filename.c_str(), "w+");

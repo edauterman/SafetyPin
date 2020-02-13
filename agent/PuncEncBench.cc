@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
   
   struct timeval t1, t2, t3;
   uint8_t msg[IBE_MSG_LEN];
+  uint8_t msgTest[IBE_MSG_LEN];
   uint8_t pin[PIN_LEN];
   memset(msg, 0xff, IBE_MSG_LEN);
   memset(pin, 0xff, PIN_LEN);
@@ -43,8 +44,16 @@ int main(int argc, char *argv[]) {
   gettimeofday(&t1, NULL);
   HSM_Encrypt(d->hsms[0], 0, msg, IBE_MSG_LEN, cts);
   gettimeofday(&t2, NULL);
-  HSM_AuthDecrypt(d->hsms[0], 0, cts, msg, IBE_MSG_LEN, pin);
+  HSM_AuthDecrypt(d->hsms[0], 0, cts, msgTest, IBE_MSG_LEN, pin);
   gettimeofday(&t3, NULL);
+
+  if (memcmp(msg, msgTest, IBE_MSG_LEN) !=  0) {
+    printf("FAIL: got back ");
+    for (int i = 0; i < IBE_MSG_LEN; i++) {
+        printf("%02x", msgTest[i]);
+    }
+    printf("\n");
+  }
 
   long encryptSeconds = (t2.tv_sec - t1.tv_sec);
   long encryptMicros = (t2.tv_usec - t1.tv_usec);

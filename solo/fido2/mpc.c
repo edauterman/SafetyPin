@@ -282,7 +282,7 @@ void MPC_Step1_Commit(uint8_t *dCommit, uint8_t *eCommit, uint8_t *msgIn, uint8_
     crypto_aes256_init(outerMpcMsg->aesKey, NULL);
     crypto_aes256_decrypt_sep((uint8_t *)(&currMpcMsg), aesCt, AES_CT_LEN);
     crypto_hmac(outerMpcMsg->hmacKey, tag, aesCt, AES_CT_LEN);
-    if (memcmp(tag, aesCtTag, SHA256_DIGEST_LEN) != 0) return;
+    if (memcmp(tag, aesCtTag, SHA256_DIGEST_LEN) != 0) {memcpy(dShareBuf, msgIn, FIELD_ELEM_LEN); return;}
 
     /* Save msg. */
     memcpy(msg, currMpcMsg.msg, FIELD_ELEM_LEN);

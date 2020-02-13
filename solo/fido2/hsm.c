@@ -281,10 +281,8 @@ int HSM_Decrypt(struct hsm_decrypt_request *req, uint8_t *out, int *outLen) {
     }
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
     IBE_UnmarshalSk(leaf, &sk);
-//    IBE_Extract(req->index, &sk);
+    
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
-
-    printf1(TAG_GREEN, "finished decryption\n");
 
     if (out) {
         memcpy(out, msg, IBE_MSG_LEN);
@@ -301,18 +299,16 @@ void ibeDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *leaf, uint8_t *ms
     uint8_t V[IBE_MSG_LEN];
     uint8_t W[IBE_MSG_LEN];
     embedded_pairing_bls12_381_g1_t sk;
- 
+
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
     IBE_UnmarshalSk(leaf, &sk);
-    printf("unmarshalled, going to decrypt\n");
+    //IBE_Extract(req->index, &sk);
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
 }
 
 void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, uint8_t *out, int*outLen) {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
-    printf1(TAG_GREEN, "going to puncture\n");
     PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
-    printf1(TAG_GREEN, "finished puncturing leaf\n");
 
     if (out) {
         memcpy(out, msg, IBE_MSG_LEN);
@@ -346,13 +342,12 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
 
     ibeDecrypt(req, leaf, msg);
 
-    printf1(TAG_GREEN, "finished decryption\n");
-    if (memcmp(msg + 32, req->pinHash, SHA256_DIGEST_LEN) != 0) {
+    /*if (memcmp(msg + 32, req->pinHash, SHA256_DIGEST_LEN) != 0) {
         printf("BAD PIN HASH -- WILL NOT DECRYPT\n");
-        //memset(msg, 0xaa, IBE_MSG_LEN);
+        memset(msg, 0xaa, IBE_MSG_LEN);
     }  else {
         printf("Pin hash check passed.\n");
-    }
+    }*/
 
     punctureAndWriteback(req, msg, out, outLen);
 
@@ -376,8 +371,8 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     uint8_t buf2[16];
     uint8_t key1[32];
     uint8_t key2[32];
-    memset(key, 0xff, 16);
-    /*embedded_pairing_bls12_381_zp_random(&z1, ctap_generate_rng);
+    /*memset(key, 0xff, 16);
+    embedded_pairing_bls12_381_zp_random(&z1, ctap_generate_rng);
     uint32_t t1 = millis();
     embedded_pairing_bls12_381_g1_multiply_affine(&g1_z1, embedded_pairing_bls12_381_g1affine_generator, &z1);
     uint32_t t2 = millis();
@@ -391,7 +386,7 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
     uint32_t t5 = millis();
     embedded_pairing_bls12_381_g2_multiply_affine(&g2_z2, &g2_z1_aff, &z2);
     uint32_t t6 = millis(); 
-    //embedded_pairing_bls12_381_pairing(&res, &g1_z1, &g2_z1);
+    embedded_pairing_bls12_381_pairing(&res, &g1_z1, &g2_z1);
     printf1(TAG_GREEN, "did pairing\n");
     uint32_t t7 = millis();
     embedded_pairing_bls12_381_gt_multiply(&res2, &res, &z1);
