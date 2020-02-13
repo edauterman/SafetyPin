@@ -402,7 +402,6 @@ int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *
     CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
 
     for (int i = 0; i < PUNC_ENC_REPL; i++)  {
-        printf("indexes: %d\n", indexes[i]);
         IBE_Encrypt(&h->mpk, indexes[i], msg, msgLen, c[i]);
     }
     pthread_mutex_unlock(&h->m);

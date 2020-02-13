@@ -146,8 +146,6 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
     memset(bufIn, 0, 8);
     memcpy(bufIn, &tag, sizeof(uint16_t));
     
-    printf("tag: %d\n", tag);
-
     for (uint32_t i = 0; i < PUNC_ENC_REPL; i++) {
         indexes[i] = 0;
         memcpy(bufIn +  sizeof(uint32_t), &i, sizeof(uint32_t));

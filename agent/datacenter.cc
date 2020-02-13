@@ -896,7 +896,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         validHsms[i] = h1[dOrder[i] - 1];   //assume same set of valid shares across d and e
     }*/
 
-    printf("threshold size %d, group size %d\n", HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE);
+    /*printf("threshold size %d, group size %d\n", HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE);
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         printf("dShare[%d] = %s\n", i, BN_bn2hex(dShares[i]->y));
     }
@@ -905,14 +905,14 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         printf("eShare[%d] = %s\n", i, BN_bn2hex(eShares[i]->y));
     }
     printf("e: %s\n", BN_bn2hex(eVal));
-
+*/
     /* Run stage 2 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         for (int j = 0; j < HSM_THRESHOLD_SIZE; j++) {
             eMacsCurr[i][j] = eMacs[j][i];
             dMacsCurr[i][j] = dMacs[j][i];
             
-            printf("dMacs[%d]", j);
+  /*          printf("dMacs[%d]", j);
             for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
                 printf("%02x", dMacsCurr[i][j][k]);
             }
@@ -922,17 +922,17 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
             for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
                 printf("%02x", eMacsCurr[i][j][k]);
             }
-            printf("\n");
+            printf("\n");*/
         }
         t4[i] = thread(HSM_AuthMPCDecrypt2Commit, d->hsms[h1[i]], resultCommits[i], dVal, eVal, dShares, eShares, dOpenings, eOpenings, dMacsCurr[i], eMacsCurr[i], h1);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t4[i].join();
-        printf("resultCommit[%d] = ", i);
+        /*printf("resultCommit[%d] = ", i);
         for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) {
             printf("%02x", resultCommits[i][j]);
         }
-        printf("\n");
+        printf("\n");*/
     }
 
     for (int i = 0; i <  HSM_GROUP_SIZE; i++) {
@@ -940,13 +940,13 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t5[i].join();
-	    printf("resultShares[%d] = %s\n", i, BN_bn2hex(resultShares[i]->y));
+	    /*printf("resultShares[%d] = %s\n", i, BN_bn2hex(resultShares[i]->y));
 	    for (int j = 0; j < HSM_GROUP_SIZE; j++) {
             printf("resultMacs[%d][%d]: ", i,j);
             for (int k = 0; k < SHA256_DIGEST_LENGTH; k++) {
                 printf("%02x", resultMacs[i][j][k]);
-            }
-        }
+            }*/
+        //}
     }
 
     /* Reconstruct result. TODO: validate shares. */
