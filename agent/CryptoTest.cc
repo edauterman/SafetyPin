@@ -28,13 +28,19 @@ void IBETest() {
   embedded_pairing_bls12_381_g1_t sk;
   uint8_t msg[IBE_MSG_LEN];
   uint8_t msg_test[IBE_MSG_LEN];
+  uint8_t cBuf[IBE_CT_LEN];
   IBE_ciphertext *c = IBE_ciphertext_new(IBE_MSG_LEN);
+  IBE_ciphertext *cTest = IBE_ciphertext_new(IBE_MSG_LEN);
   memset(msg, 0xff, IBE_MSG_LEN);
 
   IBE_Setup(&msk, &mpk);
   IBE_Extract(&msk, 1, &sk);
   IBE_Encrypt(&mpk, 1, msg, IBE_MSG_LEN, c);
   IBE_Decrypt(&sk, c, msg_test, IBE_MSG_LEN);
+
+  IBE_MarshalCt(cBuf, IBE_MSG_LEN, c);
+  IBE_UnmarshalCt(cBuf, IBE_MSG_LEN, cTest);
+  IBE_Decrypt(&sk, cTest, msg_test, IBE_MSG_LEN);
 
   if (memcmp(msg, msg_test, IBE_MSG_LEN) != 0) {
     printf("Decryption did not return correct plaintext: ");

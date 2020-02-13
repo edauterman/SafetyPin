@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-//#define HID
+#define HID
 
 #define NUM_HSMS 1
 #define HSM_GROUP_SIZE 1
@@ -41,8 +41,8 @@ extern "C" {
 #define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
-#define PUNC_ENC_REPL 80
-//#define PUNC_ENC_REPL 1
+//#define PUNC_ENC_REPL 80
+#define PUNC_ENC_REPL 1
 #define NUM_ATTEMPTS 1
 
 #define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))

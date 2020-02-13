@@ -12,10 +12,14 @@ embedded_pairing_core_bigint_256_t msk;
 embedded_pairing_bls12_381_g2_t mpk;
 
 void IBE_Setup() {
-    /* Choose msk in Z_q^* */
-    embedded_pairing_bls12_381_zp_random(&msk, ctap_generate_rng);
-    /* Set mpk */
+    uint8_t hash[32];
+    memset(hash, 0xff, 32);
+    embedded_pairing_bls12_381_zp_from_hash(&msk, hash);
     embedded_pairing_bls12_381_g2_multiply_affine(&mpk, embedded_pairing_bls12_381_g2affine_generator, &msk);
+    /* Choose msk in Z_q^* */
+    //embedded_pairing_bls12_381_zp_random(&msk, ctap_generate_rng);
+    /* Set mpk */
+    //embedded_pairing_bls12_381_g2_multiply_affine(&mpk, embedded_pairing_bls12_381_g2affine_generator, &msk);
 
 }
 
@@ -38,15 +42,34 @@ void hashToLength(uint8_t *inBytes, int inLen, uint8_t *outBytes, int outLen) {
 
 void IBE_Extract(uint16_t index, embedded_pairing_bls12_381_g1_t *sk) {
     uint8_t indexBuf[sizeof(index)];
-    uint8_t indexHash[BASEFIELD_SZ_G1];
+    uint8_t indexHash[2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
     embedded_pairing_bls12_381_g1affine_t pt_affine;
     /* Map index to a point pt. */
     memcpy(indexBuf, &index, sizeof(index));
-    hashToLength(indexBuf, sizeof(index), indexHash, BASEFIELD_SZ_G1);
+    hashToLength(indexBuf, sizeof(index), indexHash, 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size);
+    printf("hash: ");
+    for (int i = 0; i < 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size; i++) {
+        printf("%02x", indexHash[i]);
+    }
+    printf("\n");
     //hashToBaseField(index, indexHash);
     embedded_pairing_bls12_381_g1affine_from_hash(&pt_affine, indexHash);
+    uint8_t affineBuf[embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
+    embedded_pairing_bls12_381_g1_marshal(affineBuf, &pt_affine, false);
+    printf("affine pt: ");
+    for (int i = 0; i < embedded_pairing_bls12_381_g1_marshalled_uncompressed_size; i++) {
+        printf("%02x", affineBuf[i]);
+    }
+    printf("\n");
+    
     /* Set sk = pt^msk. */
     embedded_pairing_bls12_381_g1_multiply_affine(sk, &pt_affine, &msk);
+    printf("indexBuf = %02x%02x\n", indexBuf[0], indexBuf[1]);
+    printf("sk: ");
+    for (int i = 0; i < sizeof(*sk); i++) {
+        printf("%02x", ((uint8_t *)sk)[i]);
+    }
+    printf("\n");
 }
 
 void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381_g2_t *U, uint8_t *V, uint8_t *W, uint8_t *msg, int msgLen) {
@@ -91,14 +114,14 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
 
     /* Test u = rP */
-    /*embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_zero, &r);
+    embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_generator, &r);
     if (!embedded_pairing_bls12_381_g2_equal(&U_test, U)) {
         memset(msg, 0x8, msgLen);
         printf("--------- ERROR IN DECRYPTION ----------\n");
         return;
-    }*/
-
-    memcpy(msg, sigma_M + msgLen, msgLen);
+    } else {
+        memcpy(msg, sigma_M + msgLen, msgLen);
+    }
     uint32_t t2 = millis();
     //printf("ibe decrypt: %d\n", t2 - t1);
     //printf("pairing: %d\n", t4 - t3);
@@ -123,7 +146,7 @@ void IBE_UnmarshalCt(uint8_t *buf, int msgLen, embedded_pairing_bls12_381_g2_t *
 void IBE_MarshalMpk(uint8_t buf[BASEFIELD_SZ_G2]) {
     embedded_pairing_bls12_381_g2affine_t mpk_affine;
     embedded_pairing_bls12_381_g2affine_from_projective(&mpk_affine, &mpk);
-    embedded_pairing_bls12_381_g2_marshal(&mpk_affine, buf, true);
+    embedded_pairing_bls12_381_g2_marshal(buf, &mpk_affine, true);
 }
 
 void IBE_UnmarshalSk(uint8_t buf[BASEFIELD_SZ_G1], embedded_pairing_bls12_381_g1_t *sk) {

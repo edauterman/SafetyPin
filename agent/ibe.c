@@ -36,12 +36,12 @@ void IBE_Setup(embedded_pairing_core_bigint_256_t *msk, embedded_pairing_bls12_3
 }
 
 void IBE_Extract(embedded_pairing_core_bigint_256_t *msk, uint16_t index, embedded_pairing_bls12_381_g1_t *sk) {
-    uint8_t indexHash[BASEFIELD_SZ_G1];
+    uint8_t indexHash[2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
     uint8_t indexBuf[2];
     embedded_pairing_bls12_381_g1affine_t pt_affine;
     /* Map index to a point pt. */
     memcpy(indexBuf, &index, 2);
-    hash_to_bytes(indexHash, BASEFIELD_SZ_G1, indexBuf, 2);
+    hash_to_bytes(indexHash, 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size, indexBuf, 2);
     //hashToLength(&index, sizeof(index), indexHash, BASEFIELD_SZ_G1);
     //hashToBaseField(index, indexHash);
     embedded_pairing_bls12_381_g1affine_from_hash(&pt_affine, indexHash);

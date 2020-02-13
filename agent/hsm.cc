@@ -141,7 +141,7 @@ int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmac
     memcpy(h->cts, cts, TREE_SIZE * CT_LEN);
     memcpy(req.msk, msk, KEY_LEN);
     memcpy(req.hmacKey, hmacKey, KEY_LEN);
-    memcpy(&h->mpk, mpk, sizeof(embedded_pairing_bls12_381_g2_t));
+    //memcpy(&h->mpk, mpk, sizeof(embedded_pairing_bls12_381_g2_t));
 
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_TEST_SETUP, 0, 0,
@@ -402,6 +402,7 @@ int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *
     CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
 
     for (int i = 0; i < PUNC_ENC_REPL; i++)  {
+        printf("indexes: %d\n", indexes[i]);
         IBE_Encrypt(&h->mpk, indexes[i], msg, msgLen, c[i]);
     }
     pthread_mutex_unlock(&h->m);
@@ -425,13 +426,13 @@ int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t 
     int i = 0;
     pthread_mutex_lock(&h->m);
 
-    CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
+    //CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
 
     //for (int i = 0; i < PUNC_ENC_REPL; i++) {
 
         numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
         levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
-        currIndex = indexes[i];
+        currIndex = tag; //indexes[i];
         totalTraveled = 0;
         currInterval = numLeaves;
     
@@ -444,8 +445,24 @@ int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t 
             currIndex /= 2;
         }
 
-        IBE_MarshalCt(req.ibeCt, msgLen, c[i]);
-        req.index = indexes[i];
+        IBE_MarshalCt(req.ibeCt, msgLen, c[0]);
+        //req.index = indexes[i];
+        req.index = tag;
+        
+        printf("index = %d\n", req.index);
+        embedded_pairing_bls12_381_g1_t sk;
+        embedded_pairing_bls12_381_g2_t mpk;
+        embedded_pairing_bls12_381_g1affine_t sk_affine;
+        uint8_t buf[48];
+        embedded_pairing_core_bigint_256_t msk;
+        uint8_t hash[32];
+        memset(hash, 0xff, 32);
+        embedded_pairing_bls12_381_zp_from_hash(&msk, hash);
+        IBE_Setup(&msk, &mpk);
+        IBE_Extract(&msk, req.index, &sk);
+        embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
+        embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
+
 
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_DECRYPT, 0, 0,
@@ -507,6 +524,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
             printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
             memcpy(req.treeCts[levels - j - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
+ 
             ctIndexes[j] = totalTraveled + currIndex;
             totalTraveled += currInterval;
             currInterval /= 2;
@@ -515,7 +533,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
 
         IBE_MarshalCt(req.ibeCt, msgLen, c[i]);
         req.index = indexes[i];
-    
+
         memcpy(req.pinHash, pinHash, SHA256_DIGEST_LENGTH);
 
 #ifdef HID

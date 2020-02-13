@@ -112,6 +112,11 @@ void setIBELeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], int start) {
         embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
         embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
         memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
+        printf("leaves[%d] = ", i);
+        for (int j = 0; j < embedded_pairing_bls12_381_g1_marshalled_compressed_size;  j++)  {
+            printf("%02x", leaves[i][j]);
+        }
+        printf("\n");
         //memset(leaves[i], 0xff, CT_LEN);
     }
 }
@@ -302,6 +307,12 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
     uint32_t t1 = millis();   
     memcpy(currKey, msk, KEY_LEN);
 
+ /*   printf("msk: ");
+    for (int i = 0; i < KEY_LEN; i++) {
+        printf("%02x", msk[i]);
+    }
+    printf("\n");
+*/
     /* Walk down the tree. */
     for (int i = 0; i < levels - 1; i++) {
         /* Decrypt current ciphertext. */
@@ -316,10 +327,8 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
 
         /* Choose to go left or right. */
         if (currIndex < currCmp) {
-            //printf("going left at %d\n", i);
             memcpy(currKey, leftKey, KEY_LEN);
         } else {
-            //printf("going right at %d\n", i);
             memcpy(currKey, rightKey, KEY_LEN);
             currIndex -= currCmp;
         }
@@ -350,6 +359,7 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
     uint32_t t2 = millis();
     //printf1(TAG_GREEN, "retrieve time: %d\n", t2 - t1);
     //printf1(TAG_GREEN, "inner loop: %d\n", t4 - t3);
+   
     return OKAY;
 }
 

@@ -18,7 +18,7 @@ void encryptKeysAndCreateTag(uint8_t *encKey, uint8_t *hmacKey, uint8_t *key1, u
     int bytesFilled;
     
     enc_ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(enc_ctx, EVP_aes_128_ecb(), NULL, encKey, NULL);
+    EVP_EncryptInit_ex(enc_ctx, EVP_aes_256_cbc(), NULL, encKey, NULL);
     //EVP_EncryptInit_ex(enc_ctx, EVP_aes_128_ecb(), NULL, encKey, NULL);
     EVP_EncryptUpdate(enc_ctx, ct, &bytesFilled, key1, KEY_LEN);
     EVP_EncryptUpdate(enc_ctx, ct + KEY_LEN, &bytesFilled, key2, KEY_LEN);
@@ -40,15 +40,13 @@ void setIBELeaves(embedded_pairing_core_bigint_256_t *ibeMsk, uint8_t *leaves) {
         IBE_Extract(ibeMsk, i, &sk);
         embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
         embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
-        //memset(buf, 0xff, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
-        memcpy(leaves + i * LEAF_LEN, buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
-        //memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
+        memcpy(leaves + (i * LEAF_LEN), buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
         /* DELETE THIS NEXT LINE */
         //memset(leaves + i * LEAF_LEN, 0xff, LEAF_LEN);
 
         printf("leaf %d: ", i);
         for (int j = 0; j < 48; j++) {
-            printf("%x ", buf[j]);
+            printf("%x ", (leaves + i * LEAF_LEN)[j]);
         }
         printf("\n");
         //memset(leaves[i], 0xff, CT_LEN);
@@ -71,14 +69,15 @@ void PuncEnc_BuildTree(uint8_t *cts, uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_
     leaves = (uint8_t *)malloc(NUM_LEAVES * LEAF_LEN);
     keys = (uint8_t *)malloc(TREE_SIZE * KEY_LEN);
     uint8_t *currLeaves = (uint8_t *)leaves;
+    int currPtr =  TREE_SIZE;
 
     uint8_t hash[32];
     memset(hash, 0xff, 32);
     embedded_pairing_bls12_381_zp_from_hash(&ibeMsk, hash);
-    embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_zero, &ibeMsk);
+    embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_generator, &ibeMsk);
     setIBELeaves(&ibeMsk, leaves);
 
-    printf("set ibe leaves\n");
+//    printf("set ibe leaves\n");
 
     RAND_bytes(hmacKey, KEY_LEN);
 
@@ -88,20 +87,42 @@ void PuncEnc_BuildTree(uint8_t *cts, uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_
         /* For each child, generate parent. */
         for (int i = 0; i < currNumLeaves; i++) {
             /* Choose random key. */
-            RAND_bytes(keys + index * KEY_LEN, KEY_LEN);
+            RAND_bytes(keys + (index * KEY_LEN), KEY_LEN);
+            /*if (i == 0) {
+                printf("key 0 for level with %d leaves, index %d, addr %x: ", currNumLeaves, index, keys + (index * KEY_LEN));
+                for (int j = 0; j < KEY_LEN; j++) {
+                    printf("%02x", (keys + index * KEY_LEN)[j]);
+                }
+                printf("\n");
+                printf("encrypting left key: ");
+                for (int j = 0; j < KEY_LEN; j++) {
+                    printf("%02x", (currLeaves)[j]);
+                }
+                printf("\n");
+                printf("encrypting right key: ");
+                for (int j = 0; j < KEY_LEN; j++) {
+                    printf("%02x", (currLeaves + KEY_LEN)[j]);
+                }
+                printf("\n");
+                
+
+            }*/
             //RAND_bytes(keys[index], KEY_LEN);
             /* Encrypt leaf. */
             encryptKeysAndCreateTag(keys + index * KEY_LEN, hmacKey, currLeaves, currLeaves + KEY_LEN, cts + index * CT_LEN);
             //encryptKeysAndCreateTag(keys + index * KEY_LEN, hmacKey, currLeaves, currLeaves + KEY_LEN, cts[index]);
             currLeaves += LEAF_LEN;
             /* Next index. */
-            printf("index = %d/%d\n", index, TREE_SIZE);
+            //printf("index = %d/%d\n", index, TREE_SIZE);
             index++;
         }
         currLeaves = (uint8_t *)keys + (initialIndex * KEY_LEN);
-        printf("old currNumLeaves = %d\n", currNumLeaves);
+        printf("initial index = %d, currLeaves addr = %x\n", initialIndex, currLeaves);
+        //currLeaves = (uint8_t *)keys + (initialIndex * KEY_LEN);
+//        printf("old currNumLeaves = %d\n", currNumLeaves);
+        currPtr -= currNumLeaves;
         currNumLeaves /= 2.0;
-        printf("new currNumLeaves = %d\n", currNumLeaves);
+//        printf("new currNumLeaves = %d\n", currNumLeaves);
     }
 
     /* Set key for root. */
@@ -122,7 +143,10 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
     uint32_t indexInt;
     
     CHECK_A (modIndexBn = BN_new());
+    memset(bufIn, 0, 8);
     memcpy(bufIn, &tag, sizeof(uint16_t));
+    
+    printf("tag: %d\n", tag);
 
     for (uint32_t i = 0; i < PUNC_ENC_REPL; i++) {
         indexes[i] = 0;

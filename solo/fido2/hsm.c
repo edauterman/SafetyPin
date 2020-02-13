@@ -281,10 +281,8 @@ int HSM_Decrypt(struct hsm_decrypt_request *req, uint8_t *out, int *outLen) {
     }
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
     IBE_UnmarshalSk(leaf, &sk);
-//    IBE_Extract(req->index, &sk);
+    
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
-
-    printf1(TAG_GREEN, "finished decryption\n");
 
     if (out) {
         memcpy(out, msg, IBE_MSG_LEN);
@@ -301,18 +299,16 @@ void ibeDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *leaf, uint8_t *ms
     uint8_t V[IBE_MSG_LEN];
     uint8_t W[IBE_MSG_LEN];
     embedded_pairing_bls12_381_g1_t sk;
- 
+
     IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
     IBE_UnmarshalSk(leaf, &sk);
-    printf("unmarshalled, going to decrypt\n");
+    //IBE_Extract(req->index, &sk);
     IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
 }
 
 void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, uint8_t *out, int*outLen) {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
-    printf1(TAG_GREEN, "going to puncture\n");
     PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
-    printf1(TAG_GREEN, "finished puncturing leaf\n");
 
     if (out) {
         memcpy(out, msg, IBE_MSG_LEN);

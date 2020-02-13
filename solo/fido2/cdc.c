@@ -20,8 +20,8 @@
 
 //uint8_t rsp[1024];
 
-//uint8_t inOutBuf[1];
-uint8_t inOutBuf[7000];
+uint8_t inOutBuf[1];
+//uint8_t inOutBuf[7000];
 //uint8_t inOutBuf[10800];
 
 //uint8_t inOutBuf[9100];
