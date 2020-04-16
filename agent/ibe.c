@@ -130,6 +130,7 @@ int IBE_Encrypt(embedded_pairing_bls12_381_g2_t *mpk, uint16_t index, uint8_t *m
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
 
     /* U = rP */
+    // COMMENT BACK IN:
     embedded_pairing_bls12_381_g2_multiply_affine(&c->U, embedded_pairing_bls12_381_g2affine_generator, &r);
     //embedded_pairing_bls12_381_g2_multiply_affine(&c->U, embedded_pairing_bls12_381_g2affine_generator, &r);
 
@@ -137,6 +138,7 @@ int IBE_Encrypt(embedded_pairing_bls12_381_g2_t *mpk, uint16_t index, uint8_t *m
     /* V = \sigma XOR H(e(pt, mpk)^r) */
     embedded_pairing_bls12_381_g2affine_from_projective(&mpk_affine, mpk);
     embedded_pairing_bls12_381_pairing(&pt_mpk, &pt_affine, &mpk_affine);
+    // COMMENT BACK IN: 
     embedded_pairing_bls12_381_gt_multiply(&pt_mpk_r, &pt_mpk, &r);
     embedded_pairing_bls12_381_gt_marshal(pt_mpk_buf, &pt_mpk_r);
     CHECK_C (hash_to_bytes(pt_mpk_buf_msg_len, msgLen, pt_mpk_buf, embedded_pairing_bls12_381_gt_marshalled_size));

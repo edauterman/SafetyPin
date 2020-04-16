@@ -27,8 +27,8 @@
 using namespace std;
 
 //const char *HANDLES[] = {"/dev/cu.usbmodem2086366155482", "/dev/cu.usbmodem2052338246482"};
-const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
-/*const char *HANDLES[] = {"/dev/ttyACM0",
+//const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
+const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
 			"/dev/ttyACM2",
 			"/dev/ttyACM3",
@@ -128,7 +128,7 @@ const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
 			"/dev/ttyACM97",
 			"/dev/ttyACM98",
 			"/dev/ttyACM99",
-};*/
+};
 
 RecoveryCiphertext *RecoveryCiphertext_new(Params *params) {
     int rv = ERROR;
@@ -336,12 +336,6 @@ int Datacenter_TestSetup(Datacenter *d) {
     printf("going to build tree\n");
     Log_GetPk(d->hsms[0]->params, logPk);
     PuncEnc_BuildTree(cts, msk, hmacKey, &mpk);
-    /*for (int i = 0; i < NUM_HSMS; i++) {
-        t[i] = thread(HSM_SetParams, d->hsms[i], logPk);
-    }
-    for (int i = 0; i < NUM_HSMS; i++) {
-        t[i].join();
-    }*/
     for (int i = 0; i < NUM_HSMS; i++) {
         CHECK_C (HSM_GetMpk(d->hsms[i]));
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));

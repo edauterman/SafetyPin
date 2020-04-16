@@ -50,7 +50,7 @@
 
 #define CTAPHID_BROADCAST_CID       0xffffffff
 
-#define CTAPHID_BUFFER_SIZE         3000
+#define CTAPHID_BUFFER_SIZE         2500
 //#define CTAPHID_BUFFER_SIZE         4096
 //#define CTAPHID_BUFFER_SIZE         7609
 //#define CTAPHID_BUFFER_SIZE         128
