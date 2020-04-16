@@ -110,18 +110,18 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
     /* r = H(\sigma, M) */
     //memcpy(sigma_M, sigma, msgLen);
     //memcpy(sigma_M + msgLen, M, msgLen);
-    hashToLength(sigma_M, 2 * msgLen, sigma_M_hash, SHA256_DIGEST_LEN);
+/*    hashToLength(sigma_M, 2 * msgLen, sigma_M_hash, SHA256_DIGEST_LEN);
     embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
 
     /* Test u = rP */
-    embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_generator, &r);
+ /*   embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_generator, &r);
     if (!embedded_pairing_bls12_381_g2_equal(&U_test, U)) {
         memset(msg, 0x8, msgLen);
         printf("--------- ERROR IN DECRYPTION ----------\n");
         return;
-    } else {
-        memcpy(msg, sigma_M + msgLen, msgLen);
-    }
+    }*/
+
+    memcpy(msg, sigma_M + msgLen, msgLen);
     uint32_t t2 = millis();
     //printf("ibe decrypt: %d\n", t2 - t1);
     //printf("pairing: %d\n", t4 - t3);

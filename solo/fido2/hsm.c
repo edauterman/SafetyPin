@@ -62,7 +62,7 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_ELGAMAL_DECRYPT:
             HSM_ElGamalDecrypt((struct hsm_elgamal_decrypt_request *)(in), out, outLen);
             break;
-        case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
+/*        case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
             HSM_AuthMPCDecrypt_1_Commit((struct hsm_auth_mpc_decrypt_1_commit_request *)(in), out, outLen);
             break;
         case HSM_AUTH_MPC_DECRYPT_1_OPEN:
@@ -82,7 +82,7 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
             break;
         case HSM_SET_PARAMS:
             HSM_SetParams((struct hsm_set_params_request *)(in), out, outLen);
-            break;
+            break; */
         case HSM_LOG_PROOF:
             HSM_LogProof((struct hsm_log_proof_request *)(in), out, outLen);
             break;
@@ -308,6 +308,7 @@ void ibeDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *leaf, uint8_t *ms
 
 void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, uint8_t *out, int*outLen) {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
+    printf("in puncture and writeback\n");
     PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
 
     if (out) {
@@ -339,15 +340,11 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
         }
         return U2F_SW_NO_ERROR;
     }
+    printf("retrieved leaf\n");
 
     ibeDecrypt(req, leaf, msg);
 
-    /*if (memcmp(msg + 32, req->pinHash, SHA256_DIGEST_LEN) != 0) {
-        printf("BAD PIN HASH -- WILL NOT DECRYPT\n");
-        memset(msg, 0xaa, IBE_MSG_LEN);
-    }  else {
-        printf("Pin hash check passed.\n");
-    }*/
+    printf("did ibe decrypt\n");
 
     punctureAndWriteback(req, msg, out, outLen);
 
@@ -560,7 +557,7 @@ int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, in
     }
     return U2F_SW_NO_ERROR;
 }
-
+/*
 void getMsg(struct hsm_auth_mpc_decrypt_1_commit_request *req, uint8_t *msg, uint8_t *leaf) {
     embedded_pairing_bls12_381_g2_t U;
     uint8_t V[IBE_MSG_LEN];
@@ -723,7 +720,7 @@ int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen)
 
     return U2F_SW_NO_ERROR;
 }
-
+*/
 int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "calling log proof\n");
     uint8_t resp = Log_Verify(req->ct, req->hsms, req->proof, req->rootSig, req->opening);

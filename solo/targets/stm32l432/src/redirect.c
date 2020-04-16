@@ -48,7 +48,7 @@ int _write (int fd, const void *buf, unsigned long int len)
     // Send out UART serial
     while(len--)
     {
-        _putchar(*data++);
+//        _putchar(*data++);
     }
 #endif
     return 0;

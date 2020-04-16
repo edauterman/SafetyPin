@@ -42,10 +42,10 @@ extern "C" {
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
 //#define PUNC_ENC_REPL 80
-#define PUNC_ENC_REPL 1
+#define PUNC_ENC_REPL 5
 #define NUM_ATTEMPTS 1
 
-#define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
+#define AES_CT_LEN FIELD_ELEM_LEN
 
 #define RESPONSE_BUFFER_SIZE 4096
 
@@ -150,7 +150,6 @@ typedef struct {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
-    uint8_t pinHash[SHA256_DIGEST_LENGTH];
 } HSM_AUTH_DECRYPT_REQ;
 
 typedef struct {
@@ -338,7 +337,7 @@ int HSM_Puncture(HSM *h, uint32_t index);
 /* Encryption/decryption. Decrypt only for testing. Only use AuthDecrypt. */
 int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]);
 int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen);
-int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash);
+int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t msg[IBE_MSG_LEN]);
 
 int HSM_ElGamalGetPk(HSM *h);
 int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);

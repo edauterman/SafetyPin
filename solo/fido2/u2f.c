@@ -145,7 +145,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished el gamal decrypt\n");
                 break;
 
-          case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
+          /*case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
                 printf1(TAG_GREEN, "starting mpc decrypt 1\n");
                 rcode = HSM_AuthMPCDecrypt_1_Commit((struct hsm_auth_mpc_decrypt_1_commit_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished mpc decrypt 1\n");
@@ -187,7 +187,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 rcode = HSM_SetParams((struct hsm_set_params_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished set params\n");
                 break;
-
+*/
        case HSM_LOG_PROOF:
                 printf1(TAG_GREEN, "starting log proof\n");
                 rcode = HSM_LogProof((struct hsm_log_proof_request *)payload, NULL, NULL);

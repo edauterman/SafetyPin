@@ -14,7 +14,7 @@ SRC += ../../fido2/version.c
 SRC += ../../fido2/data_migration.c
 SRC += ../../fido2/extensions/extensions.c ../../fido2/extensions/solo.c
 SRC += ../../fido2/extensions/wallet.c
-SRC += ../../fido2/hsm.c ../../fido2/punc_enc.c ../../fido2/ibe.c ../../fido2/cdc.c ../../fido2/mpc.c  ../../fido2/shamir.c ../../crypto/cifra/src/arm/unacl/scalarmult.c ../../fido2/uECC.c ../../fido2/elgamal.c ../../fido2/log_proof.c
+SRC += ../../fido2/hsm.c ../../fido2/punc_enc.c ../../fido2/ibe.c ../../fido2/cdc.c  ../../fido2/shamir.c ../../crypto/cifra/src/arm/unacl/scalarmult.c ../../fido2/uECC.c ../../fido2/elgamal.c ../../fido2/log_proof.c
 
 # Crypto libs
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c ../../crypto/cifra/src/aes.c ../../crypto/cifra/src/modes.c ../../crypto/cifra/src/gcm.c ../../crypto/cifra/src/gf128.c ../../crypto/cifra/src/ccm.c
@@ -53,7 +53,7 @@ DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAP
 CFLAGS=$(INC) -c $(DEFINES)   -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
 	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS)
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys -L../../crypto/jedi-pairing/pairing.a
-LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor -Bstatic -L../../crypto/jedi-pairing/pairing.a
+LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor -Bstatic -L../../crypto/jedi-pairing/pairing.a -lm
 #LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor -Bstatic
 
 ECC_CFLAGS = $(CFLAGS) -DuECC_PLATFORM=5 -DuECC_OPTIMIZATION_LEVEL=4 -DuECC_SQUARE_FUNC=1 -DuECC_SUPPORT_COMPRESSED_POINT=0

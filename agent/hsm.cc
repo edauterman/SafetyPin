@@ -486,7 +486,7 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash) {
+int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t msg[IBE_MSG_LEN]) {
     int rv = ERROR;
     HSM_AUTH_DECRYPT_REQ req;
     HSM_AUTH_DECRYPT_RESP resp;
@@ -497,14 +497,14 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
     uint32_t totalTraveled;
     uint32_t currInterval;
     uint32_t indexes[PUNC_ENC_REPL];
-    uint8_t zeros[msgLen];
+    uint8_t zeros[IBE_MSG_LEN];
     bool gotPlaintext = false;
 
     pthread_mutex_lock(&h->m);
 
     CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
 
-    memset(zeros, 0, msgLen);
+    memset(zeros, 0, IBE_MSG_LEN);
 
     for (int i = 0; i < PUNC_ENC_REPL; i++) {
 
@@ -531,10 +531,8 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
             currIndex /= 2;
         }
 
-        IBE_MarshalCt(req.ibeCt, msgLen, c[i]);
+        IBE_MarshalCt(req.ibeCt, IBE_MSG_LEN, c[i]);
         req.index = indexes[i];
-
-        memcpy(req.pinHash, pinHash, SHA256_DIGEST_LENGTH);
 
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_DECRYPT, 0, 0,
@@ -544,7 +542,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
         CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_DECRYPT, (uint8_t *)&req,
                     sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
-        memcpy(msg, resp.msg, msgLen);
+        memcpy(msg, resp.msg, IBE_MSG_LEN);
 
         gotPlaintext =  true;
         h->isPunctured[indexes[i]] = true;
@@ -673,6 +671,8 @@ int HSM_ElGamalGetPk(HSM *h) {
                 0, (uint8_t *)&resp, sizeof(resp)));
 #endif
     Params_bytesToPoint(h->params, resp.pk, h->elGamalPk);
+
+    printf("got el gamal public key\n");
 
 cleanup:
     pthread_mutex_unlock(&h->m);
@@ -949,7 +949,6 @@ int HSM_SetMacKeys(HSM *h, uint8_t **macKeys) {
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SET_MAC_KEYS, (uint8_t *)&req,
                 sizeof(req), NULL, 0));
 #endif
-
 cleanup:
     pthread_mutex_unlock(&h->m);
     return rv;

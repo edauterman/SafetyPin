@@ -14,12 +14,12 @@
 
 //#define HSM_GROUP_SIZE 3
 //#define HSM_GROUP_SIZE 6
-//#define HSM_GROUP_SIZE 1
 #define HSM_GROUP_SIZE 1
-//#define HSM_THRESHOLD_SIZE 1
+//#define HSM_GROUP_SIZE 100
+#define HSM_THRESHOLD_SIZE 1
 //#define HSM_THRESHOLD_SIZE 2
 //#define HSM_THRESHOLD_SIZE 1
-#define HSM_THRESHOLD_SIZE 1 
+//#define HSM_THRESHOLD_SIZE 50
 //#define HSM_THRESHOLD_SIZE 50
 #define NUM_HSMS 1
 //#define NUM_HSMS 100
@@ -29,7 +29,7 @@
 #define PROOF_LEVELS 30
 #define SIG_LEN (FIELD_ELEM_LEN * 2)
 
-#define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
+#define AES_CT_LEN FIELD_ELEM_LEN
 
 #define COMPRESSED_PT_SZ 33
 #define FIELD_ELEM_LEN 32
@@ -117,7 +117,6 @@ struct hsm_auth_decrypt_request {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
-    uint8_t pinHash[SHA256_DIGEST_LEN];
 };
 
 struct hsm_auth_decrypt_response {
