@@ -25,6 +25,8 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  printf("did init\n");
+
   for (int i = 0; i < NUM_HSMS; i++) {
     //HSM_GetMpk(d->hsms[i]);
 

@@ -697,6 +697,9 @@ int HSM_ElGamalDecrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     pthread_mutex_lock(&h->m);
     
     ElGamal_Marshal(h->params, req.ct, c);
+    printf("ct: ");
+    for (int i = 0; i < 65; i++) printf("%02x", req.ct[i]);
+    printf("\n");
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_ELGAMAL_DECRYPT, 0, 0,
                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));

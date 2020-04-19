@@ -51,6 +51,7 @@ int ElGamal_Encrypt(Params *params, BIGNUM *msg, EC_POINT *pk, BIGNUM *r, EC_POI
     EC_POINT *hashedTmp;
     uint8_t msgBuf[FIELD_ELEM_LEN];
     EVP_CIPHER_CTX *ctx;
+    EVP_MD_CTX *mdctx;
     int bytesFilled = 0;
 
     if (r == NULL) {
@@ -71,12 +72,14 @@ int ElGamal_Encrypt(Params *params, BIGNUM *msg, EC_POINT *pk, BIGNUM *r, EC_POI
 
     // pk^r
     CHECK_C (EC_POINT_mul(params->group, tmp, NULL, pk, r, params->bn_ctx));
-    printf("pk^r: %s\n", EC_POINT_point2hex(params->group, tmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
-    printf("pk: %s\n", EC_POINT_point2hex(params->group, pk, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
-    printf("R: %s\n", EC_POINT_point2hex(params->group, R, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
     // H(pk^r)
     Params_pointToBytes(params, pointBuf, tmp);
-    hash_to_bytes(hashedKeyBuf, 32, pointBuf, 33);
+ 
+    CHECK_A (mdctx = EVP_MD_CTX_create());
+    CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
+    CHECK_C (EVP_DigestUpdate(mdctx, pointBuf, 33));
+    CHECK_C (EVP_DigestFinal_ex(mdctx, hashedKeyBuf, NULL));
+
     //Params_hashToPoint(params, hashedTmp, pointBuf, 33);
     //printf("H(pk^r): %s\n", EC_POINT_point2hex(params->group, hashedTmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
     // Then use to encrypt message
@@ -85,6 +88,7 @@ int ElGamal_Encrypt(Params *params, BIGNUM *msg, EC_POINT *pk, BIGNUM *r, EC_POI
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
     CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, hashedKeyBuf, NULL));
     CHECK_C (EVP_EncryptUpdate(ctx, c->C, &bytesFilled, msgBuf, FIELD_ELEM_LEN));
+ 
 
 //    printf("R compressed: %s\n", EC_POINT_point2hex(params->group, c->R, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
 //    printf("C compressed: %s\n", EC_POINT_point2hex(params->group, c->C, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
@@ -104,6 +108,7 @@ int ElGamal_Decrypt(Params *params, BIGNUM *msg, BIGNUM *sk, ElGamal_ciphertext 
     uint8_t hashedKeyBuf[32];
     EC_POINT *hashedTmp;
     EVP_CIPHER_CTX *ctx;
+    EVP_MD_CTX *mdctx;
     int bytesFilled = 0;
     uint8_t msgBuf[FIELD_ELEM_LEN];
 
@@ -111,11 +116,14 @@ int ElGamal_Decrypt(Params *params, BIGNUM *msg, BIGNUM *sk, ElGamal_ciphertext 
     CHECK_A (hashedTmp = EC_POINT_new(params->group));
 
     CHECK_C (EC_POINT_mul(params->group, tmp, NULL, c->R, sk, params->bn_ctx));
-    printf("R^sk: %s\n", EC_POINT_point2hex(params->group, tmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
-    printf("R: %s\n", EC_POINT_point2hex(params->group, c->R, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
     // H(R^sk)
     Params_pointToBytes(params, pointBuf, tmp);
-    hash_to_bytes(hashedKeyBuf, 32, pointBuf, 33);
+    
+    CHECK_A (mdctx = EVP_MD_CTX_create());
+    CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
+    CHECK_C (EVP_DigestUpdate(mdctx, pointBuf, 33));
+    CHECK_C (EVP_DigestFinal_ex(mdctx, hashedKeyBuf, NULL));
+
     //Params_hashToPoint(params, hashedTmp, pointBuf, 33);
     //printf("H(R^sk): %s\n", EC_POINT_point2hex(params->group, hashedTmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
     // Then use to decrypt message
