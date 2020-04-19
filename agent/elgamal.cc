@@ -76,11 +76,12 @@ int ElGamal_Encrypt(Params *params, BIGNUM *msg, EC_POINT *pk, BIGNUM *r, EC_POI
     printf("R: %s\n", EC_POINT_point2hex(params->group, R, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
     // H(pk^r)
     Params_pointToBytes(params, pointBuf, tmp);
-    Params_hashToPoint(params, hashedTmp, pointBuf, 33);
-    printf("H(pk^r): %s\n", EC_POINT_point2hex(params->group, hashedTmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
+    hash_to_bytes(hashedKeyBuf, 32, pointBuf, 33);
+    //Params_hashToPoint(params, hashedTmp, pointBuf, 33);
+    //printf("H(pk^r): %s\n", EC_POINT_point2hex(params->group, hashedTmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
     // Then use to encrypt message
-    Params_pointToBytes(params, keyBuf, hashedTmp);
-    CHECK_C (hash_to_bytes(hashedKeyBuf, 32, keyBuf, 33));
+    //Params_pointToBytes(params, keyBuf, hashedTmp);
+    //CHECK_C (hash_to_bytes(hashedKeyBuf, 32, keyBuf, 33));
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
     CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, hashedKeyBuf, NULL));
     CHECK_C (EVP_EncryptUpdate(ctx, c->C, &bytesFilled, msgBuf, FIELD_ELEM_LEN));
@@ -114,11 +115,12 @@ int ElGamal_Decrypt(Params *params, BIGNUM *msg, BIGNUM *sk, ElGamal_ciphertext 
     printf("R: %s\n", EC_POINT_point2hex(params->group, c->R, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
     // H(R^sk)
     Params_pointToBytes(params, pointBuf, tmp);
-    Params_hashToPoint(params, hashedTmp, pointBuf, 33);
-    printf("H(R^sk): %s\n", EC_POINT_point2hex(params->group, hashedTmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
+    hash_to_bytes(hashedKeyBuf, 32, pointBuf, 33);
+    //Params_hashToPoint(params, hashedTmp, pointBuf, 33);
+    //printf("H(R^sk): %s\n", EC_POINT_point2hex(params->group, hashedTmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
     // Then use to decrypt message
-    Params_pointToBytes(params, keyBuf, hashedTmp);
-    CHECK_C (hash_to_bytes(hashedKeyBuf, 32, keyBuf, 33));
+    //Params_pointToBytes(params, keyBuf, hashedTmp);
+    //CHECK_C (hash_to_bytes(hashedKeyBuf, 32, keyBuf, 33));
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
     CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, hashedKeyBuf, NULL));
     CHECK_C (EVP_DecryptUpdate(ctx, msgBuf, &bytesFilled, c->C, FIELD_ELEM_LEN));

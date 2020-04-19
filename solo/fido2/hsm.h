@@ -33,8 +33,7 @@
 
 #define COMPRESSED_PT_SZ 33
 #define FIELD_ELEM_LEN 32
-#define ELGAMAL_CT_LEN (2 * COMPRESSED_PT_SZ)
-#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
+#define ELGAMAL_CT_LEN (COMPRESSED_PT_SZ + FIELD_ELEM_LEN)
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
 #define NUM_LEAVES 524288
@@ -164,7 +163,7 @@ struct hsm_elgamal_decrypt_request {
 };
 
 struct hsm_elgamal_decrypt_response {
-    uint8_t msg[ELGAMAL_PT_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
 };
 
 struct hsm_baseline_request {
