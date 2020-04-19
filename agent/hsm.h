@@ -37,8 +37,8 @@ extern "C" {
 
 #define COMPRESSED_PT_SZ 33
 #define FIELD_ELEM_LEN 32
-#define ELGAMAL_CT_LEN (2 * COMPRESSED_PT_SZ)
-#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
+#define ELGAMAL_CT_LEN (COMPRESSED_PT_SZ + FIELD_ELEM_LEN)
+//#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
 //#define PUNC_ENC_REPL 80
@@ -270,7 +270,7 @@ typedef struct {
 } HSM_ELGAMAL_DECRYPT_REQ;
 
 typedef struct {
-    uint8_t msg[ELGAMAL_PT_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
 } HSM_ELGAMAL_DECRYPT_RESP;
 
 typedef struct {
@@ -340,8 +340,8 @@ int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t 
 int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t msg[IBE_MSG_LEN]);
 
 int HSM_ElGamalGetPk(HSM *h);
-int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
-int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
+int HSM_ElGamalEncrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c);
+int HSM_ElGamalDecrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c);
 
 int HSM_AuthMPCDecrypt1Commit(HSM *h, uint8_t *dCommit, uint8_t *eCommit, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *aesCt, uint8_t *aesCtTag, ShamirShare *pinShare);
 int HSM_AuthMPCDecrypt1Open(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t *dOpening, uint8_t *eOpening, uint8_t **dMacs, uint8_t **eMacs, uint8_t **dCommits, uint8_t **eCommits, uint8_t *hsms, uint8_t reconstructIndex);

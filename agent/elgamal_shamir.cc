@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
+#include <openssl/evp.h>
 #include <algorithm>
 #include <string>
 
@@ -13,6 +14,35 @@
 #include "elgamal_shamir.h"
 
 using namespace std;
+
+LocationHidingCt *LocationHidingCt_new(Params *params, int n) {
+    int rv;
+    LocationHidingCt *c = NULL;
+
+    CHECK_A (c = (LocationHidingCt *)malloc(sizeof(LocationHidingCt)));
+
+    CHECK_A (c->R = EC_POINT_new(params->group));
+
+    CHECK_A (c->shares = (ElGamalCtShare **)malloc(n * sizeof(ElGamalCtShare *)));
+    for (int i = 0; i < n; i++) {
+        CHECK_A (c->shares[i] = ElGamalCtShare_new(params));
+    }
+
+cleanup:
+    if (rv == OKAY) return c;
+    LocationHidingCt_free(c, n);
+    return NULL;
+}
+
+void LocationHidingCt_free(LocationHidingCt *c, int n) {
+    printf("free for LH\n");
+    for (int i = 0; i < n; i++) {
+        if (c->shares[i]) ElGamalCtShare_free(c->shares[i]);
+    }
+    if (c->shares) free(c->shares);
+    if (c->R) EC_POINT_free(c->R);
+    if (c) free(c);
+}
 
 ElGamalCtShare *ElGamalCtShare_new(Params *params) {
     int rv;
@@ -34,202 +64,68 @@ void ElGamalCtShare_free(ElGamalCtShare *share) {
     if (share) free(share);
 }
 
-ElGamalMsgShare *ElGamalMsgShare_new(Params *params) {
-    int rv;
-    ElGamalMsgShare *share = NULL;
-    
-    CHECK_A (share = (ElGamalMsgShare *)malloc(sizeof(ElGamalMsgShare)));
-    CHECK_A (share->msg = EC_POINT_new(params->group));
-    CHECK_A (share->x = BN_new());
-
-cleanup:
-    if (rv == OKAY) return share;
-    ElGamalMsgShare_free(share);
-    return NULL;
-}
-
-void ElGamalMsgShare_free(ElGamalMsgShare *share) {
-    if (share && share->msg) EC_POINT_free(share->msg);
-    if (share && share->x) BN_free(share->x);
-    if (share) free(share);
-}
-
-int ElGamalShamir_CreateShares(Params *params, int t, int n, BIGNUM *secret, EC_POINT **pks, ElGamalCtShare **shares, BIGNUM **opt_x) {
+int ElGamalShamir_CreateShares(Params *params, int t, int n, uint8_t *msg, EC_POINT **pks, LocationHidingCt *ct, BIGNUM **opt_x) {
     int rv;
     ShamirShare **shamirShares = NULL;
-    EC_POINT *msg = NULL;
+    BIGNUM *r = NULL;
+    BIGNUM *k = NULL;
+    EVP_CIPHER_CTX *ctx;
+    int bytesFilled = 0;
+    uint8_t kBuf[FIELD_ELEM_LEN];
+    memset(kBuf, 0, FIELD_ELEM_LEN);
 
     CHECK_A (shamirShares = (ShamirShare **)malloc(n * sizeof(ShamirShare *)));
     for (int i = 0; i < n; i++) {
         CHECK_A (shamirShares[i] = ShamirShare_new());
     }
-    CHECK_A (msg = EC_POINT_new(params->group));
+    CHECK_A (r = BN_new());
+    CHECK_A (k = BN_new());
+    CHECK_C (BN_rand_range(r, params->order));
+    CHECK_C (BN_rand_range(k, params->order));
 
-    CHECK_C (Shamir_CreateShares(t, n, secret, params->order, shamirShares, opt_x));
+    CHECK_C (EC_POINT_mul(params->group, ct->R, r, NULL, NULL, params->bn_ctx));
+
+    CHECK_C (Shamir_CreateShares(t, n, k, params->order, shamirShares, opt_x));
 
 
     for (int i = 0; i < n; i++) {
-        CHECK_A (shares[i]->x = BN_dup(shamirShares[i]->x));
-        CHECK_C (EC_POINT_mul(params->group, msg, shamirShares[i]->y, NULL, NULL, params->bn_ctx));
-        CHECK_C (ElGamal_Encrypt(params, msg, pks[i], shares[i]->ct)); 
+        CHECK_A (ct->shares[i]->x = BN_dup(shamirShares[i]->x));
+        CHECK_C (ElGamal_Encrypt(params, shamirShares[i]->y, pks[i], r, ct->R, ct->shares[i]->ct)); 
     }
+
+    BN_bn2bin(k, kBuf + FIELD_ELEM_LEN - BN_num_bytes(k));
+    CHECK_A (ctx = EVP_CIPHER_CTX_new());
+    CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, kBuf, NULL));
+    CHECK_C (EVP_EncryptUpdate(ctx, ct->aesCt, &bytesFilled, msg, FIELD_ELEM_LEN));
 
 cleanup:
     for (int i = 0; i < n; i++) {
         if (shamirShares && shamirShares[i]) ShamirShare_free(shamirShares[i]);
     }
     if (shamirShares) free(shamirShares);
-    if (msg) EC_POINT_free(msg);
+    if (k) BN_free(k);
+    if (r) BN_free(r);
     return rv;
 }
 
-int ElGamalShamir_ReconstructShares(Params *params, int t, int n, ElGamalMsgShare **shares, EC_POINT *secret) {
-    int rv = ERROR;
-    EC_POINT *currTerm = NULL;
-    BIGNUM *numerator = NULL;
-    BIGNUM *denominator = NULL;
-    BIGNUM *denominatorInverse = NULL;
-    BIGNUM *lambda = NULL;
-    BIGNUM *currLambda = NULL;
-    const EC_POINT *generator = NULL;
-    BIGNUM *zero = NULL;
-
-    CHECK_A (currTerm = EC_POINT_new(params->group));
-    CHECK_A (numerator = BN_new());
-    CHECK_A (denominator = BN_new());
-    CHECK_A (denominatorInverse = BN_new());
-    CHECK_A (lambda = BN_new());
-    CHECK_A (currLambda = BN_new());
-    CHECK_A (generator = EC_GROUP_get0_generator(params->group));
-    CHECK_A (zero = BN_new());
-    BN_zero(zero);
-    //CHECK_C (EC_POINT_copy(secret, generator));
-
-    for (int i = 0; i < t; i++) {
-        BN_one(lambda);
-        for (int j = 0; j < t; j++) {
-            if (i == j) continue;
-            /* lambda = \prod_{j=1, j!=i}^t -x_j / (x_i - x_j) */
-            CHECK_C (BN_mod_sub(numerator, zero, shares[j]->x, params->order, params->bn_ctx));
-            CHECK_C (BN_mod_sub(denominator, shares[i]->x, shares[j]->x, params->order, params->bn_ctx));
-            BN_mod_inverse(denominatorInverse, denominator, params->order, params->bn_ctx);
-            CHECK_C (BN_mod_mul(currLambda, numerator, denominatorInverse, params->order, params->bn_ctx));
-            CHECK_C (BN_mod_mul(lambda, lambda, currLambda, params->order, params->bn_ctx));
-        }
-        /* Add up terms */
-        CHECK_C (EC_POINT_mul(params->group, currTerm, NULL, shares[i]->msg, lambda, params->bn_ctx)); 
-        if (i > 0) {
-            CHECK_C (EC_POINT_add(params->group, secret, secret, currTerm, params->bn_ctx));
-        } else {
-            CHECK_C (EC_POINT_copy(secret, currTerm));    
-        }
-    }
-
-
-cleanup:
-    if (currTerm) EC_POINT_free(currTerm);
-    if (numerator) BN_free(numerator);
-    if (denominator) BN_free(denominator);
-    if (denominatorInverse) BN_free(denominatorInverse);
-    if (lambda) BN_free(lambda);
-    if (currLambda) BN_free(currLambda);
-    if (zero) BN_free(zero);
-    return rv;
-}
-
-int ElGamalShamir_ValidateShares(Params *params, int t, int n, ElGamalMsgShare **shares) {
-    int rv = ERROR;
-    int ctr = 0;
-    EC_POINT *currTerm = NULL;
-    BIGNUM *numerator = NULL;
-    BIGNUM *denominator = NULL;
-    BIGNUM *denominatorInverse = NULL;
-    BIGNUM *lambda = NULL;
-    BIGNUM *currLambda = NULL;
-    const EC_POINT *generator = NULL;
-    BIGNUM *zero = NULL;
-    EC_POINT *y = NULL;
-
-    CHECK_A (currTerm = EC_POINT_new(params->group));
-    CHECK_A (numerator = BN_new());
-    CHECK_A (denominator = BN_new());
-    CHECK_A (denominatorInverse = BN_new());
-    CHECK_A (lambda = BN_new());
-    CHECK_A (currLambda = BN_new());
-    CHECK_A (generator = EC_GROUP_get0_generator(params->group));
-    CHECK_A (zero = BN_new());
-    CHECK_A (y = EC_POINT_new(params->group));
-    BN_zero(zero);
-
-    for (int checkPt = t; checkPt < n; checkPt++) {
-        for (int i = 0; i < t; i++) {
-            BN_one(lambda);
-            for (int j = 0; j < t; j++) {
-                if (i == j) continue;
-                /* lambda = \prod_{j=1, j!=i}^t -x_j / (x_i - x_j) */
-                CHECK_C (BN_mod_sub(numerator, shares[checkPt]->x, shares[j]->x, params->order, params->bn_ctx));
-                CHECK_C (BN_mod_sub(denominator, shares[i]->x, shares[j]->x, params->order, params->bn_ctx));
-                BN_mod_inverse(denominatorInverse, denominator, params->order, params->bn_ctx);
-                CHECK_C (BN_mod_mul(currLambda, numerator, denominatorInverse, params->order, params->bn_ctx));
-                CHECK_C (BN_mod_mul(lambda, lambda, currLambda, params->order, params->bn_ctx));
-            }
-            /* Add up terms */
-            CHECK_C (EC_POINT_mul(params->group, currTerm, NULL, shares[i]->msg, lambda, params->bn_ctx)); 
-            if (i > 0) {
-                CHECK_C (EC_POINT_add(params->group, y, y, currTerm, params->bn_ctx));
-            } else {
-                CHECK_C (EC_POINT_copy(y, currTerm));    
-            }
-        }
-        if (EC_POINT_cmp(params->group, y, shares[checkPt]->msg, params->bn_ctx) == 0) {
-            ctr++;
-        }
-    }
-    rv = ctr >= t ? OKAY : ERROR;
-
-cleanup:
-    if (currTerm) EC_POINT_free(currTerm);
-    if (numerator) BN_free(numerator);
-    if (denominator) BN_free(denominator);
-    if (denominatorInverse) BN_free(denominatorInverse);
-    if (lambda) BN_free(lambda);
-    if (currLambda) BN_free(currLambda);
-    if (y) EC_POINT_free(y);
-    if (zero) BN_free(zero);
-    return rv;
-}
-
-int ElGamalShamir_ReconstructSharesWithValidation(Params *params, int t, int n, ElGamalMsgShare **shares, EC_POINT *secret) {
+int ElGamalShamir_ReconstructShares(Params *params, int t, int n, LocationHidingCt *ct, ShamirShare **shares, uint8_t *msg) {
     int rv;
-    ElGamalMsgShare **currShares = NULL;
-    string bitmask(t, 1);
-    bitmask.resize(n, 0);
+    BIGNUM *k = NULL;
+    uint8_t kBuf[FIELD_ELEM_LEN];
+    EVP_CIPHER_CTX *ctx;
+    int bytesFilled = 0;
 
-    CHECK_A (currShares = (ElGamalMsgShare **)malloc(n * sizeof(ElGamalMsgShare *)));
+    CHECK_A (k = BN_new());
 
-    do {
-        int j = 0;
-        for (int i = 0; i < n; i++) {
-            if (bitmask[i]) {
-                currShares[j] = shares[i];
-                j++;
-            }
-        }
-        for (int i = 0; i < n; i++) {
-            if (!bitmask[i]) {
-                currShares[j] =  shares[i];
-                j++;
-            }
-        }
-        if (ElGamalShamir_ValidateShares(params, t, n, currShares) == OKAY) {
-            CHECK_C (ElGamalShamir_ReconstructShares(params, t, n, currShares, secret));
-            goto cleanup;
-        }
-    } while (prev_permutation(bitmask.begin(), bitmask.end()));
-    printf("No valid reconstruction");
-    rv = ERROR;
+    CHECK_C (Shamir_ReconstructShares(t, n, shares, params->order, k));
+
+    BN_bn2bin(k, kBuf + FIELD_ELEM_LEN - BN_num_bytes(k));
+    CHECK_A (ctx = EVP_CIPHER_CTX_new());
+    CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, kBuf, NULL));
+    CHECK_C (EVP_DecryptUpdate(ctx, msg, &bytesFilled, ct->aesCt, FIELD_ELEM_LEN));
 
 cleanup:
-    if (currShares) free(currShares);
+    if (k) BN_free(k);
     return rv;
 }
+

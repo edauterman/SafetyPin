@@ -5,7 +5,8 @@
 #include <openssl/ec.h>
 
 #include "elgamal.h"
-#include "params.h"
+#include "hsm.h"
+//#include "params.h"
 
 typedef struct {
     BIGNUM *x;
@@ -13,19 +14,17 @@ typedef struct {
 } ElGamalCtShare;
 
 typedef struct {
-    BIGNUM *x;
-    EC_POINT *msg;
-} ElGamalMsgShare;
+    EC_POINT *R;
+    ElGamalCtShare **shares;
+    uint8_t aesCt[FIELD_ELEM_LEN];
+} LocationHidingCt;
+
+LocationHidingCt *LocationHidingCt_new(Params *params, int n);
+void LocationHidingCt_free(LocationHidingCt *c, int n);
 
 ElGamalCtShare *ElGamalCtShare_new(Params *params);
 void ElGamalCtShare_free(ElGamalCtShare *share);
 
-ElGamalMsgShare *ElGamalMsgShare_new(Params *params);
-void ElGamalMsgShare_free(ElGamalMsgShare *share);
-
-int ElGamalShamir_CreateShares(Params *params, int t, int n, BIGNUM *secret, EC_POINT **pks, ElGamalCtShare **shares, BIGNUM **opt_x);
-int ElGamalShamir_ReconstructShares(Params *params, int t, int n, ElGamalMsgShare **shares, EC_POINT *secret);
-int ElGamalShamir_ValidateShares(Params *params, int t, int n, ElGamalMsgShare **shares);
-int ElGamalShamir_ReconstructSharesWithValidation(Params *params, int t, int n, ElGamalMsgShare **shares, EC_POINT *secret);
-
+int ElGamalShamir_CreateShares(Params *params, int t, int n, uint8_t *msg, EC_POINT **pks, LocationHidingCt *ct, BIGNUM **opt_x);
+int ElGamalShamir_ReconstructShares(Params *params, int t, int n, LocationHidingCt *ct, ShamirShare **shares, uint8_t *msg);
 #endif

@@ -21,25 +21,22 @@ cleanup:
 int Baseline_Save(HSM *h, ElGamal_ciphertext *elGamalCt, uint8_t *aesCt, uint8_t *pinHash, uint8_t *key) {
     int rv;
     uint8_t buf[SHA256_DIGEST_LENGTH + KEY_LEN];
-    EC_POINT *k;
-    BIGNUM  *x;
-    uint8_t kOutBuf[33];
+    BIGNUM  *k;
+    uint8_t kOutBuf[32];
     uint8_t kHashBuf[AES256_KEY_LEN];
     EVP_CIPHER_CTX *ctx;
     int bytesFilled;
     EVP_MD_CTX *mdctx;
 
-    CHECK_A (x = BN_new());
-    CHECK_A (k = EC_POINT_new(h->params->group));
-    CHECK_C (BN_rand_range(x, h->params->order));
-    EC_POINT_mul(h->params->group, k, x, NULL, NULL, h->params->bn_ctx);
+    CHECK_A (k = BN_new());
+    CHECK_C (BN_rand_range(k, h->params->order));
     HSM_ElGamalEncrypt(h, k, elGamalCt);
 
-    Params_pointToBytes(h->params, kOutBuf, k);
+    BN_bn2bin(k, kOutBuf + 32 - BN_num_bytes(k));
 
     CHECK_A (mdctx = EVP_MD_CTX_create());
     CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
-    CHECK_C (EVP_DigestUpdate(mdctx, kOutBuf, 33));
+    CHECK_C (EVP_DigestUpdate(mdctx, kOutBuf, 32));
     CHECK_C (EVP_DigestFinal_ex(mdctx, kHashBuf, NULL));
 
     memcpy(buf, pinHash, SHA256_DIGEST_LENGTH);
@@ -51,8 +48,7 @@ int Baseline_Save(HSM *h, ElGamal_ciphertext *elGamalCt, uint8_t *aesCt, uint8_t
 cleanup:
     if (ctx) EVP_CIPHER_CTX_free(ctx);
     if (mdctx) EVP_MD_CTX_destroy(mdctx);
-    if (k) EC_POINT_free(k);
-    if (x) BN_free(x);
+    if (k) BN_free(k);
     return rv;
 }
 

@@ -371,20 +371,18 @@ void ElGamalTest() {
     BIGNUM *sk = BN_new();
     EC_POINT *pk = EC_POINT_new(params->group);
     ElGamal_ciphertext *c = ElGamalCiphertext_new(params);
-    BIGNUM *x = BN_new();
-    EC_POINT *msg = EC_POINT_new(params->group);
-    EC_POINT *msgTest = EC_POINT_new(params->group);
+    BIGNUM *msg = BN_new();
+    BIGNUM *msgTest = BN_new();
 
     BN_rand_range(sk, params->order);
-    BN_rand_range(x, params->order);
+    BN_rand_range(msg, params->order);
     EC_POINT_mul(params->group, pk, sk, NULL, NULL, params->bn_ctx);
-    EC_POINT_mul(params->group, msg, x, NULL, NULL, params->bn_ctx);
 
-    ElGamal_Encrypt(params, msg, pk, c);
+    ElGamal_Encrypt(params, msg, pk, NULL, NULL, c);
     ElGamal_Decrypt(params, msgTest, sk, c);
 
-    printf("msg: %s\n", EC_POINT_point2hex(params->group, msg, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-    printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
+    printf("msg: %s\n", BN_bn2hex(msg));
+    printf("msgTest: %s\n", BN_bn2hex(msgTest));
 }    
 
 void ElGamalShamirTest() {
@@ -392,54 +390,43 @@ void ElGamalShamirTest() {
     Params *params = Params_new();
     int t = 3;
     int n = 10;
-    BIGNUM *x = BN_new();
-    EC_POINT *msg = EC_POINT_new(params->group);
-    EC_POINT *msgTest = EC_POINT_new(params->group);
+    uint8_t msg[32];
+    uint8_t msgTest[32];
     BIGNUM *sks[n];
     EC_POINT *pks[n];
-    ElGamalCtShare *ctShares[n];
-    ElGamalMsgShare *msgShares[n];
+    ShamirShare *msgShares[n];
+    LocationHidingCt *locationHidingCt;
 
     for (int i = 0; i < n; i++) {
         sks[i] = BN_new();
         pks[i] = EC_POINT_new(params->group);
         BN_rand_range(sks[i], params->order);
         EC_POINT_mul(params->group, pks[i], sks[i], NULL, NULL, params->bn_ctx);
-        ctShares[i] = ElGamalCtShare_new(params);
-        msgShares[i] = ElGamalMsgShare_new(params);
+        msgShares[i] = ShamirShare_new();
     }
+    locationHidingCt = LocationHidingCt_new(params, n);
 
-    BN_rand_range(x, params->order);
-    EC_POINT_mul(params->group, msg, x, NULL, NULL, params->bn_ctx);
+    memset(msg, 0xff, 32);
 
-    ElGamalShamir_CreateShares(params, t, n, x, pks, ctShares, NULL);
+    ElGamalShamir_CreateShares(params, t, n, msg, pks, locationHidingCt, NULL);
 
     for (int i = 0; i < n; i++) {
-        ElGamal_Decrypt(params, msgShares[i]->msg, sks[i], ctShares[i]->ct);
-        msgShares[i]->x = BN_dup(ctShares[i]->x);
+        ElGamal_Decrypt(params, msgShares[i]->y, sks[i], locationHidingCt->shares[i]->ct);
+        msgShares[i]->x = BN_dup(locationHidingCt->shares[i]->x);
     }
 
-    if (ElGamalShamir_ValidateShares(params, t, n, msgShares) == ERROR) {
-        printf("ERROR validating el gamal shamir shares\n");
-    } else {
-        printf("successfully validates el gamal shamir shares\n");
-    }
-
-    ElGamalShamir_ReconstructShares(params, t, n, msgShares, msgTest);
+    ElGamalShamir_ReconstructShares(params, t, n, locationHidingCt, msgShares, msgTest);
     
-    printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-    printf("msg: %s\n", EC_POINT_point2hex(params->group, msg, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-    if (EC_POINT_cmp(params->group, msg, msgTest, params->bn_ctx) == 0) {
+    printf("msg: ");
+    for (int i = 0; i < 32; i++) printf("%02x", msg[i]);
+    printf("\n");
+    printf("msgTest: ");
+    for (int i = 0; i < 32; i++) printf("%02x", msgTest[i]);
+    printf("\n");
+    if (memcmp(msg, msgTest, 32) == 0) {
         printf("Reconstruction successful\n");
     }
  
-    ElGamalShamir_ReconstructSharesWithValidation(params, t, n, msgShares, msgTest);
-    
-    printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-    printf("msg: %s\n", EC_POINT_point2hex(params->group, msg, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-    if (EC_POINT_cmp(params->group, msg, msgTest, params->bn_ctx) == 0) {
-        printf("Reconstruction with validation successful\n");
-    }
     //printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
 }
 

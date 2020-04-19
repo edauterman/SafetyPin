@@ -679,16 +679,16 @@ cleanup:
     return rv;
 }
 
-int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
+int HSM_ElGamalEncrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     int rv;
-    CHECK_C (ElGamal_Encrypt(h->params, msg, h->elGamalPk, c));
+    CHECK_C (ElGamal_Encrypt(h->params, msg, h->elGamalPk, NULL, NULL, c));
 
 cleanup:
     if (rv == ERROR) printf("ERROR IN ENCRYPT\n");
     return rv;
 }
 
-int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
+int HSM_ElGamalDecrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     int rv;
     HSM_ELGAMAL_DECRYPT_REQ req;
     HSM_ELGAMAL_DECRYPT_RESP resp;
@@ -705,7 +705,7 @@ int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_ELGAMAL_DECRYPT, (uint8_t *)&req,
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
-    Params_bytesToPoint(h->params, resp.msg, msg);
+    BN_bin2bn(resp.msg, FIELD_ELEM_LEN, msg);
 
 cleanup:
     pthread_mutex_unlock(&h->m);

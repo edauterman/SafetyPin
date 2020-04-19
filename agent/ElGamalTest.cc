@@ -28,21 +28,18 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < NUM_HSMS; i++) {
     //HSM_GetMpk(d->hsms[i]);
 
-    BIGNUM *x = BN_new();
-    EC_POINT *msg = EC_POINT_new(d->hsms[i]->params->group);
-    EC_POINT *msgTest = EC_POINT_new(d->hsms[i]->params->group);
+    BIGNUM *msg = BN_new();
+    BIGNUM *msgTest = BN_new();
     ElGamal_ciphertext *c = ElGamalCiphertext_new(d->hsms[i]->params);
     
-    BN_rand(x, BN_num_bits(d->hsms[i]->params->order), 0, 0);
-    EC_POINT_mul(d->hsms[i]->params->group, msg, x, NULL, NULL, d->hsms[i]->params->bn_ctx);
-    printf("encrypted message: %s\n", EC_POINT_point2hex(d->hsms[i]->params->group, msg, POINT_CONVERSION_UNCOMPRESSED, d->hsms[i]->params->bn_ctx));
+    BN_rand(msg, BN_num_bits(d->hsms[i]->params->order), 0, 0);
 
     HSM_ElGamalGetPk(d->hsms[i]);
     HSM_ElGamalEncrypt(d->hsms[i], msg, c);
     HSM_ElGamalDecrypt(d->hsms[i], msgTest, c);
 
-    printf("encrypted message: %s\n", EC_POINT_point2hex(d->hsms[i]->params->group, msg, POINT_CONVERSION_UNCOMPRESSED, d->hsms[i]->params->bn_ctx));
-    printf("decrypted message: %s\n", EC_POINT_point2hex(d->hsms[i]->params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, d->hsms[i]->params->bn_ctx));
+    printf("msg: %s\n", BN_bn2hex(msg));
+    printf("msgTest: %s\n", BN_bn2hex(msgTest));
   }  
 
   Datacenter_free(d);
