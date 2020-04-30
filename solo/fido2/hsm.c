@@ -547,13 +547,13 @@ int HSM_ElGamalPk(uint8_t *out, int *outLen) {
 }
 
 int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, int *outLen) {
-    uint8_t buf[ELGAMAL_PT_LEN];
+    uint8_t buf[FIELD_ELEM_LEN];
     ElGamal_Decrypt(req->ct, buf);
     if (out) {
-        memcpy(out, buf, ELGAMAL_PT_LEN);
-        *outLen = ELGAMAL_PT_LEN;
+        memcpy(out, buf, FIELD_ELEM_LEN);
+        *outLen = FIELD_ELEM_LEN;
     } else {
-        u2f_response_writeback(buf, ELGAMAL_PT_LEN);
+        u2f_response_writeback(buf, FIELD_ELEM_LEN);
     }
     return U2F_SW_NO_ERROR;
 }

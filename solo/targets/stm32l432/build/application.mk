@@ -14,7 +14,7 @@ SRC += ../../fido2/version.c
 SRC += ../../fido2/data_migration.c
 SRC += ../../fido2/extensions/extensions.c ../../fido2/extensions/solo.c
 SRC += ../../fido2/extensions/wallet.c
-SRC += ../../fido2/hsm.c ../../fido2/punc_enc.c ../../fido2/ibe.c ../../fido2/cdc.c  ../../fido2/shamir.c ../../crypto/cifra/src/arm/unacl/scalarmult.c ../../fido2/uECC.c ../../fido2/elgamal.c ../../fido2/log_proof.c
+SRC += ../../fido2/hsm.c ../../fido2/punc_enc.c ../../fido2/ibe.c ../../fido2/cdc.c  ../../fido2/shamir.c ../../crypto/cifra/src/arm/unacl/scalarmult.c ../../fido2/uECC.c ../../fido2/elgamal.c ../../fido2/log_proof.c ../../fido2/multisig.c
 
 # Crypto libs
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c ../../crypto/cifra/src/aes.c ../../crypto/cifra/src/modes.c ../../crypto/cifra/src/gcm.c ../../crypto/cifra/src/gf128.c ../../crypto/cifra/src/ccm.c

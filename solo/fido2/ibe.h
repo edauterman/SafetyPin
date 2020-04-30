@@ -27,4 +27,6 @@ void IBE_UnmarshalCt(uint8_t *buf, int msgLen, embedded_pairing_bls12_381_g2_t *
 void IBE_MarshalMpk(uint8_t buf[BASEFIELD_SZ_G2]);
 void IBE_UnmarshalSk(uint8_t buf[BASEFIELD_SZ_G1], embedded_pairing_bls12_381_g1_t *sk);
 
+void hashToLength(uint8_t *inBytes, int inLen, uint8_t *outBytes, int outLen);
+
 #endif
