@@ -17,6 +17,7 @@
 #include "params.h"
 #include "ibe.h"
 #include "common.h"
+#include "multisig.h"
 #include "shamir.h"
 
 using namespace std;
@@ -430,12 +431,50 @@ void ElGamalShamirTest() {
     //printf("msgTest: %s\n", EC_POINT_point2hex(params->group, msgTest, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
 }
 
+void MultisigTest() {
+    printf("----- MULTISIG TEST ------ \n");
+    embedded_pairing_core_bigint_256_t sk[2];
+    embedded_pairing_bls12_381_g2_t pk[2];
+    embedded_pairing_bls12_381_g2_t aggPk;
+    uint8_t msg[32];
+    embedded_pairing_bls12_381_g1_t sig[2];
+    embedded_pairing_bls12_381_g1_t aggSig;
+
+    memset(msg, 0xff, 32);
+    Multisig_Setup(&sk[0], &pk[0]);
+    Multisig_Sign(&sk[0], msg, 32, &sig[0]);
+    if (Multisig_Verify(&pk[0], msg, 32, &sig[0])) {
+        printf("Single signer multisig successfully verifies.\n");
+    } else {
+        printf("FAIL: Single signer multisig does not verify.\n");
+    }
+   
+    Multisig_Setup(&sk[1], &pk[1]);
+    Multisig_Sign(&sk[1], msg, 32, &sig[1]);
+    if (Multisig_Verify(&pk[1], msg, 32, &sig[1])) {
+        printf("Single signer multisig successfully verifies.\n");
+    } else {
+        printf("FAIL: Single signer multisig does not verify.\n");
+    }
+    
+    Multisig_AggPks(pk, 2, &aggPk);
+    Multisig_AggSigs(sig, 2, &aggSig);
+
+    if (Multisig_Verify(&aggPk, msg, 32, &aggSig)) {
+        printf("Multiple signer multisig successfully verifies.\n");
+    } else {
+        printf("FAIL: Multiple signer multisig does not verify.\n");
+    }
+
+}
+
 int main(int argc, char *argv[]) {
   IBETest();
   ShamirTest();
   AESGCMTest();
   ElGamalTest();
   ElGamalShamirTest();
+  MultisigTest();
   scratch();
   return 0;
 }

@@ -58,3 +58,16 @@ void Multisig_AggPks(embedded_pairing_bls12_381_g2_t *pkList, int len, embedded_
     }
     embedded_pairing_bls12_381_g2_add(aggPk, &tmpList[len - 2], &pkList[len - 1]);
 }
+
+void Multisig_AggSigs(embedded_pairing_bls12_381_g1_t *sigList, int len, embedded_pairing_bls12_381_g1_t *aggSig) {
+    embedded_pairing_bls12_381_g1_t tmpList[len];
+    if (len == 1) {
+        embedded_pairing_bls12_381_g1_add(aggSig, embedded_pairing_bls12_381_g1_zero, &sigList[0]);
+        return;
+    }
+    embedded_pairing_bls12_381_g1_add(&tmpList[0], embedded_pairing_bls12_381_g1_zero, &sigList[0]);
+    for (int i = 1; i < len - 1; i++) {
+        embedded_pairing_bls12_381_g1_add(&tmpList[i], &tmpList[i-1], &sigList[i]);
+    }
+    embedded_pairing_bls12_381_g1_add(aggSig, &tmpList[len - 2], &sigList[len - 1]);
+}
