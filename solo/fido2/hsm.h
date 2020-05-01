@@ -82,6 +82,10 @@
 #define HSM_SET_PARAMS                  0x86
 #define HSM_LOG_PROOF                   0x87
 #define HSM_BASELINE                    0x88
+#define HSM_MULTISIG_PK                 0x89
+#define HSM_MULTISIG_SIGN               0x8a
+#define HSM_MULTISIG_VERIFY             0x8b
+#define HSM_MULTISIG_AGG_PK             0x8c
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -230,6 +234,19 @@ struct hsm_log_proof_request {
     uint8_t opening[FIELD_ELEM_LEN];
 };
 
+struct hsm_multisig_sign_request {
+    uint8_t msgDigest[SHA256_DIGEST_LEN];
+};
+
+struct hsm_multisig_verify_request {
+    uint8_t msgDigest[SHA256_DIGEST_LEN];
+    uint8_t sig[BASEFIELD_SZ_G1];
+};
+
+struct hsm_multisig_agg_pk_request {
+    uint8_t aggPk[BASEFIELD_SZ_G2];
+};
+
 uint8_t pingKey[KEY_LEN];
 
 void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen);
@@ -256,5 +273,8 @@ int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *ou
 int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen);
 int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen);
 int HSM_Baseline(struct hsm_baseline_request *req, uint8_t *out, int *outLen);
-
+int HSM_MultisigPk(uint8_t *out, int *outLen);
+int HSM_MultisigSign(struct hsm_multisig_sign_request *req, uint8_t *out, int *outLen);
+int HSM_MultisigVerify(struct hsm_multisig_verify_request *req, uint8_t *out, int *outLen);
+int HSM_MultisigAggPk(struct hsm_multisig_agg_pk_request *req, uint8_t *out, int *outLen);
 #endif

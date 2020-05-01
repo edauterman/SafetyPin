@@ -1043,3 +1043,107 @@ cleanup:
     pthread_mutex_unlock(&h->m);
     return rv; 
 }
+
+int HSM_MultisigGetPk(HSM *h) {
+    int rv;
+    HSM_MULTISIG_PK_RESP resp;
+    string resp_str;
+
+    pthread_mutex_lock(&h->m);
+
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MULTISIG_PK, 0, 0,
+                   "", &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MULTISIG_PK, NULL,
+                0, (uint8_t *)&resp, sizeof(resp)));
+#endif
+    embedded_pairing_bls12_381_g2_unmarshal(&h->multisigPkAffine, &resp.pk, true, true);
+    embedded_pairing_bls12_381_g2_from_affine(&h->multisigPk, &h->multisigPkAffine);
+
+    printf("got multisig public key\n");
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("ERROR GETTING MULTISIG PK\n");
+    return rv;
+}
+
+int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest) {
+    int rv;
+    HSM_MULTISIG_SIGN_REQ req;
+    HSM_MULTISIG_SIGN_RESP resp;
+    string resp_str;
+    embedded_pairing_bls12_381_g1affine_t sigAffine;
+
+    pthread_mutex_lock(&h->m);
+    memcpy(req.msgDigest, msgDigest, SHA256_DIGEST_LENGTH);
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MULTISIG_SIGN, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MULTISIG_SIGN, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+
+    embedded_pairing_bls12_381_g1_unmarshal(&sigAffine, resp.sig, true, true);
+    embedded_pairing_bls12_381_g1_from_affine(sig, &sigAffine);
+ 
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("ERROR with multisig sign\n");
+    return rv;
+}
+
+int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest) {
+    int rv;
+    HSM_MULTISIG_VERIFY_REQ req;
+    HSM_MULTISIG_VERIFY_RESP resp;
+    string resp_str;
+    embedded_pairing_bls12_381_g1affine_t sigAffine;
+
+    pthread_mutex_lock(&h->m);
+    memcpy(req.msgDigest, msgDigest, SHA256_DIGEST_LENGTH);
+    embedded_pairing_bls12_381_g1affine_from_projective(&sigAffine, sig);
+    embedded_pairing_bls12_381_g1_marshal(req.sig, &sigAffine, true);
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MULTISIG_VERIFY, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MULTISIG_VERIFY, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+    if (resp.correct == 0) {
+        printf("Multisig verification FAILED\n");
+        rv = ERROR;
+    }
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("ERROR with multisig verification\n");
+    return rv;
+}
+
+int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk) {
+    int rv;
+    HSM_MULTISIG_AGG_PK_REQ req;
+    embedded_pairing_bls12_381_g2affine_t aggPkAffine;
+    string resp_str;
+
+    pthread_mutex_lock(&h->m);
+    embedded_pairing_bls12_381_g2affine_from_projective(&aggPkAffine, aggPk);
+    embedded_pairing_bls12_381_g2_marshal(req.aggPk, &aggPkAffine, true);
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MULTISIG_AGG_PK, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MULTISIG_AGG_PK, (uint8_t *)&req,
+                sizeof(req), NULL, 0));
+#endif
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    return rv;
+}

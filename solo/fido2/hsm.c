@@ -89,6 +89,18 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_BASELINE:
             HSM_Baseline((struct hsm_baseline_request *)(in), out, outLen);
             break;
+        case HSM_MULTISIG_PK:
+            HSM_MultisigPk(out, outLen);
+            break;
+        case HSM_MULTISIG_SIGN:
+            HSM_MultisigSign((struct hsm_multisig_sign_request *)(in), out, outLen);
+            break;
+        case HSM_MULTISIG_VERIFY:
+            HSM_MultisigVerify((struct hsm_multisig_verify_request *)(in), out, outLen);
+            break;
+        case HSM_MULTISIG_AGG_PK:
+            HSM_MultisigAggPk((struct hsm_multisig_agg_pk_request *)(in), out, outLen);
+            break;
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
     }
@@ -144,6 +156,14 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return sizeof(struct hsm_log_proof_request);
         case HSM_BASELINE:
             return sizeof(struct hsm_baseline_request);
+        case HSM_MULTISIG_PK:
+            return 0;
+        case HSM_MULTISIG_SIGN:
+            return sizeof(struct hsm_multisig_sign_request);
+        case HSM_MULTISIG_VERIFY:
+            return sizeof(struct hsm_multisig_verify_request);
+        case HSM_MULTISIG_AGG_PK:
+            return sizeof(struct hsm_multisig_agg_pk_request);
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
             return 0;
@@ -772,5 +792,46 @@ int HSM_Baseline(struct hsm_baseline_request *req, uint8_t *out, int *outLen) {
         u2f_response_writeback(outputKey, KEY_LEN);
     }
 
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_MultisigPk(uint8_t *out, int *outLen) {
+    uint8_t buf[BASEFIELD_SZ_G2];
+    Multisig_GetPk(buf);
+    if (out) {
+        memcpy(out, buf, BASEFIELD_SZ_G2);
+        *outLen = BASEFIELD_SZ_G2;
+    } else {
+        u2f_response_writeback(buf, BASEFIELD_SZ_G2);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_MultisigSign(struct hsm_multisig_sign_request *req, uint8_t *out, int *outLen) {
+    uint8_t buf[BASEFIELD_SZ_G1];
+    Multisig_Sign(req->msgDigest, SHA256_DIGEST_LEN, buf);
+    if (out) {
+        memcpy(out, buf, BASEFIELD_SZ_G1);
+        *outLen = BASEFIELD_SZ_G1;
+    } else {
+        u2f_response_writeback(buf, BASEFIELD_SZ_G1);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_MultisigVerify(struct hsm_multisig_verify_request *req, uint8_t *out, int *outLen) {
+    uint8_t result = Multisig_Verify(req->msgDigest, SHA256_DIGEST_LEN, req->sig);
+    if (out) {
+        memcpy(out, &result, 1);
+        *outLen = 1;
+    } else {
+        u2f_response_writeback(&result, 1);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_MultisigAggPk(struct hsm_multisig_agg_pk_request *req, uint8_t *out, int *outLen) {
+    Multisig_SetAggPk(req->aggPk);
+    *outLen = 0;
     return U2F_SW_NO_ERROR;
 }

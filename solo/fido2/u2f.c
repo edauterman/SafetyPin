@@ -200,6 +200,30 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished baseline\n");
                 break;
 
+        case HSM_MULTISIG_PK:
+                printf1(TAG_GREEN, "starting multisig pk\n");
+                rcode = HSM_MultisigPk(NULL, NULL);
+                printf1(TAG_GREEN, "finished multisig pk\n");
+                break;
+
+        case HSM_MULTISIG_SIGN:
+                printf1(TAG_GREEN, "starting multisig sign\n");
+                rcode = HSM_MultisigSign((struct hsm_multisig_sign_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished multisig verify\n");
+                break;
+
+        case HSM_MULTISIG_VERIFY:
+                printf1(TAG_GREEN, "starting multisig verify\n");
+                rcode = HSM_MultisigVerify((struct hsm_multisig_verify_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished multisig verify\n");
+                break;
+
+        case HSM_MULTISIG_AGG_PK:
+                printf1(TAG_GREEN, "starting multisig agg pk\n");
+                rcode = HSM_MultisigAggPk((struct hsm_multisig_agg_pk_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished multisig agg pk\n");
+                break;
+
 
 
 

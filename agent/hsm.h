@@ -89,6 +89,10 @@ extern "C" {
 #define HSM_SET_PARAMS                  0x86
 #define HSM_LOG_PROOF                   0x87
 #define HSM_BASELINE                    0x88
+#define HSM_MULTISIG_PK                 0x89
+#define HSM_MULTISIG_SIGN               0x8a
+#define HSM_MULTISIG_VERIFY             0x8b
+#define HSM_MULTISIG_AGG_PK             0x8c
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -301,7 +305,30 @@ typedef struct {
     uint8_t result;
 } HSM_LOG_PROOF_RESP;
 
+typedef struct {
+    uint8_t pk[BASEFIELD_SZ_G2];
+} HSM_MULTISIG_PK_RESP;
 
+typedef struct {
+    uint8_t msgDigest[SHA256_DIGEST_LENGTH];
+} HSM_MULTISIG_SIGN_REQ;
+
+typedef struct {
+    uint8_t sig[BASEFIELD_SZ_G1];
+} HSM_MULTISIG_SIGN_RESP;
+
+typedef struct {
+    uint8_t msgDigest[SHA256_DIGEST_LENGTH];
+    uint8_t sig[BASEFIELD_SZ_G1];
+} HSM_MULTISIG_VERIFY_REQ;
+
+typedef struct {
+    uint8_t correct;
+} HSM_MULTISIG_VERIFY_RESP;
+
+typedef struct {
+    uint8_t aggPk[BASEFIELD_SZ_G2];
+} HSM_MULTISIG_AGG_PK_REQ;
 
 /* ---------------------------------- */
 
@@ -316,6 +343,8 @@ typedef struct {
     EC_POINT *elGamalPk;
     pthread_mutex_t m;
     uint8_t id;
+    embedded_pairing_bls12_381_g2affine_t multisigPkAffine;
+    embedded_pairing_bls12_381_g2_t multisigPk;
 } HSM;
 
 HSM *HSM_new();
@@ -357,6 +386,11 @@ int HSM_LongMsg(HSM *h);
 int HSM_Mac(HSM *h1, HSM *h2, uint8_t *nonce, uint8_t *mac);
 
 int HSM_Baseline(HSM *h, uint8_t *key, ElGamal_ciphertext *c, uint8_t *aesCt, uint8_t *pinHash);
+
+int HSM_MultisigGetPk(HSM *h);
+int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest);
+int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest);
+int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk);
 #ifdef __cplusplus
 }
 #endif
