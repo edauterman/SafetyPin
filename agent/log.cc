@@ -22,6 +22,14 @@ void LogProof_free(LogProof *p) {
     free(p);
 }
 
+MerkleTree *MerkleTree_new() {
+    return (MerkleTree *)malloc(sizeof(MerkleTree));
+}
+
+void MerkleTree_free(MerkleTree *t) {
+    free(t);
+}
+
 int Log_Init(Params *params) {
     int rv;
 
@@ -84,5 +92,72 @@ int Log_Prove(Params *params, LogProof *p, ElGamal_ciphertext *c, uint8_t *hsms)
 
 cleanup:
     if (mdctx) EVP_MD_CTX_destroy(mdctx);
+    return rv;
+}
+
+int Log_CreateMerkleTree(MerkleTree *t) {
+    int rv;
+    EVP_MD_CTX *mdctx = NULL;
+
+    mdctx = EVP_MD_CTX_create();
+
+    for (int i = 0; i < PROOF_LEAVES; i++) {
+        RAND_bytes(t->nodes[0][i], SHA256_DIGEST_LENGTH);
+    }
+    int numLeaves = PROOF_LEAVES;
+    for (int i = 1; i < PROOF_LEVELS; i++) {
+        for (int j = 0; j < numLeaves; j++) {
+            CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
+            CHECK_C (EVP_DigestUpdate(mdctx, t->nodes[i-1][j], SHA256_DIGEST_LENGTH));
+            CHECK_C (EVP_DigestUpdate(mdctx, t->nodes[i-1][j+1], SHA256_DIGEST_LENGTH));
+            CHECK_C (EVP_DigestUpdate(mdctx, t->nodes[i][j/2], SHA256_DIGEST_LENGTH));
+        }
+    }
+
+cleanup:
+    if (mdctx) EVP_MD_CTX_destroy(mdctx);
+    return rv;
+}
+
+int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, MerkleTree *tNew, int index) {
+    int rv;
+   
+    /* Proof for index in old tree. */ 
+    int currIndex = index;
+    for (int i = 0; i < PROOF_LEVELS; i++) {
+        if (currIndex % 2 == 0) {
+            memcpy(p->firstOldP[i], tOld->nodes[i][currIndex+1], SHA256_DIGEST_LENGTH);
+        } else {
+            memcpy(p->firstOldP[i], tOld->nodes[i][currIndex-1], SHA256_DIGEST_LENGTH);
+        }
+        currIndex /= 2;
+    }
+
+    /* Proof for index in old tree. */ 
+    currIndex = index + 1;
+    for (int i = 0; i < PROOF_LEVELS; i++) {
+        if (currIndex % 2 == 0) {
+            memcpy(p->secondOldP[i], tOld->nodes[i][currIndex+1], SHA256_DIGEST_LENGTH);
+        } else {
+            memcpy(p->secondOldP[i], tOld->nodes[i][currIndex-1], SHA256_DIGEST_LENGTH);
+        }
+        currIndex /= 2;
+    }
+
+    /* Proof for index in old tree. */ 
+    currIndex = index;
+    for (int i = 0; i < PROOF_LEVELS; i++) {
+        if (currIndex % 2 == 0) {
+            memcpy(p->newP[i], tNew->nodes[i][currIndex+1], SHA256_DIGEST_LENGTH);
+        } else {
+            memcpy(p->newP[i], tNew->nodes[i][currIndex-1], SHA256_DIGEST_LENGTH);
+        }
+        currIndex /= 2;
+    }
+
+    memcpy(p->oldRoot, tOld->nodes[PROOF_LEVELS - 1][0], SHA256_DIGEST_LENGTH);
+    memcpy(p->newRoot, tNew->nodes[PROOF_LEVELS - 1][0], SHA256_DIGEST_LENGTH);
+
+cleanup:
     return rv;
 }
