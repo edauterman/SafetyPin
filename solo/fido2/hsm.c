@@ -79,10 +79,10 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
             break;
         case HSM_SET_MAC_KEYS:
             HSM_SetMacKeys((struct hsm_set_mac_keys_request *)(in), out, outLen);
-            break;
+            break;*/
         case HSM_SET_PARAMS:
             HSM_SetParams((struct hsm_set_params_request *)(in), out, outLen);
-            break; */
+            break; 
         case HSM_LOG_PROOF:
             HSM_LogProof((struct hsm_log_proof_request *)(in), out, outLen);
             break;
@@ -728,10 +728,9 @@ int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outL
 
     return U2F_SW_NO_ERROR;
 }
-
+*/
 int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "calling set params\n");
-    MPC_SetParams(req->groupSize, req->thresholdSize);
     Log_SetParams(req->logPk, req->groupSize);
 
     if (out) {
@@ -740,12 +739,10 @@ int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen)
 
     return U2F_SW_NO_ERROR;
 }
-*/
+
 int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "calling log proof\n");
     uint8_t resp = Log_Verify(req->ct, req->hsms, req->proof, req->rootSig, req->opening);
-
-    printf("result: %d\n", resp);
 
     if (out) {
         memcpy(out, resp, 1);

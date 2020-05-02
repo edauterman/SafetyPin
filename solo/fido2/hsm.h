@@ -14,7 +14,7 @@
 
 //#define HSM_GROUP_SIZE 3
 //#define HSM_GROUP_SIZE 6
-#define HSM_GROUP_SIZE 1
+#define HSM_GROUP_SIZE 100
 //#define HSM_GROUP_SIZE 100
 #define HSM_THRESHOLD_SIZE 1
 //#define HSM_THRESHOLD_SIZE 2
@@ -271,6 +271,7 @@ int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outL
 int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen);
 int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *out, int *outLen);
 int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen);
+int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen);
 int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen);
 int HSM_Baseline(struct hsm_baseline_request *req, uint8_t *out, int *outLen);
 int HSM_MultisigPk(uint8_t *out, int *outLen);

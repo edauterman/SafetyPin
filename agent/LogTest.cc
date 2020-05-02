@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 
   for (int i = 0; i < NUM_HSMS; i++) {
     ElGamal_ciphertext *c = ElGamalCiphertext_new(d->hsms[i]->params); 
-    uint8_t hsms[HSM_GROUP_SIZE];
+    uint8_t hsms[HSM_MAX_GROUP_SIZE];
     BIGNUM *msg = BN_new();
     BN_rand(msg, BN_num_bits(d->hsms[i]->params->order), 0, 0);
     HSM_ElGamalGetPk(d->hsms[i]);

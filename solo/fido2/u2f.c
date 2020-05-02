@@ -181,13 +181,13 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished set mac keys\n");
                 break;
 
-
+*/
        case HSM_SET_PARAMS:
                 printf1(TAG_GREEN, "starting set params\n");
                 rcode = HSM_SetParams((struct hsm_set_params_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished set params\n");
                 break;
-*/
+
        case HSM_LOG_PROOF:
                 printf1(TAG_GREEN, "starting log proof\n");
                 rcode = HSM_LogProof((struct hsm_log_proof_request *)payload, NULL, NULL);

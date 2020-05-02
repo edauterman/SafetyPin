@@ -989,7 +989,7 @@ int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
     pthread_mutex_lock(&h->m);
 
     ElGamal_Marshal(h->params, req.ct, c);
-    memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
+    memcpy(req.hsms, hsms, HSM_MAX_GROUP_SIZE);
     for (int i = 0; i < PROOF_LEVELS; i++) {
         memcpy(req.proof[i], p->merkleProof[i], SHA256_DIGEST_LENGTH);
     }
