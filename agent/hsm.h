@@ -23,6 +23,7 @@ extern "C" {
 #define HSM_GROUP_SIZE 1
 //#define HSM_GROUP_SIZE 5
 #define HSM_THRESHOLD_SIZE 1
+#define TOTAL_HSMS 50000
 
 //#define HSM_MAX_GROUP_SIZE 3
 //#define HSM_MAX_GROUP_SIZE 6
@@ -30,6 +31,9 @@ extern "C" {
 //#define HSM_MAX_THRESHOLD_SIZE 1 
 //#define HSM_MAX_THRESHOLD_SIZE 2
 #define HSM_MAX_THRESHOLD_SIZE  50
+
+#define NUM_CHUNKS 23   // log2(lambda * N)
+#define CHUNK_SIZE 100  // however many recoveries each HSM does in epoch
 
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)
@@ -93,6 +97,8 @@ extern "C" {
 #define HSM_MULTISIG_SIGN               0x8a
 #define HSM_MULTISIG_VERIFY             0x8b
 #define HSM_MULTISIG_AGG_PK             0x8c
+#define HSM_LOG_TRANS_PROOF             0x8d
+#define HSM_LOG_ROOTS                   0x8e
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -330,6 +336,20 @@ typedef struct {
     uint8_t aggPk[BASEFIELD_SZ_G2];
 } HSM_MULTISIG_AGG_PK_REQ;
 
+typedef struct {
+    uint8_t roots[RESPONSE_BUFFER_SIZE / SHA256_DIGEST_LENGTH][SHA256_DIGEST_LENGTH];
+} HSM_LOG_ROOTS_REQ;
+
+typedef struct {
+    uint8_t firstOldProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t secondOldProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t newProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+} HSM_LOG_TRANS_PROOF_REQ;
+
+typedef struct {
+    uint8_t result;
+} HSM_LOG_TRANS_PROOF_RESP;
+
 /* ---------------------------------- */
 
 typedef struct {
@@ -391,6 +411,8 @@ int HSM_MultisigGetPk(HSM *h);
 int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest);
 int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest);
 int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk);
+
+int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, MerkleTree *tOld, MerkleTree *tNew, uint8_t *head);
 #ifdef __cplusplus
 }
 #endif

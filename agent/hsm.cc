@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include <map>
 #include <mutex>
 
@@ -1145,5 +1146,58 @@ int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk) {
 #endif
 cleanup:
     pthread_mutex_unlock(&h->m);
+    return rv;
+}
+
+int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, MerkleTree *tOld, MerkleTree *tNew, uint8_t *head) {
+    int rv;
+    int i, j, k;
+    LogTransProof p;
+
+    int numMsgs = ceil(((float)(TOTAL_HSMS + 1)) / ((float)(RESPONSE_BUFFER_SIZE / SHA256_DIGEST_LENGTH)));
+    /* Send start digest for each chunk. */
+    for (i = 0 ; i < numMsgs; i++) {
+        HSM_LOG_ROOTS_REQ req;
+        string resp_str;
+        pthread_mutex_lock(&h->m);
+ #ifdef HID
+        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_ROOTS, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+#else
+        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_ROOTS, (uint8_t *)&req,
+                sizeof(req), NULL, 0));
+#endif
+        pthread_mutex_unlock(&h->m);
+    }
+
+    /* Audit proofs for log (lambda * N) chunks */
+    for (i = 0; i < NUM_CHUNKS; i++) {
+        for (j = 0; j < CHUNK_SIZE; j++) {
+            HSM_LOG_TRANS_PROOF_REQ req;
+            HSM_LOG_TRANS_PROOF_RESP resp;
+            string resp_str;
+
+            CHECK_C (Log_GenerateSingleTransitionProof(&p, tOld, tNew, j));
+            for (k = 0; k < PROOF_LEVELS; k++) {
+                memcpy(req.firstOldProof[k], p.firstOldP[k], SHA256_DIGEST_LENGTH);
+                memcpy(req.secondOldProof[k], p.secondOldP[k], SHA256_DIGEST_LENGTH);
+                memcpy(req.newProof[k], p.newP[k], SHA256_DIGEST_LENGTH);
+            }
+            pthread_mutex_lock(&h->m);
+#ifdef HID
+            CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_TRANS_PROOF, 0, 0,
+                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+#else
+            CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_TRANS_PROOF, (uint8_t *)&req,
+                    sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+            pthread_mutex_unlock(&h->m);
+        }
+    }
+
+    /* Sign log head. */
+    CHECK_C (HSM_MultisigSign(h, sig, head));
+    
+cleanup:
     return rv;
 }

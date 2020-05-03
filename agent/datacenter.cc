@@ -14,6 +14,7 @@
 #include "hsm.h"
 #include "log.h"
 #include "mpc.h"
+#include "multisig.h"
 #include "params.h"
 #include "punc_enc.h"
 #include "shamir.h"
@@ -685,5 +686,26 @@ cleanup:
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         if (saveKeyShares[i]) ShamirShare_free(saveKeyShares[i]);
     }
+    return rv;
+}
+
+// Assumes that aggPk already set
+int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, MerkleTree *tOld, MerkleTree *tNew) {
+    int rv;
+    embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS];
+    embedded_pairing_bls12_381_g1_t aggSig;
+    uint8_t head[SHA256_DIGEST_LENGTH];
+
+    CHECK_C (RAND_bytes(head, SHA256_DIGEST_LENGTH));
+
+    for (int i = 0; i < NUM_HSMS; i++) {
+        CHECK_C (HSM_LogEpochVerification(d->hsms[i], &sigs[i], tOld, tNew, head));
+    }
+    Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
+    for (int i = 0; i < NUM_HSMS; i++) {
+        CHECK_C (HSM_MultisigVerify(d->hsms[i], &aggSig, head));
+    }
+
+cleanup:
     return rv;
 }
