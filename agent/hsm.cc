@@ -1149,47 +1149,67 @@ cleanup:
     return rv;
 }
 
-int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, MerkleTree *tOld, MerkleTree *tNew, uint8_t *head) {
+int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, RootMerkleTree *tRoots, MerkleTree *tOld, MerkleTree *tNew, uint8_t *head) {
     int rv;
     int i, j, k;
     LogTransProof p;
+    LogRootProof pRoot;
 
-    int numMsgs = ceil(((float)(TOTAL_HSMS + 1)) / ((float)(RESPONSE_BUFFER_SIZE / SHA256_DIGEST_LENGTH)));
-    /* Send start digest for each chunk. */
-    for (i = 0 ; i < numMsgs; i++) {
-        HSM_LOG_ROOTS_REQ req;
-        string resp_str;
-        pthread_mutex_lock(&h->m);
+    /* Send Merkle root over start and end digests for each chunk. */
+    HSM_LOG_ROOTS_REQ req;
+    HSM_LOG_ROOTS_RESP resp;
+    memcpy(req.root, tRoots->nodes[PROOF_LEVELS - 1][0], SHA256_DIGEST_LENGTH);
+    string resp_str;
+    pthread_mutex_lock(&h->m);
  #ifdef HID
-        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_ROOTS, 0, 0,
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_ROOTS, 0, 0,
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
 #else
-        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_ROOTS, (uint8_t *)&req,
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_ROOTS, (uint8_t *)&req,
                 sizeof(req), NULL, 0));
 #endif
-        pthread_mutex_unlock(&h->m);
-    }
+    pthread_mutex_unlock(&h->m);
 
     /* Audit proofs for log (lambda * N) chunks */
     for (i = 0; i < NUM_CHUNKS; i++) {
+        HSM_LOG_ROOTS_PROOF_REQ rootReq;
+        HSM_LOG_ROOTS_PROOF_RESP rootResp;
+        CHECK_C (Log_GenerateRootProof(&pRoot, tRoots, resp.queries[i]));
+        for (j = 0; j < ROOT_PROOF_LEVELS; j++) {
+            memcpy(rootReq.rootProof[k], pRoot.rootP[k], SHA256_DIGEST_LENGTH);
+        }
+        memcpy(rootReq.oldHead, tOld->nodes[PROOF_LEVELS - 1][0], SHA256_DIGEST_LENGTH);
+        memcpy(rootReq.newHead, tNew->nodes[PROOF_LEVELS - 1][0], SHA256_DIGEST_LENGTH);
+        pthread_mutex_lock(&h->m);
+#ifdef HID
+        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_ROOTS_PROOF, 0, 0,
+                    string(reinterpret_cast<char*>(&rootReq), sizeof(rootReq)), &resp_str));
+#else
+        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_ROOTS_PROOF, (uint8_t *)&rootReq,
+                    sizeof(rootReq), (uint8_t *)&rootResp, sizeof(rootResp)));
+#endif
+        pthread_mutex_unlock(&h->m);
+
         for (j = 0; j < CHUNK_SIZE; j++) {
-            HSM_LOG_TRANS_PROOF_REQ req;
-            HSM_LOG_TRANS_PROOF_RESP resp;
-            string resp_str;
+            HSM_LOG_TRANS_PROOF_REQ proofReq;
+            HSM_LOG_TRANS_PROOF_RESP proofResp;
 
             CHECK_C (Log_GenerateSingleTransitionProof(&p, tOld, tNew, j));
+            memcpy(proofReq.oldHead, p.oldRoot, SHA256_DIGEST_LENGTH);
+            memcpy(proofReq.newHead, p.newRoot, SHA256_DIGEST_LENGTH);
             for (k = 0; k < PROOF_LEVELS; k++) {
-                memcpy(req.firstOldProof[k], p.firstOldP[k], SHA256_DIGEST_LENGTH);
-                memcpy(req.secondOldProof[k], p.secondOldP[k], SHA256_DIGEST_LENGTH);
-                memcpy(req.newProof[k], p.newP[k], SHA256_DIGEST_LENGTH);
+                memcpy(proofReq.firstOldProof[k], p.firstOldP[k], SHA256_DIGEST_LENGTH);
+                memcpy(proofReq.secondOldProof[k], p.secondOldP[k], SHA256_DIGEST_LENGTH);
+                memcpy(proofReq.newProof[k], p.newP[k], SHA256_DIGEST_LENGTH);
             }
             pthread_mutex_lock(&h->m);
 #ifdef HID
             CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_TRANS_PROOF, 0, 0,
-                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+                    string(reinterpret_cast<char*>(&proofReq), sizeof(proofReq)), &resp_str));
 #else
-            CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_TRANS_PROOF, (uint8_t *)&req,
-                    sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+            CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_TRANS_PROOF, (uint8_t *)&proofReq,
+                    sizeof(proofReq), (uint8_t *)&proofResp, sizeof(proofResp)));
 #endif
             pthread_mutex_unlock(&h->m);
         }

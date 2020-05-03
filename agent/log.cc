@@ -119,9 +119,48 @@ cleanup:
     return rv;
 }
 
+int Log_CreateRootMerkleTree(RootMerkleTree *t, uint8_t *leafValue) {
+    int rv;
+    EVP_MD_CTX *mdctx = NULL;
+
+    mdctx = EVP_MD_CTX_create();
+
+    for (int i = 0; i < ROOT_PROOF_LEAVES; i++) {
+        memcpy(t->nodes[0][i], leafValue, SHA256_DIGEST_LENGTH);
+    }
+    int numLeaves = ROOT_PROOF_LEAVES;
+    for (int i = 1; i < ROOT_PROOF_LEVELS; i++) {
+        for (int j = 0; j < numLeaves; j++) {
+            CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
+            CHECK_C (EVP_DigestUpdate(mdctx, t->nodes[i-1][j], SHA256_DIGEST_LENGTH));
+            CHECK_C (EVP_DigestUpdate(mdctx, t->nodes[i-1][j+1], SHA256_DIGEST_LENGTH));
+            CHECK_C (EVP_DigestUpdate(mdctx, t->nodes[i][j/2], SHA256_DIGEST_LENGTH));
+        }
+    }
+
+cleanup:
+    if (mdctx) EVP_MD_CTX_destroy(mdctx);
+    return rv;
+}
+
+// TODO: the root tree will be a different size from the commitment trees
+int Log_GenerateRootProof(LogRootProof *p, RootMerkleTree *tRoot, int index) {
+    int rv;
+  
+    int currIndex = index;
+    for (int i = 0; i < ROOT_PROOF_LEVELS; i++) {
+        if (currIndex % 2 == 0) {
+            memcpy(p->rootP[i], tRoot->nodes[i][currIndex+1], SHA256_DIGEST_LENGTH);
+        } else {
+            memcpy(p->rootP[i], tRoot->nodes[i][currIndex-1], SHA256_DIGEST_LENGTH);
+        }
+        currIndex /= 2;
+    }
+}
+
 int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, MerkleTree *tNew, int index) {
     int rv;
-   
+  
     /* Proof for index in old tree. */ 
     int currIndex = index;
     for (int i = 0; i < PROOF_LEVELS; i++) {
