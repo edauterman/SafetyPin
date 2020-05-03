@@ -163,6 +163,7 @@ int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, Merkle
   
     /* Proof for index in old tree. */ 
     int currIndex = index;
+    memcpy(p->firstOldLeaf, tOld->nodes[0][currIndex], SHA256_DIGEST_LENGTH);
     for (int i = 0; i < PROOF_LEVELS; i++) {
         if (currIndex % 2 == 0) {
             memcpy(p->firstOldP[i], tOld->nodes[i][currIndex+1], SHA256_DIGEST_LENGTH);
@@ -174,6 +175,7 @@ int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, Merkle
 
     /* Proof for index in old tree. */ 
     currIndex = index + 1;
+    memcpy(p->secondOldLeaf, tOld->nodes[0][currIndex], SHA256_DIGEST_LENGTH);
     for (int i = 0; i < PROOF_LEVELS; i++) {
         if (currIndex % 2 == 0) {
             memcpy(p->secondOldP[i], tOld->nodes[i][currIndex+1], SHA256_DIGEST_LENGTH);
@@ -185,6 +187,7 @@ int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, Merkle
 
     /* Proof for index in old tree. */ 
     currIndex = index;
+    memcpy(p->newLeaf, tNew->nodes[0][currIndex], SHA256_DIGEST_LENGTH);
     for (int i = 0; i < PROOF_LEVELS; i++) {
         if (currIndex % 2 == 0) {
             memcpy(p->newP[i], tNew->nodes[i][currIndex+1], SHA256_DIGEST_LENGTH);

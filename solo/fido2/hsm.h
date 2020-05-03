@@ -27,6 +27,10 @@
 #define NUM_ATTEMPTS 1
 
 #define PROOF_LEVELS 30
+#define ROOT_PROOF_LEVELS 16
+#define NUM_CHUNKS 23       // log2(lambda * N)
+#define CHUNK_SIZE 100      // however many recoveries each HSM does in epoch
+#define TOTAL_HSMS 50000
 #define SIG_LEN (FIELD_ELEM_LEN * 2)
 
 #define AES_CT_LEN FIELD_ELEM_LEN
@@ -86,6 +90,10 @@
 #define HSM_MULTISIG_SIGN               0x8a
 #define HSM_MULTISIG_VERIFY             0x8b
 #define HSM_MULTISIG_AGG_PK             0x8c
+#define HSM_LOG_TRANS_PROOF             0x8d
+#define HSM_LOG_ROOTS                   0x8e
+#define HSM_LOG_ROOTS_PROOF             0x8f
+
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -247,6 +255,28 @@ struct hsm_multisig_agg_pk_request {
     uint8_t aggPk[BASEFIELD_SZ_G2];
 };
 
+struct hsm_log_roots_request {
+    uint8_t root[SHA256_DIGEST_LEN];
+};
+
+struct hsm_log_trans_proof_request {
+    uint8_t oldHead[SHA256_DIGEST_LEN];
+    uint8_t newHead[SHA256_DIGEST_LEN];
+    uint8_t firstOldProof[PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t firstOldLeaf[SHA256_DIGEST_LEN];
+    uint8_t secondOldProof[PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t secondOldLeaf[SHA256_DIGEST_LEN];
+    uint8_t newProof[PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t newLeaf[SHA256_DIGEST_LEN];
+    int index;
+};
+
+struct hsm_log_roots_proof_request {
+    uint8_t oldHead[SHA256_DIGEST_LEN];
+    uint8_t newHead[SHA256_DIGEST_LEN];
+    uint8_t rootProof[ROOT_PROOF_LEVELS][SHA256_DIGEST_LEN];
+};
+
 uint8_t pingKey[KEY_LEN];
 
 void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen);
@@ -278,4 +308,8 @@ int HSM_MultisigPk(uint8_t *out, int *outLen);
 int HSM_MultisigSign(struct hsm_multisig_sign_request *req, uint8_t *out, int *outLen);
 int HSM_MultisigVerify(struct hsm_multisig_verify_request *req, uint8_t *out, int *outLen);
 int HSM_MultisigAggPk(struct hsm_multisig_agg_pk_request *req, uint8_t *out, int *outLen);
+
+int HSM_LogRoots(struct hsm_log_roots_request *req, uint8_t *out, int *outLen);
+int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int *outLen);
+int HSM_LogTransProof(struct hsm_log_trans_proof_request *req, uint8_t *out, int *outLen);
 #endif

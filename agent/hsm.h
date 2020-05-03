@@ -349,8 +349,12 @@ typedef struct {
     uint8_t oldHead[SHA256_DIGEST_LENGTH];
     uint8_t newHead[SHA256_DIGEST_LENGTH];
     uint8_t firstOldProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t firstOldLeaf[SHA256_DIGEST_LENGTH];
     uint8_t secondOldProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t secondOldLeaf[SHA256_DIGEST_LENGTH];
     uint8_t newProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t newLeaf[SHA256_DIGEST_LENGTH];
+    int index;
 } HSM_LOG_TRANS_PROOF_REQ;
 
 typedef struct {

@@ -1198,11 +1198,15 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, RootM
             CHECK_C (Log_GenerateSingleTransitionProof(&p, tOld, tNew, j));
             memcpy(proofReq.oldHead, p.oldRoot, SHA256_DIGEST_LENGTH);
             memcpy(proofReq.newHead, p.newRoot, SHA256_DIGEST_LENGTH);
+            memcpy(proofReq.firstOldLeaf, p.firstOldLeaf, SHA256_DIGEST_LENGTH);
+            memcpy(proofReq.secondOldLeaf, p.secondOldLeaf, SHA256_DIGEST_LENGTH);
+            memcpy(proofReq.newLeaf, p.newLeaf, SHA256_DIGEST_LENGTH);
             for (k = 0; k < PROOF_LEVELS; k++) {
                 memcpy(proofReq.firstOldProof[k], p.firstOldP[k], SHA256_DIGEST_LENGTH);
                 memcpy(proofReq.secondOldProof[k], p.secondOldP[k], SHA256_DIGEST_LENGTH);
                 memcpy(proofReq.newProof[k], p.newP[k], SHA256_DIGEST_LENGTH);
             }
+            proofReq.index = j;
             pthread_mutex_lock(&h->m);
 #ifdef HID
             CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_TRANS_PROOF, 0, 0,

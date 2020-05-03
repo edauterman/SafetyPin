@@ -101,6 +101,15 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_MULTISIG_AGG_PK:
             HSM_MultisigAggPk((struct hsm_multisig_agg_pk_request *)(in), out, outLen);
             break;
+        case HSM_LOG_ROOTS:
+            HSM_LogRoots((struct hsm_log_roots_request *)(in), out, outLen);
+            break;
+        case HSM_LOG_ROOTS_PROOF:
+            HSM_LogRootsProof((struct hsm_log_roots_proof_request *)(in), out, outLen);
+            break;
+        case HSM_LOG_TRANS_PROOF:
+            HSM_LogTransProof((struct hsm_log_trans_proof_request *)(in), out, outLen);
+            break;
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
     }
@@ -164,6 +173,12 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return sizeof(struct hsm_multisig_verify_request);
         case HSM_MULTISIG_AGG_PK:
             return sizeof(struct hsm_multisig_agg_pk_request);
+        case HSM_LOG_ROOTS:
+            return sizeof(struct hsm_log_roots_request);
+        case HSM_LOG_ROOTS_PROOF:
+            return sizeof(struct hsm_log_roots_proof_request);
+        case HSM_LOG_TRANS_PROOF:
+            return sizeof(struct hsm_log_trans_proof_request);
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
             return 0;
@@ -831,4 +846,42 @@ int HSM_MultisigAggPk(struct hsm_multisig_agg_pk_request *req, uint8_t *out, int
     Multisig_SetAggPk(req->aggPk);
     *outLen = 0;
     return U2F_SW_NO_ERROR;
+}
+
+int HSM_LogRoots(struct hsm_log_roots_request *req, uint8_t *out, int *outLen) {
+    Log_SetChunkRoot(req->root);
+    int queries[NUM_CHUNKS];
+    Log_GenChunkQueries(queries);
+    if (out) {
+        memcpy(out, (uint8_t *)queries, NUM_CHUNKS * sizeof(int));
+        *outLen = NUM_CHUNKS * sizeof(int);
+    } else {
+        u2f_response_writeback((uint8_t *)queries, NUM_CHUNKS * sizeof(int));
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int *outLen) {
+    uint8_t resp = Log_CheckChunkRootProof(req->oldHead, req->newHead, req->rootProof);
+    if (out) {
+        memcpy(out, &resp, 1);
+        *outLen = 1;
+    } else {
+        u2f_response_writeback(&resp, 1);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_LogTransProof(struct hsm_log_trans_proof_request *req, uint8_t *out, int *outLen) {
+    uint8_t resp = Log_CheckTransProof(req->oldHead, req->firstOldLeaf, req->firstOldProof, req->index);
+    resp = resp & Log_CheckTransProof(req->oldHead, req->secondOldLeaf, req->secondOldProof, req->index + 1);
+    resp = resp & Log_CheckTransProof(req->newHead, req->newLeaf, req->newProof, req->index);
+    if (out) {
+        memcpy(out, &resp, 1);
+        *outLen = 1;
+    } else {
+        u2f_response_writeback(&resp, 1);
+    }
+    return U2F_SW_NO_ERROR;
+
 }

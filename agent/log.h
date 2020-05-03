@@ -31,6 +31,9 @@ typedef struct {
 typedef struct {
     uint8_t oldRoot[SHA256_DIGEST_LENGTH];
     uint8_t newRoot[SHA256_DIGEST_LENGTH];
+    uint8_t firstOldLeaf[SHA256_DIGEST_LENGTH];
+    uint8_t secondOldLeaf[SHA256_DIGEST_LENGTH];
+    uint8_t newLeaf[SHA256_DIGEST_LENGTH];
     uint8_t firstOldP[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
     uint8_t secondOldP[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
     uint8_t newP[PROOF_LEVELS][SHA256_DIGEST_LENGTH];

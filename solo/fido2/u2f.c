@@ -224,6 +224,23 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished multisig agg pk\n");
                 break;
 
+       case HSM_LOG_ROOTS:
+                printf1(TAG_GREEN, "starting log roots\n");
+                rcode = HSM_LogRoots((struct hsm_log_roots_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished log roots\n");
+                break;
+
+       case HSM_LOG_ROOTS_PROOF:
+                printf1(TAG_GREEN, "starting log roots proof\n");
+                rcode = HSM_LogRootsProof((struct hsm_log_roots_proof_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished log roots proof\n");
+                break;
+
+        case HSM_LOG_TRANS_PROOF:
+                printf1(TAG_GREEN, "starting log trans proof\n");
+                rcode = HSM_LogTransProof((struct hsm_log_trans_proof_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished log trans proof\n");
+                break;
 
 
 
