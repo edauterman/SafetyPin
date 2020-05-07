@@ -13,10 +13,12 @@ uint8_t newChunkHead[SHA256_DIGEST_LEN];
 int queries[2*NUM_CHUNKS];
 int ctr;
 int subCtr;
+int chunkSize;
 
-void Log_SetParams(uint8_t logPk_in[COMPRESSED_PT_SZ], int groupSize_in) {
+void Log_SetParams(uint8_t logPk_in[COMPRESSED_PT_SZ], int groupSize_in, int chunkSize_in) {
     memcpy(logPk, logPk_in, COMPRESSED_PT_SZ);
     groupSize = groupSize_in;
+    chunkSize = chunkSize_in;
     ctr = 0;
     subCtr = 0;
 }
@@ -72,10 +74,10 @@ int Log_CheckChunkRootProof (uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_
     memcpy(curr, head, SHA256_DIGEST_LEN);
 
     int currIndex = queries[ctr];
-    for (int i = len; i >= 0; i--) {
+    for (int i = len - 1; i >= 0; i--) {
         crypto_sha256_init();
-        if (currIndex % 2 == 0) {
-        //if (goRight[i] == 0) {
+        //if (currIndex % 2 == 0) {
+        if (goRight[i] == 0) {
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
         } else {
@@ -86,6 +88,14 @@ int Log_CheckChunkRootProof (uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_
     }
     ctr++;
 
+    printf("chunkRoot: ");
+    for (int i = 0; i < SHA256_DIGEST_LEN; i++) printf("%02x", chunkRoot[i]);
+    printf("\n");
+    printf("computed root: ");
+    for (int i = 0; i < SHA256_DIGEST_LEN; i++) printf("%02x", curr[i]);
+    printf("\n");
+
+
     return (memcmp(curr, chunkRoot, SHA256_DIGEST_LEN) ==  0);
 }
 
@@ -95,7 +105,7 @@ int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIG
     /* Verify Merkle proof */
     memcpy(curr, leaf, SHA256_DIGEST_LEN);
 
-    for (int i = len; i >= 0; i--) {
+    for (int i = len - 1; i >= 0; i--) {
         crypto_sha256_init();
         if (goRight[i] == 0) {
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
@@ -107,14 +117,17 @@ int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIG
         crypto_sha256_final(curr);
     }
 
-    if (subCtr == 0) {
+    subCtr++;
+    if (subCtr == 1) {
+        printf("old chunk head doesn't match\n");
         if (memcmp(head, oldChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
     }
-    subCtr++;
-    if (subCtr == CHUNK_SIZE) {
+    if (subCtr == chunkSize) {
+        printf("new chunk head doesn't match\n");
         if (memcmp(head, newChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
         subCtr = 0;
     }
- 
+
+    printf("Doing final log trans proof check\n"); 
     return (memcmp(curr, head, SHA256_DIGEST_LEN) == 0);
 } 

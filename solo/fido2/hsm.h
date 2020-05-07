@@ -30,7 +30,7 @@
 #define ROOT_PROOF_LEVELS 16
 #define NUM_CHUNKS 23       // log2(lambda * N)
 #define CHUNK_SIZE 100      // however many recoveries each HSM does in epoch
-#define TOTAL_HSMS 50000
+#define TOTAL_HSMS 500
 #define NUM_TRANSITIONS 65536
 #define MAX_PROOF_LEVELS 35
 #define SIG_LEN (FIELD_ELEM_LEN * 2)
@@ -233,6 +233,7 @@ struct hsm_auth_mpc_decrypt_3_request {
 struct hsm_set_params_request {
     uint8_t groupSize;
     uint8_t thresholdSize;
+    uint8_t chunkSize;
     uint8_t logPk[COMPRESSED_PT_SZ];
 };
 

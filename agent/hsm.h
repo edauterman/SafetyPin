@@ -24,7 +24,7 @@ extern "C" {
 #define HSM_GROUP_SIZE 1
 //#define HSM_GROUP_SIZE 5
 #define HSM_THRESHOLD_SIZE 1
-#define TOTAL_HSMS 50000
+#define TOTAL_HSMS 500
 
 //#define HSM_MAX_GROUP_SIZE 3
 //#define HSM_MAX_GROUP_SIZE 6
@@ -299,6 +299,7 @@ typedef struct {
 typedef struct {
     uint8_t groupSize;
     uint8_t thresholdSize;
+    uint8_t chunkSize;
     uint8_t logPk[COMPRESSED_PT_SZ];
 } HSM_SET_PARAMS_REQ;
 

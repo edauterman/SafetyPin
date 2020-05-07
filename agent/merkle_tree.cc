@@ -49,6 +49,8 @@ Node *MerkleTree_CreateNewParent(Node *leftChild, Node *rightChild) {
     parent->rightID = rightChild->rightID;
     parent->midID = rightChild->leftID;
 
+    printf("node ids = (%d, %d, %d)\n", parent->leftID, parent->midID, parent->rightID);
+
     uint8_t buf[SHA256_DIGEST_LENGTH * 2];
     MerkleTree_CopyNodeHash(buf, leftChild);
     MerkleTree_CopyNodeHash(buf + SHA256_DIGEST_LENGTH, rightChild);
@@ -72,6 +74,7 @@ Node *MerkleTree_CreateNewLeaf(int id, uint8_t *value) {
     leaf->leftID = id;
     leaf->midID = id;
     leaf->rightID = id;
+    printf("leaf ids = (%d, %d, %d)\n", leaf->leftID, leaf->midID, leaf->rightID);
     return leaf;
 }
 
@@ -138,11 +141,14 @@ MerkleProof *MerkleTree_GetProof(Node *head, int id) {
     Node *curr = head;
     int ctr = 0;
     while (curr->id != id) {
+        printf("node ids (%d, %d, %d), looking for %d\n", curr->leftID, curr->midID, curr->rightID, id);
         if (id < curr->midID) {
+            printf("left\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->rightChild);
             proof->goRight[ctr] = false;
             curr = curr->leftChild;
         } else {
+            printf("right\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->leftChild);
             proof->goRight[ctr] = true;
             curr = curr->rightChild;
@@ -152,6 +158,7 @@ MerkleProof *MerkleTree_GetProof(Node *head, int id) {
     }
     proof->len = ctr;
     memcpy(proof->head, head->hash, SHA256_DIGEST_LENGTH);
+    memcpy(proof->leaf, curr->hash, SHA256_DIGEST_LENGTH);
     return proof;
 }
 
@@ -186,12 +193,15 @@ Node *MerkleTree_CreateTree(int *ids, uint8_t **values, int len) {
     for (int i = 0; i < len; i++) {
         leaves[i] = MerkleTree_CreateNewLeaf(ids[i], values[i]);
     }
+    printf("Finished creating all leaf nodes\n");
     Node **currNodes = leaves;
     Node **parentNodes;
     int currLen = len / 2;
     while (currLen > 0) {
+        printf("Starting next level with %d nodes\n", currLen);
         parentNodes = (Node **)malloc(currLen * sizeof(Node *));
         for (int i = 0; i < currLen; i++) {
+            if (i % 1000 == 0) printf("Have processed %d/%d nodes in level\n", i, currLen);
             parentNodes[i] = MerkleTree_CreateNewParent(currNodes[2 * i], currNodes[2 * i + 1]);
         }
         currLen /= 2;
