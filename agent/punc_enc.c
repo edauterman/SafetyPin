@@ -44,11 +44,13 @@ void setIBELeaves(embedded_pairing_core_bigint_256_t *ibeMsk, uint8_t *leaves) {
         /* DELETE THIS NEXT LINE */
         //memset(leaves + i * LEAF_LEN, 0xff, LEAF_LEN);
 
+	if (i % 10000 == 0) {
         printf("leaf %d: ", i);
         for (int j = 0; j < 48; j++) {
             printf("%x ", (leaves + i * LEAF_LEN)[j]);
         }
         printf("\n");
+	}
         //memset(leaves[i], 0xff, CT_LEN);
     }
 }

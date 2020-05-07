@@ -780,7 +780,6 @@ int HSM_AuthMPCDecrypt1Commit(HSM *h, uint8_t *dCommit, uint8_t *eCommit, uint32
         //printf("finished ciphertexts %d/%d\n", i, PUNC_ENC_REPL);
     }
 
-    printf("finished retrieving auth decryption\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
@@ -875,7 +874,6 @@ int HSM_AuthMPCDecrypt2Open(HSM *h, ShamirShare *resultShare, uint8_t *resultOpe
         memcpy(req.resultCommits[i], resultCommits[i], SHA256_DIGEST_LENGTH);
     }
     memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
-    printf("sending decrypt 2 open\n");
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_2_OPEN, 0, 0,
                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
@@ -884,7 +882,6 @@ int HSM_AuthMPCDecrypt2Open(HSM *h, ShamirShare *resultShare, uint8_t *resultOpe
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_2_OPEN, (uint8_t *)&req,
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
-    printf("got response for decrypt 2 open\n");
     
     memcpy(resultOpening, resp.resultOpening, FIELD_ELEM_LEN);
     Shamir_UnmarshalCompressed(resp.resultShare, reconstructIndex, resultShare);
@@ -1003,9 +1000,7 @@ int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
 
-    if (resp.result > 0) {
-        printf("Log proof success\n");
-    } else {
+    if (resp.result == 0) {
         printf("LOG PROOF FAIL: %d\n", resp.result);
     }
 

@@ -6,6 +6,7 @@
 #include <openssl/rand.h>
 #include <openssl/evp.h>
 #include <thread>
+#include <sys/time.h>
 
 #include "bls12_381/bls12_381.h"
 #include "common.h"
@@ -748,6 +749,11 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     uint8_t saveKeyBuf[FIELD_ELEM_LEN];
     uint8_t saltHash[SHA256_DIGEST_LENGTH];
     int bytesFilled = 0;
+    struct timeval tStart, tLog, tElGamal, tPuncEnc, tEnd;
+    long logSec, logMicro, elGamalSec, elGamalMicro, puncEncSec, puncEncMicro, mpcSec, mpcMicro;
+    double logTime, elGamalTime, puncEncTime, mpcTime;
+
+    gettimeofday(&tStart, NULL);
 
     CHECK_A (dShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
     CHECK_A (eShares = (ShamirShare **)malloc(HSM_GROUP_SIZE * sizeof(ShamirShare *)));
@@ -847,6 +853,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         t0[i].join();
     }
  
+    gettimeofday(&tLog, NULL);
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         elGamalRandShares[i]->x = h1Bns[i];
@@ -857,6 +864,8 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         t1[i].join();
     }
     CHECK_C (ElGamalShamir_ReconstructShares(params, HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, elGamalRandShares, elGamalRand));
+
+    gettimeofday(&tElGamal, NULL);
 
     /* Decrypt ct to get inner ciphertexts using elGamalRand. */
     Params_pointToBytes(params, elGamalRandBuf, elGamalRand);
@@ -879,6 +888,8 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     	//printf("pinShares[%d] = %s\n", i, BN_bn2hex(pinShares[i]->y));
 	    t2[i].join();
     }
+
+    gettimeofday(&tPuncEnc, NULL);
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t3[i] = thread(HSM_AuthMPCDecrypt1Open, d->hsms[h1[i]], dShares[i], eShares[i], dOpenings[i], eOpenings[i], dMacs[i], eMacs[i], dCommits, eCommits, h1, i + 1);
@@ -953,7 +964,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     //CHECK_C (Shamir_FindValidShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, resultShares, resultValidShares, resultOrder, params->order, result));
     CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, resultShares, params->order, result));
     printf("result: %s\n", BN_bn2hex(result));
-    /*for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
+/*    for (int i = 0; i < 2 * HSM_THRESHOLD_SIZE; i++) {
         validHsms[i] = h1[resultOrder[i] - 1];   //assume same set of valid shares across d and e
     }*/
 
@@ -984,6 +995,26 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, saltHash, NULL));
     CHECK_C (EVP_DecryptUpdate(ctx, saveKeyBuf, &bytesFilled, encryptedSaveKeyBuf, SHA256_DIGEST_LENGTH));
     BN_bin2bn(saveKeyBuf, FIELD_ELEM_LEN, saveKey);
+
+    gettimeofday(&tEnd, NULL);
+
+    logSec = (tLog.tv_sec - tStart.tv_sec);
+    logMicro = (tLog.tv_usec - tStart.tv_usec);
+    logTime = logSec + (logMicro / 1000000.0);
+    elGamalSec = (tElGamal.tv_sec - tStart.tv_sec);
+    elGamalMicro = (tElGamal.tv_usec - tStart.tv_usec);
+    elGamalTime = elGamalSec + (elGamalMicro / 1000000.0);
+    puncEncSec = (tPuncEnc.tv_sec - tStart.tv_sec);
+    puncEncMicro = (tPuncEnc.tv_usec - tStart.tv_usec);
+    puncEncTime = puncEncSec + (puncEncMicro / 1000000.0);
+    mpcSec = (tEnd.tv_sec - tStart.tv_sec);
+    mpcMicro = (tEnd.tv_usec - tStart.tv_usec);
+    mpcTime = mpcSec + (mpcMicro / 1000000.0);
+
+    printf("------ Log time: %f, %d sec, %d micros\n", logTime, logSec, logMicro);
+    printf("------ El Gamal time: %f, %d sec, %d micros\n", elGamalTime, elGamalSec, elGamalMicro);
+    printf("------ Punc Enc time: %f, %d sec, %d micros\n", puncEncTime, puncEncSec, puncEncMicro);
+    printf("------ MPC time: %f, %d sec, %d micros\n", mpcTime, mpcSec, mpcMicro);
 
     //printf("done: %s\n", BN_bn2hex(saveKey));
 

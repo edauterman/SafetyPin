@@ -41,7 +41,7 @@ extern "C" {
 #define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
-#define PUNC_ENC_REPL 80
+#define PUNC_ENC_REPL 5 
 //#define PUNC_ENC_REPL 1
 #define NUM_ATTEMPTS 1
 
