@@ -30,7 +30,8 @@ void Node_free(Node *n);
 MerkleProof *MerkleProof_new();
 void MerkleProof_free(MerkleProof *p);
 
-Node *MerkleTree_CreateNewParent(Node *rightChild, Node *leftChild);
+void MerkleTree_CopyNodeHash(uint8_t *dst, Node *n);
+Node *MerkleTree_CreateNewParent(Node *leftChild, Node *rightChild);
 Node *MerkleTree_CreateNewLeaf(int id, uint8_t *value);
 int MerkleTree_UpdateRightChild(Node *parent, Node *rightChild);
 int MerkleTree_UpdateLeftChild(Node *parent, Node *leftChild);
@@ -38,5 +39,6 @@ Node *MerkleTree_GetLeafForId(Node *head, int id);
 MerkleProof *MerkleTree_GetProof(Node *head, int id);
 int MerkleTree_InsertLeaf(Node *head, int id, uint8_t *value);
 Node *MerkleTree_CreateTree(int *ids, uint8_t **values, int len);
+int MerkleTree_VerifyProof(Node *head, MerkleProof *proof, uint8_t *value, int id);
 
 #endif

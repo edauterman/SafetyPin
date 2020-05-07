@@ -18,6 +18,7 @@
 #include "ibe.h"
 #include "common.h"
 #include "multisig.h"
+#include "merkle_tree.h"
 #include "shamir.h"
 
 using namespace std;
@@ -468,6 +469,27 @@ void MultisigTest() {
 
 }
 
+void MerkleTreeTest() {
+    printf("----- MERKLE TREE TEST ------ \n");
+    int ids[32];
+    uint8_t **values = (uint8_t **)malloc(32 * sizeof(uint8_t *));
+    for (int i = 0; i < 32; i++) {
+        ids[i] = 2 * i;
+        values[i] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
+        memset(values[i], 0xff, SHA256_DIGEST_LENGTH);
+    }
+    printf("going to create tree\n");
+    Node *head = MerkleTree_CreateTree(ids, values, 32);
+    printf("finished creating tree\n");
+    MerkleProof *proof = MerkleTree_GetProof(head, 2);
+    printf("Got proof\n");
+    if (MerkleTree_VerifyProof(head, proof, values[1], 2) == OKAY) {
+        printf("Merkle proof verifies.\n");
+    } else {
+        printf("FAIL: Merkle proof doesn't verify.\n");
+    }
+}
+
 int main(int argc, char *argv[]) {
   IBETest();
   ShamirTest();
@@ -475,6 +497,7 @@ int main(int argc, char *argv[]) {
   ElGamalTest();
   ElGamalShamirTest();
   MultisigTest();
-  scratch();
+  MerkleTreeTest();
+  //scratch();
   return 0;
 }
