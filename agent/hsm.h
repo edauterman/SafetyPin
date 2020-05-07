@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-#define HID
+//#define HID
 
 #define NUM_HSMS 1
 #define HSM_GROUP_SIZE 1

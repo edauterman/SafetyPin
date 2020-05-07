@@ -121,6 +121,12 @@ LogState *Log_RunSetup() {
 
     state->rootsTree = MerkleTree_CreateTree(rootIds, rootHashes, NUM_TRANSITIONS + 1);
     printf("rootsTree ids = (%d, %d, %d)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
+    printf("rootHashes[0] = ");
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", rootHashes[0][i]);
+    printf("\n");
+    printf("head for proof 0 = ");
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", state->tProofs[0].oldProof1->head[i]);
+    printf("\n");
     return state;
 }
 /*

@@ -28,8 +28,8 @@
 using namespace std;
 
 //const char *HANDLES[] = {"/dev/cu.usbmodem2086366155482", "/dev/cu.usbmodem2052338246482"};
-//const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
-const char *HANDLES[] = {"/dev/ttyACM0",
+const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
+/*const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
 			"/dev/ttyACM2",
 			"/dev/ttyACM3",
@@ -130,7 +130,7 @@ const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM98",
 			"/dev/ttyACM99",
 };
-
+*/
 RecoveryCiphertext *RecoveryCiphertext_new(Params *params) {
     int rv = ERROR;
     RecoveryCiphertext *c = NULL;
@@ -695,12 +695,17 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
     embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS];
     embedded_pairing_bls12_381_g1_t aggSig;
     uint8_t head[SHA256_DIGEST_LENGTH];
+    thread t[NUM_HSMS];
 
     CHECK_C (RAND_bytes(head, SHA256_DIGEST_LENGTH));
 
     for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_LogEpochVerification(d->hsms[i], &sigs[i], state));
+        t[i] = thread(HSM_LogEpochVerification, d->hsms[i], &sigs[i], state);
     }
+    for (int i = 0; i < NUM_HSMS; i++) {
+        t[i].join();
+    }
+ 
     Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
     for (int i = 0; i < NUM_HSMS; i++) {
         CHECK_C (HSM_MultisigVerify(d->hsms[i], &aggSig, state->rootsTree->hash));
