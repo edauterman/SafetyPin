@@ -29,8 +29,8 @@
 using namespace std;
 
 //const char *HANDLES[] = {"/dev/cu.usbmodem2086366155482", "/dev/cu.usbmodem2052338246482"};
-const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
-/*const char *HANDLES[] = {"/dev/ttyACM0",
+//const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
+const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
 			"/dev/ttyACM2",
 			"/dev/ttyACM3",
@@ -131,7 +131,7 @@ const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
 			"/dev/ttyACM98",
 			"/dev/ttyACM99",
 };
-*/
+
 RecoveryCiphertext *RecoveryCiphertext_new(Params *params) {
     int rv = ERROR;
     RecoveryCiphertext *c = NULL;
