@@ -1162,9 +1162,12 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
     memcpy(&resp, resp_str.data(), resp_str.size());
 #else
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_ROOTS, (uint8_t *)&req,
-                sizeof(req), NULL, 0));
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
     pthread_mutex_unlock(&h->m);
+    printf("queries for: ");
+    for (int i = 0; i < NUM_CHUNKS; i++) printf("%d ", resp.queries[i]);
+    printf("\n");
 
     /* Audit proofs for log (lambda * N) chunks */
     for (i = 0; i < NUM_CHUNKS; i++) {
@@ -1174,11 +1177,14 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
         HSM_LOG_ROOTS_PROOF_RESP rootResp;
 
         printf("rootsTree ids = (%d, %d, %d)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
-        MerkleProof *rootProofOld = MerkleTree_GetProof(state->rootsTree, query - 1);
-        MerkleProof *rootProofNew = MerkleTree_GetProof(state->rootsTree, query);
-        //printf("root tree head: ");
-        //for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) printf("%02x", state->rootsTree->hash[j]);
-        //printf("\n");
+        MerkleProof *rootProofOld = MerkleTree_GetProof(state->rootsTree, (query - 1) * CHUNK_SIZE);
+        MerkleProof *rootProofNew = MerkleTree_GetProof(state->rootsTree, query * CHUNK_SIZE);
+        printf("root tree head: ");
+        for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) printf("%02x", state->rootsTree->hash[j]);
+        printf("\n");
+        printf("old chunk head: ");
+        for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) printf("%02x", rootProofOld->leaf[j]);
+        printf("\n");
         if (rootProofOld == NULL) printf("old proof is null\n");
         if (rootProofNew == NULL) printf("new proof is null\n");
         printf("Generate root proofs, oldLen = %d, newLen = %d\n", rootProofOld->len, rootProofNew->len);
@@ -1215,7 +1221,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
             printf("Auditing transition %d in round %d (chunk %d)\n", j, i, query);
             HSM_LOG_TRANS_PROOF_REQ proofReq;
             HSM_LOG_TRANS_PROOF_RESP proofResp;
-            int subquery = (query * CHUNK_SIZE) + j;
+            int subquery = ((query - 1) * CHUNK_SIZE) + j;
 
             memcpy(proofReq.leafOld1, state->tProofs[subquery].oldProof1->leaf, SHA256_DIGEST_LENGTH);
             memcpy(proofReq.leafOld2, state->tProofs[subquery].oldProof2->leaf, SHA256_DIGEST_LENGTH);
@@ -1250,6 +1256,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
             CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_TRANS_PROOF, (uint8_t *)&proofReq,
                     sizeof(proofReq), (uint8_t *)&proofResp, sizeof(proofResp)));
 #endif
+            printf("got response\n");
             CHECK_C (proofResp.result == 1);
             pthread_mutex_unlock(&h->m);
         }
@@ -1259,5 +1266,6 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
     CHECK_C (HSM_MultisigSign(h, sig, state->rootsTree->hash));
     
 cleanup:
+    if (rv == ERROR) printf("Exiting due to ERROR\n");
     return rv;
 }

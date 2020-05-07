@@ -745,7 +745,6 @@ int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outL
 }
 */
 int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen) {
-    printf1(TAG_GREEN, "calling set params\n");
     Log_SetParams(req->logPk, req->groupSize, req->chunkSize);
 
     if (out) {
@@ -756,7 +755,6 @@ int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen)
 }
 
 int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen) {
-    printf1(TAG_GREEN, "calling log proof\n");
     uint8_t resp = Log_Verify(req->ct, req->hsms, req->proof, req->rootSig, req->opening);
 
     if (out) {
@@ -864,8 +862,6 @@ int HSM_LogRoots(struct hsm_log_roots_request *req, uint8_t *out, int *outLen) {
 int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int *outLen) {
     uint8_t resp = Log_CheckChunkRootProof(req->headOld, req->rootProofOld, req->goRightOld, req->lenOld);
     resp = resp & Log_CheckChunkRootProof(req->headNew, req->rootProofNew, req->goRightNew, req->lenNew);
-    if (resp == 0) printf("ROOTS PROOF FAIL\n");
-    else printf("trans proof success\n");
     if (resp != 0) {
         Log_SetOldChunkHead(req->headOld);
         Log_SetNewChunkHead(req->headNew);
@@ -883,8 +879,7 @@ int HSM_LogTransProof(struct hsm_log_trans_proof_request *req, uint8_t *out, int
     uint8_t resp = Log_CheckTransProof(req->headOld, req->leafOld1, req->proofOld1, req->goRightOld1, req->lenOld1);
     resp = resp & Log_CheckTransProof(req->headOld, req->leafOld2, req->proofOld2, req->goRightOld2, req->lenOld2);
     resp = resp & Log_CheckTransProof(req->headNew, req->leafNew, req->proofNew, req->goRightNew, req->lenNew);
-    if (resp == 0) printf("TRANS PROOF FAIL\n");
-    else printf("trans proof success\n");
+    if (resp == 0) printf("FAIL\n");
     if (out) {
         memcpy(out, &resp, 1);
         *outLen = 1;

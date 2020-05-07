@@ -21,7 +21,7 @@
 //#define HSM_THRESHOLD_SIZE 1
 //#define HSM_THRESHOLD_SIZE 50
 //#define HSM_THRESHOLD_SIZE 50
-#define NUM_HSMS 1
+#define NUM_HSMS 100
 //#define NUM_HSMS 100
 
 #define NUM_ATTEMPTS 1

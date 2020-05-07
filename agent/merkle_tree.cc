@@ -48,6 +48,7 @@ Node *MerkleTree_CreateNewParent(Node *leftChild, Node *rightChild) {
     parent->leftID = leftChild->leftID;
     parent->rightID = rightChild->rightID;
     parent->midID = rightChild->leftID;
+    parent->id = -1;
 
     printf("node ids = (%d, %d, %d)\n", parent->leftID, parent->midID, parent->rightID);
 

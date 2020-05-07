@@ -59,9 +59,10 @@ int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIG
 
 int Log_GenChunkQueries (int *queriesOut) {
     for (int i = 0; i < NUM_CHUNKS; i++) {
-        ctap_generate_rng(queries[2*i], sizeof(int));
-        queries[2*i] = queries[2*i] % (TOTAL_HSMS - 1);
-        queries[2*i+1] = queries[i] + 1;
+        /*ctap_generate_rng(queries[2*i], sizeof(int));
+        queries[2*i] = queries[2*i] % (TOTAL_HSMS - 1);*/
+        queries[2*i] = i % (TOTAL_HSMS - 1);
+        queries[2*i+1] = queries[2*i] + 1;
         queriesOut[i]  = queries[2*i+1];
     }
     ctr = 0;
@@ -88,14 +89,6 @@ int Log_CheckChunkRootProof (uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_
     }
     ctr++;
 
-    printf("chunkRoot: ");
-    for (int i = 0; i < SHA256_DIGEST_LEN; i++) printf("%02x", chunkRoot[i]);
-    printf("\n");
-    printf("computed root: ");
-    for (int i = 0; i < SHA256_DIGEST_LEN; i++) printf("%02x", curr[i]);
-    printf("\n");
-
-
     return (memcmp(curr, chunkRoot, SHA256_DIGEST_LEN) ==  0);
 }
 
@@ -117,17 +110,21 @@ int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIG
         crypto_sha256_final(curr);
     }
 
+    /*printf("computed head: ");
+    for (int i = 0; i < SHA256_DIGEST_LEN; i++) printf("%02x", curr[i]);
+    printf("\n");
+*/
+
+
+
     subCtr++;
     if (subCtr == 1) {
-        printf("old chunk head doesn't match\n");
         if (memcmp(head, oldChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
     }
-    if (subCtr == chunkSize) {
-        printf("new chunk head doesn't match\n");
+    if (subCtr == 3 * chunkSize) {
         if (memcmp(head, newChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
         subCtr = 0;
     }
 
-    printf("Doing final log trans proof check\n"); 
     return (memcmp(curr, head, SHA256_DIGEST_LEN) == 0);
 } 
