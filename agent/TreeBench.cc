@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
   gettimeofday(&t4, NULL);
   HSM_Encrypt(d->hsms[0], 0, msg, IBE_MSG_LEN, cts);
   gettimeofday(&t5, NULL);
-  HSM_AuthDecrypt(d->hsms[0], 0, cts, msgTest, IBE_MSG_LEN, pin);
+  HSM_AuthDecrypt(d->hsms[0], 0, cts, msgTest);
   gettimeofday(&t6, NULL);
 
 

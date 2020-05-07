@@ -6,10 +6,10 @@
 #include "params.h"
 #include "punc_enc.h"
 
-#define NUM_HSMS 100
-#define HSM_GROUP_SIZE 100
+#define NUM_HSMS 1
+#define HSM_GROUP_SIZE 1
 //#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 50
+#define HSM_THRESHOLD_SIZE 1
 //#define HSM_THRESHOLD_SIZE 3
 #define PIN_LEN 10
 
@@ -24,7 +24,7 @@ typedef struct {
 //    IBE_ciphertext *saltCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     uint8_t iv[AES256_IV_LEN];
     uint8_t ct[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];
-    ElGamalCtShare *elGamalCts[HSM_GROUP_SIZE];
+    LocationHidingCt *locationHidingCt;
     uint8_t aesCts[HSM_GROUP_SIZE][AES_CT_LEN];
     uint8_t aesCtTags[HSM_GROUP_SIZE][SHA256_DIGEST_LENGTH];
 } RecoveryCiphertext;
@@ -44,4 +44,6 @@ int Datacenter_VirtualSetup(Datacenter *d);
 int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c);
 int Datacenter_GenerateLogProofs(Datacenter *d, Params *params, LogProof **logProofs, BIGNUM *pin, RecoveryCiphertext *c);
 int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c, LogProof **logProofs);
+
+int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, LogState *state);
 #endif

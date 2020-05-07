@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
   gettimeofday(&t1, NULL);
   HSM_Encrypt(d->hsms[0], 0, msg, IBE_MSG_LEN, cts);
   gettimeofday(&t2, NULL);
-  HSM_AuthDecrypt(d->hsms[0], 0, cts, msgTest, IBE_MSG_LEN, pin);
+  HSM_AuthDecrypt(d->hsms[0], 0, cts, msgTest);
   gettimeofday(&t3, NULL);
 
   if (memcmp(msg, msgTest, IBE_MSG_LEN) !=  0) {

@@ -38,6 +38,7 @@ Params *Params_new()
     Params *params = NULL;
     CHECK_A (params = (Params *)malloc(sizeof(Params)));
     CHECK_A (params->prime = BN_new());
+    CHECK_A (params->base_prime = BN_new());
     CHECK_A (params->numHsms = BN_new());
     CHECK_A (params->numLeaves = BN_new());
     CHECK_A (params->order = BN_new());
@@ -59,6 +60,8 @@ Params *Params_new()
     CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1));
     CHECK_C (EC_GROUP_get_order(params->group, params->order, params->bn_ctx));
 
+    CHECK_C (EC_GROUP_get_curve_GFp (params->group, params->base_prime, NULL, NULL, params->bn_ctx));
+
     printf("finished params\n");
 cleanup:
     if (rv == ERROR) {
@@ -70,6 +73,7 @@ cleanup:
 
 void Params_free(Params *params) {
     BN_free(params->prime);
+    BN_free(params->base_prime);
     BN_free(params->numHsms);
     BN_free(params->numLeaves);
     BN_CTX_free(params->bn_ctx);
@@ -261,4 +265,56 @@ void hmac(uint8_t *key,  uint8_t *out, uint8_t *in, int inLen) {
     EVP_DigestUpdate(mdctx, keyPadBuf, 64);
     EVP_DigestUpdate(mdctx, outBuf, 32);
     EVP_DigestFinal_ex(mdctx, out, NULL);
+}
+
+static int 
+hash_to_int_max (Params *p, BIGNUM *exp, 
+    const BIGNUM *max, const uint8_t *str, int strlen)
+{
+  int rv = ERROR;
+
+  int nbytes = BN_num_bytes (max);
+  uint8_t bytes_out[nbytes];
+
+  CHECK_C (hash_to_bytes (bytes_out, nbytes, str, strlen));
+  CHECK_A (BN_bin2bn (bytes_out, SHA256_DIGEST_LENGTH, exp));
+  CHECK_C (BN_mod (exp, exp, p->order, p->bn_ctx));
+
+cleanup:
+  return rv;
+}
+
+/* Hash to EC point. */
+int
+Params_hashToPoint (Params *p, EC_POINT *point,
+    const uint8_t *str, int strlen)
+{
+  int rv = ERROR;
+  BIGNUM *x = NULL;
+  int y_bit = 0;
+  CHECK_A (point);    // point should already be allocated with EC_POINT_new()
+  CHECK_A (x = BN_new());
+
+  // Hash string into an x coordinate
+  CHECK_C (hash_to_int_max (p, x, p->base_prime, str, strlen));
+
+  // TODO: To be completely correct, we should also derive the y_bit
+  // from the hash of the input string.
+  while (true) {
+    // This will fail if there is not solution to the curve equation
+    // with this x.
+    if (EC_POINT_set_compressed_coordinates_GFp(p->group, point, x, y_bit, p->bn_ctx))
+      break;
+
+    // If we fail to hash successfully, try again.
+    //   - Increment x coordinate.
+    //   - Flip the y bit.
+    CHECK_C (BN_add_word (x, 1));
+    CHECK_C (BN_mod (x, x, p->base_prime, p->bn_ctx));
+    y_bit = (y_bit + 1) % 2;
+  }
+
+cleanup:
+  if (x) BN_clear_free (x);
+  return rv;
 }

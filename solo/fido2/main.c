@@ -182,9 +182,6 @@ int main(int argc, char *argv[])
             uint32_t t1 = millis();
             ctaphid_handle_packet(msg);
             uint32_t t2 = millis();
-            printf1(TAG_GREEN, "handle packet time: %d ms\n", t2 - t1);
-            printf1(TAG_GREEN, "receive packet time: %d ms\n", t1 - t0);
-            printf1(TAG_GREEN, "loop time: %d ms\n", t_new - t_old);
             memset(msg, 0, sizeof(msg));
                 //}
         }

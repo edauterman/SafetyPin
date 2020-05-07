@@ -145,7 +145,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished el gamal decrypt\n");
                 break;
 
-          case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
+          /*case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
                 printf1(TAG_GREEN, "starting mpc decrypt 1\n");
                 rcode = HSM_AuthMPCDecrypt_1_Commit((struct hsm_auth_mpc_decrypt_1_commit_request *)payload, NULL, NULL);
                 printf1(TAG_GREEN, "finished mpc decrypt 1\n");
@@ -181,7 +181,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished set mac keys\n");
                 break;
 
-
+*/
        case HSM_SET_PARAMS:
                 printf1(TAG_GREEN, "starting set params\n");
                 rcode = HSM_SetParams((struct hsm_set_params_request *)payload, NULL, NULL);
@@ -200,6 +200,47 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished baseline\n");
                 break;
 
+        case HSM_MULTISIG_PK:
+                printf1(TAG_GREEN, "starting multisig pk\n");
+                rcode = HSM_MultisigPk(NULL, NULL);
+                printf1(TAG_GREEN, "finished multisig pk\n");
+                break;
+
+        case HSM_MULTISIG_SIGN:
+                printf1(TAG_GREEN, "starting multisig sign\n");
+                rcode = HSM_MultisigSign((struct hsm_multisig_sign_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished multisig verify\n");
+                break;
+
+        case HSM_MULTISIG_VERIFY:
+                printf1(TAG_GREEN, "starting multisig verify\n");
+                rcode = HSM_MultisigVerify((struct hsm_multisig_verify_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished multisig verify\n");
+                break;
+
+        case HSM_MULTISIG_AGG_PK:
+                printf1(TAG_GREEN, "starting multisig agg pk\n");
+                rcode = HSM_MultisigAggPk((struct hsm_multisig_agg_pk_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished multisig agg pk\n");
+                break;
+
+       case HSM_LOG_ROOTS:
+                printf1(TAG_GREEN, "starting log roots\n");
+                rcode = HSM_LogRoots((struct hsm_log_roots_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished log roots\n");
+                break;
+
+       case HSM_LOG_ROOTS_PROOF:
+                printf1(TAG_GREEN, "starting log roots proof\n");
+                rcode = HSM_LogRootsProof((struct hsm_log_roots_proof_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished log roots proof\n");
+                break;
+
+        case HSM_LOG_TRANS_PROOF:
+                printf1(TAG_GREEN, "starting log trans proof\n");
+                rcode = HSM_LogTransProof((struct hsm_log_trans_proof_request *)payload, NULL, NULL);
+                printf1(TAG_GREEN, "finished log trans proof\n");
+                break;
 
 
 

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include <map>
 #include <mutex>
 
@@ -485,7 +486,7 @@ cleanup:
     return rv;
 }
 
-int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash) {
+int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t msg[IBE_MSG_LEN]) {
     int rv = ERROR;
     HSM_AUTH_DECRYPT_REQ req;
     HSM_AUTH_DECRYPT_RESP resp;
@@ -496,14 +497,14 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
     uint32_t totalTraveled;
     uint32_t currInterval;
     uint32_t indexes[PUNC_ENC_REPL];
-    uint8_t zeros[msgLen];
+    uint8_t zeros[IBE_MSG_LEN];
     bool gotPlaintext = false;
 
     pthread_mutex_lock(&h->m);
 
     CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
 
-    memset(zeros, 0, msgLen);
+    memset(zeros, 0, IBE_MSG_LEN);
 
     for (int i = 0; i < PUNC_ENC_REPL; i++) {
 
@@ -530,10 +531,8 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
             currIndex /= 2;
         }
 
-        IBE_MarshalCt(req.ibeCt, msgLen, c[i]);
+        IBE_MarshalCt(req.ibeCt, IBE_MSG_LEN, c[i]);
         req.index = indexes[i];
-
-        memcpy(req.pinHash, pinHash, SHA256_DIGEST_LENGTH);
 
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_DECRYPT, 0, 0,
@@ -543,7 +542,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
         CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_DECRYPT, (uint8_t *)&req,
                     sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
-        memcpy(msg, resp.msg, msgLen);
+        memcpy(msg, resp.msg, IBE_MSG_LEN);
 
         gotPlaintext =  true;
         h->isPunctured[indexes[i]] = true;
@@ -673,22 +672,24 @@ int HSM_ElGamalGetPk(HSM *h) {
 #endif
     Params_bytesToPoint(h->params, resp.pk, h->elGamalPk);
 
+    printf("got el gamal public key\n");
+
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("ERROR GETTING ELGAMAL PK\n");
     return rv;
 }
 
-int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
+int HSM_ElGamalEncrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     int rv;
-    CHECK_C (ElGamal_Encrypt(h->params, msg, h->elGamalPk, c));
+    CHECK_C (ElGamal_Encrypt(h->params, msg, h->elGamalPk, NULL, NULL, c));
 
 cleanup:
     if (rv == ERROR) printf("ERROR IN ENCRYPT\n");
     return rv;
 }
 
-int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
+int HSM_ElGamalDecrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     int rv;
     HSM_ELGAMAL_DECRYPT_REQ req;
     HSM_ELGAMAL_DECRYPT_RESP resp;
@@ -697,6 +698,9 @@ int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
     pthread_mutex_lock(&h->m);
     
     ElGamal_Marshal(h->params, req.ct, c);
+    printf("ct: ");
+    for (int i = 0; i < 65; i++) printf("%02x", req.ct[i]);
+    printf("\n");
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_ELGAMAL_DECRYPT, 0, 0,
                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
@@ -705,7 +709,7 @@ int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c) {
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_ELGAMAL_DECRYPT, (uint8_t *)&req,
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
-    Params_bytesToPoint(h->params, resp.msg, msg);
+    BN_bin2bn(resp.msg, FIELD_ELEM_LEN, msg);
 
 cleanup:
     pthread_mutex_unlock(&h->m);
@@ -945,7 +949,6 @@ int HSM_SetMacKeys(HSM *h, uint8_t **macKeys) {
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SET_MAC_KEYS, (uint8_t *)&req,
                 sizeof(req), NULL, 0));
 #endif
-
 cleanup:
     pthread_mutex_unlock(&h->m);
     return rv;
@@ -960,6 +963,7 @@ int HSM_SetParams(HSM *h, uint8_t *logPk) {
 
     req.groupSize = HSM_GROUP_SIZE;
     req.thresholdSize = HSM_THRESHOLD_SIZE;
+    req.chunkSize = CHUNK_SIZE;
     memcpy(req.logPk, logPk, COMPRESSED_PT_SZ);
 
 #ifdef HID
@@ -984,7 +988,7 @@ int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
     pthread_mutex_lock(&h->m);
 
     ElGamal_Marshal(h->params, req.ct, c);
-    memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
+    memcpy(req.hsms, hsms, HSM_MAX_GROUP_SIZE);
     for (int i = 0; i < PROOF_LEVELS; i++) {
         memcpy(req.proof[i], p->merkleProof[i], SHA256_DIGEST_LENGTH);
     }
@@ -1035,4 +1039,225 @@ int HSM_Baseline(HSM *h, uint8_t *key, ElGamal_ciphertext *c, uint8_t *aesCt, ui
 cleanup:
     pthread_mutex_unlock(&h->m);
     return rv; 
+}
+
+int HSM_MultisigGetPk(HSM *h) {
+    int rv;
+    HSM_MULTISIG_PK_RESP resp;
+    string resp_str;
+
+    pthread_mutex_lock(&h->m);
+
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MULTISIG_PK, 0, 0,
+                   "", &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MULTISIG_PK, NULL,
+                0, (uint8_t *)&resp, sizeof(resp)));
+#endif
+    embedded_pairing_bls12_381_g2_unmarshal(&h->multisigPkAffine, &resp.pk, true, true);
+    embedded_pairing_bls12_381_g2_from_affine(&h->multisigPk, &h->multisigPkAffine);
+
+    printf("got multisig public key\n");
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("ERROR GETTING MULTISIG PK\n");
+    return rv;
+}
+
+int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest) {
+    int rv;
+    HSM_MULTISIG_SIGN_REQ req;
+    HSM_MULTISIG_SIGN_RESP resp;
+    string resp_str;
+    embedded_pairing_bls12_381_g1affine_t sigAffine;
+
+    pthread_mutex_lock(&h->m);
+    memcpy(req.msgDigest, msgDigest, SHA256_DIGEST_LENGTH);
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MULTISIG_SIGN, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MULTISIG_SIGN, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+
+    embedded_pairing_bls12_381_g1_unmarshal(&sigAffine, resp.sig, true, true);
+    embedded_pairing_bls12_381_g1_from_affine(sig, &sigAffine);
+ 
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("ERROR with multisig sign\n");
+    return rv;
+}
+
+int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest) {
+    int rv;
+    HSM_MULTISIG_VERIFY_REQ req;
+    HSM_MULTISIG_VERIFY_RESP resp;
+    string resp_str;
+    embedded_pairing_bls12_381_g1affine_t sigAffine;
+
+    pthread_mutex_lock(&h->m);
+    memcpy(req.msgDigest, msgDigest, SHA256_DIGEST_LENGTH);
+    embedded_pairing_bls12_381_g1affine_from_projective(&sigAffine, sig);
+    embedded_pairing_bls12_381_g1_marshal(req.sig, &sigAffine, true);
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MULTISIG_VERIFY, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MULTISIG_VERIFY, (uint8_t *)&req,
+                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
+#endif
+    if (resp.correct == 0) {
+        printf("Multisig verification FAILED\n");
+        rv = ERROR;
+    }
+
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    if (rv == ERROR) printf("ERROR with multisig verification\n");
+    return rv;
+}
+
+int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk) {
+    int rv;
+    HSM_MULTISIG_AGG_PK_REQ req;
+    embedded_pairing_bls12_381_g2affine_t aggPkAffine;
+    string resp_str;
+
+    pthread_mutex_lock(&h->m);
+    embedded_pairing_bls12_381_g2affine_from_projective(&aggPkAffine, aggPk);
+    embedded_pairing_bls12_381_g2_marshal(req.aggPk, &aggPkAffine, true);
+#ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MULTISIG_AGG_PK, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MULTISIG_AGG_PK, (uint8_t *)&req,
+                sizeof(req), NULL, 0));
+#endif
+cleanup:
+    pthread_mutex_unlock(&h->m);
+    return rv;
+}
+
+int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogState *state) {
+    int rv;
+    int i, j, k;
+    printf("rootsTree ids = (%d, %d, %d)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
+
+    /* Send Merkle root over start and end digests for each chunk. */
+    HSM_LOG_ROOTS_REQ req;
+    HSM_LOG_ROOTS_RESP resp;
+    memcpy(req.root, state->rootsTree->hash, SHA256_DIGEST_LENGTH);
+    string resp_str;
+    pthread_mutex_lock(&h->m);
+ #ifdef HID
+    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_ROOTS, 0, 0,
+                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
+    memcpy(&resp, resp_str.data(), resp_str.size());
+#else
+    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_ROOTS, (uint8_t *)&req,
+                sizeof(req), NULL, 0));
+#endif
+    pthread_mutex_unlock(&h->m);
+
+    /* Audit proofs for log (lambda * N) chunks */
+    for (i = 0; i < NUM_CHUNKS; i++) {
+        int query = resp.queries[i];
+        printf("Starting auditing round %d for chunk %d\n", i, query);
+        HSM_LOG_ROOTS_PROOF_REQ rootReq;
+        HSM_LOG_ROOTS_PROOF_RESP rootResp;
+
+        printf("rootsTree ids = (%d, %d, %d)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
+        MerkleProof *rootProofOld = MerkleTree_GetProof(state->rootsTree, query - 1);
+        MerkleProof *rootProofNew = MerkleTree_GetProof(state->rootsTree, query);
+        //printf("root tree head: ");
+        //for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) printf("%02x", state->rootsTree->hash[j]);
+        //printf("\n");
+        if (rootProofOld == NULL) printf("old proof is null\n");
+        if (rootProofNew == NULL) printf("new proof is null\n");
+        printf("Generate root proofs, oldLen = %d, newLen = %d\n", rootProofOld->len, rootProofNew->len);
+        for (k = 0; k < rootProofOld->len; k++) {
+            printf("old proof item %d\n", k);
+            memcpy(rootReq.rootProofOld[k], rootProofOld->hash[k], SHA256_DIGEST_LENGTH);
+            rootReq.goRightOld[k] = rootProofOld->goRight[k] ? 1 : 0;
+        }
+        for (k = 0; k < rootProofNew->len; k++) {
+            printf("new proof item %d\n", k);
+            memcpy(rootReq.rootProofNew[k], rootProofNew->hash[k], SHA256_DIGEST_LENGTH);
+            rootReq.goRightNew[k] = rootProofNew->goRight[k] ? 1 : 0;
+        }
+        printf("finished copying in parts of proof\n");
+        rootReq.lenNew = rootProofNew->len;
+        rootReq.lenOld = rootProofOld->len;
+        memcpy(rootReq.headOld, rootProofOld->leaf, SHA256_DIGEST_LENGTH);
+        memcpy(rootReq.headNew, rootProofNew->leaf, SHA256_DIGEST_LENGTH);
+        printf("Going to send request\n");
+        pthread_mutex_lock(&h->m);
+#ifdef HID
+        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_ROOTS_PROOF, 0, 0,
+                    string(reinterpret_cast<char*>(&rootReq), sizeof(rootReq)), &resp_str));
+        memcpy(&rootResp, resp_str.data(), resp_str.size());
+#else
+        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_ROOTS_PROOF, (uint8_t *)&rootReq,
+                    sizeof(rootReq), (uint8_t *)&rootResp, sizeof(rootResp)));
+#endif
+        pthread_mutex_unlock(&h->m);
+        printf("Ran root proofs\n");
+        CHECK_C(rootResp.result == 1);
+
+        for (j = 0; j < CHUNK_SIZE; j++) {
+            printf("Auditing transition %d in round %d (chunk %d)\n", j, i, query);
+            HSM_LOG_TRANS_PROOF_REQ proofReq;
+            HSM_LOG_TRANS_PROOF_RESP proofResp;
+            int subquery = (query * CHUNK_SIZE) + j;
+
+            memcpy(proofReq.leafOld1, state->tProofs[subquery].oldProof1->leaf, SHA256_DIGEST_LENGTH);
+            memcpy(proofReq.leafOld2, state->tProofs[subquery].oldProof2->leaf, SHA256_DIGEST_LENGTH);
+            memcpy(proofReq.leafNew, state->tProofs[subquery].newProof->leaf, SHA256_DIGEST_LENGTH);
+            memset(proofReq.leafNew, 0xff, SHA256_DIGEST_LENGTH);
+            for (k = 0; k < state->tProofs[subquery].oldProof1->len; k++) {
+                memcpy(proofReq.proofOld1[k], state->tProofs[subquery].oldProof1->hash[k], SHA256_DIGEST_LENGTH);
+                proofReq.goRightOld1[k] = state->tProofs[subquery].oldProof1->goRight[k] ? 1 : 0;
+            }
+
+            for (k = 0; k < state->tProofs[subquery].oldProof2->len; k++) {
+                memcpy(proofReq.proofOld2[k], state->tProofs[subquery].oldProof2->hash[k], SHA256_DIGEST_LENGTH);
+                proofReq.goRightOld2[k] = state->tProofs[subquery].oldProof2->goRight[k] ? 1 : 0;
+            }
+
+            for (k = 0; k < state->tProofs[subquery].newProof->len; k++) {
+                memcpy(proofReq.proofNew[k], state->tProofs[subquery].newProof->hash[k], SHA256_DIGEST_LENGTH);
+                proofReq.goRightNew[k] = state->tProofs[subquery].newProof->goRight[k] ? 1 : 0;
+            }
+            proofReq.lenOld1 = state->tProofs[subquery].oldProof1->len;
+            proofReq.lenOld2 = state->tProofs[subquery].oldProof2->len;
+            proofReq.lenNew = state->tProofs[subquery].newProof->len;
+            memcpy(proofReq.headOld, state->tProofs[subquery].oldProof1->head, SHA256_DIGEST_LENGTH);
+            memcpy(proofReq.headNew, state->tProofs[subquery].newProof->head, SHA256_DIGEST_LENGTH);
+            printf("Going to send request, size = %d\n", sizeof(proofReq));
+            pthread_mutex_lock(&h->m);
+#ifdef HID
+            CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_TRANS_PROOF, 0, 0,
+                    string(reinterpret_cast<char*>(&proofReq), sizeof(proofReq)), &resp_str));
+            memcpy(&proofResp, resp_str.data(), resp_str.size());
+#else
+            CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_TRANS_PROOF, (uint8_t *)&proofReq,
+                    sizeof(proofReq), (uint8_t *)&proofResp, sizeof(proofResp)));
+#endif
+            CHECK_C (proofResp.result == 1);
+            pthread_mutex_unlock(&h->m);
+        }
+    }
+
+    /* Sign log head. */
+    CHECK_C (HSM_MultisigSign(h, sig, state->rootsTree->hash));
+    
+cleanup:
+    return rv;
 }

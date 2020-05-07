@@ -9,6 +9,7 @@
 #include "log.h"
 #include "params.h"
 #include "elgamal.h"
+#include "merkle_tree.h"
 #include "shamir.h"
 #include "u2f.h"
 #include "usb.h"
@@ -17,12 +18,13 @@
 extern "C" {
 #endif
 
-//#define HID
+#define HID
 
-#define NUM_HSMS 100
-#define HSM_GROUP_SIZE 100
+#define NUM_HSMS 1
+#define HSM_GROUP_SIZE 1
 //#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 50
+#define HSM_THRESHOLD_SIZE 1
+#define TOTAL_HSMS 500
 
 //#define HSM_MAX_GROUP_SIZE 3
 //#define HSM_MAX_GROUP_SIZE 6
@@ -31,21 +33,25 @@ extern "C" {
 //#define HSM_MAX_THRESHOLD_SIZE 2
 #define HSM_MAX_THRESHOLD_SIZE  50
 
+#define NUM_CHUNKS 23   // log2(lambda * N)
+#define CHUNK_SIZE 100  // however many recoveries each HSM does in epoch
+//#define NUM_TRANSITIONS (TOTAL_HSMS * CHUNK_SIZE)
+
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)
 #define CT_LEN (2 * KEY_LEN + 32)
 
 #define COMPRESSED_PT_SZ 33
 #define FIELD_ELEM_LEN 32
-#define ELGAMAL_CT_LEN (2 * COMPRESSED_PT_SZ)
-#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
+#define ELGAMAL_CT_LEN (COMPRESSED_PT_SZ + FIELD_ELEM_LEN)
+//#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
 #define PUNC_ENC_REPL 5 
 //#define PUNC_ENC_REPL 1
 #define NUM_ATTEMPTS 1
 
-#define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
+#define AES_CT_LEN FIELD_ELEM_LEN
 
 #define RESPONSE_BUFFER_SIZE 4096
 
@@ -89,6 +95,13 @@ extern "C" {
 #define HSM_SET_PARAMS                  0x86
 #define HSM_LOG_PROOF                   0x87
 #define HSM_BASELINE                    0x88
+#define HSM_MULTISIG_PK                 0x89
+#define HSM_MULTISIG_SIGN               0x8a
+#define HSM_MULTISIG_VERIFY             0x8b
+#define HSM_MULTISIG_AGG_PK             0x8c
+#define HSM_LOG_TRANS_PROOF             0x8d
+#define HSM_LOG_ROOTS                   0x8e
+#define HSM_LOG_ROOTS_PROOF             0x8f
 
 #define LEVEL_0 0
 #define LEVEL_1 1
@@ -150,7 +163,6 @@ typedef struct {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
-    uint8_t pinHash[SHA256_DIGEST_LENGTH];
 } HSM_AUTH_DECRYPT_REQ;
 
 typedef struct {
@@ -271,7 +283,7 @@ typedef struct {
 } HSM_ELGAMAL_DECRYPT_REQ;
 
 typedef struct {
-    uint8_t msg[ELGAMAL_PT_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
 } HSM_ELGAMAL_DECRYPT_RESP;
 
 typedef struct {
@@ -287,6 +299,7 @@ typedef struct {
 typedef struct {
     uint8_t groupSize;
     uint8_t thresholdSize;
+    uint8_t chunkSize;
     uint8_t logPk[COMPRESSED_PT_SZ];
 } HSM_SET_PARAMS_REQ;
 
@@ -302,7 +315,74 @@ typedef struct {
     uint8_t result;
 } HSM_LOG_PROOF_RESP;
 
+typedef struct {
+    uint8_t pk[BASEFIELD_SZ_G2];
+} HSM_MULTISIG_PK_RESP;
 
+typedef struct {
+    uint8_t msgDigest[SHA256_DIGEST_LENGTH];
+} HSM_MULTISIG_SIGN_REQ;
+
+typedef struct {
+    uint8_t sig[BASEFIELD_SZ_G1];
+} HSM_MULTISIG_SIGN_RESP;
+
+typedef struct {
+    uint8_t msgDigest[SHA256_DIGEST_LENGTH];
+    uint8_t sig[BASEFIELD_SZ_G1];
+} HSM_MULTISIG_VERIFY_REQ;
+
+typedef struct {
+    uint8_t correct;
+} HSM_MULTISIG_VERIFY_RESP;
+
+typedef struct {
+    uint8_t aggPk[BASEFIELD_SZ_G2];
+} HSM_MULTISIG_AGG_PK_REQ;
+
+typedef struct {
+    uint8_t root[SHA256_DIGEST_LENGTH];
+} HSM_LOG_ROOTS_REQ;
+
+typedef struct {
+    int queries[NUM_CHUNKS];
+} HSM_LOG_ROOTS_RESP;
+
+typedef struct {
+    uint8_t headOld[SHA256_DIGEST_LENGTH];
+    uint8_t headNew[SHA256_DIGEST_LENGTH];
+    uint8_t proofOld1[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t leafOld1[SHA256_DIGEST_LENGTH];
+    uint8_t goRightOld1[MAX_PROOF_LEVELS];
+    int lenOld1;
+    uint8_t proofOld2[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t leafOld2[SHA256_DIGEST_LENGTH];
+    uint8_t goRightOld2[MAX_PROOF_LEVELS];
+    int lenOld2;
+    uint8_t proofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t leafNew[SHA256_DIGEST_LENGTH];
+    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int lenNew;
+} HSM_LOG_TRANS_PROOF_REQ;
+
+typedef struct {
+    uint8_t result;
+} HSM_LOG_TRANS_PROOF_RESP;
+
+typedef struct {
+    uint8_t headOld[SHA256_DIGEST_LENGTH];
+    uint8_t headNew[SHA256_DIGEST_LENGTH];
+    uint8_t rootProofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t rootProofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t goRightOld[MAX_PROOF_LEVELS];
+    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int lenNew;
+    int lenOld;
+} HSM_LOG_ROOTS_PROOF_REQ;
+
+typedef struct {
+    uint8_t result;
+} HSM_LOG_ROOTS_PROOF_RESP;
 
 /* ---------------------------------- */
 
@@ -317,6 +397,8 @@ typedef struct {
     EC_POINT *elGamalPk;
     pthread_mutex_t m;
     uint8_t id;
+    embedded_pairing_bls12_381_g2affine_t multisigPkAffine;
+    embedded_pairing_bls12_381_g2_t multisigPk;
 } HSM;
 
 HSM *HSM_new();
@@ -338,11 +420,11 @@ int HSM_Puncture(HSM *h, uint32_t index);
 /* Encryption/decryption. Decrypt only for testing. Only use AuthDecrypt. */
 int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]);
 int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen);
-int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen, uint8_t *pinHash);
+int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t msg[IBE_MSG_LEN]);
 
 int HSM_ElGamalGetPk(HSM *h);
-int HSM_ElGamalEncrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
-int HSM_ElGamalDecrypt(HSM *h, EC_POINT *msg, ElGamal_ciphertext *c);
+int HSM_ElGamalEncrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c);
+int HSM_ElGamalDecrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c);
 
 int HSM_AuthMPCDecrypt1Commit(HSM *h, uint8_t *dCommit, uint8_t *eCommit, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *aesCt, uint8_t *aesCtTag, ShamirShare *pinShare);
 int HSM_AuthMPCDecrypt1Open(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t *dOpening, uint8_t *eOpening, uint8_t **dMacs, uint8_t **eMacs, uint8_t **dCommits, uint8_t **eCommits, uint8_t *hsms, uint8_t reconstructIndex);
@@ -358,6 +440,13 @@ int HSM_LongMsg(HSM *h);
 int HSM_Mac(HSM *h1, HSM *h2, uint8_t *nonce, uint8_t *mac);
 
 int HSM_Baseline(HSM *h, uint8_t *key, ElGamal_ciphertext *c, uint8_t *aesCt, uint8_t *pinHash);
+
+int HSM_MultisigGetPk(HSM *h);
+int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest);
+int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest);
+int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk);
+
+int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogState *state);
 #ifdef __cplusplus
 }
 #endif

@@ -14,12 +14,12 @@
 
 //#define HSM_GROUP_SIZE 3
 //#define HSM_GROUP_SIZE 6
-//#define HSM_GROUP_SIZE 1
-#define HSM_GROUP_SIZE 1
-//#define HSM_THRESHOLD_SIZE 1
+#define HSM_GROUP_SIZE 100
+//#define HSM_GROUP_SIZE 100
+#define HSM_THRESHOLD_SIZE 1
 //#define HSM_THRESHOLD_SIZE 2
 //#define HSM_THRESHOLD_SIZE 1
-#define HSM_THRESHOLD_SIZE 1 
+//#define HSM_THRESHOLD_SIZE 50
 //#define HSM_THRESHOLD_SIZE 50
 #define NUM_HSMS 1
 //#define NUM_HSMS 100
@@ -27,14 +27,19 @@
 #define NUM_ATTEMPTS 1
 
 #define PROOF_LEVELS 30
+#define ROOT_PROOF_LEVELS 16
+#define NUM_CHUNKS 23       // log2(lambda * N)
+#define CHUNK_SIZE 100      // however many recoveries each HSM does in epoch
+#define TOTAL_HSMS 500
+#define NUM_TRANSITIONS 65536
+#define MAX_PROOF_LEVELS 35
 #define SIG_LEN (FIELD_ELEM_LEN * 2)
 
-#define AES_CT_LEN ((3 * FIELD_ELEM_LEN) + (3 * NUM_ATTEMPTS * FIELD_ELEM_LEN))
+#define AES_CT_LEN FIELD_ELEM_LEN
 
 #define COMPRESSED_PT_SZ 33
 #define FIELD_ELEM_LEN 32
-#define ELGAMAL_CT_LEN (2 * COMPRESSED_PT_SZ)
-#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
+#define ELGAMAL_CT_LEN (COMPRESSED_PT_SZ + FIELD_ELEM_LEN)
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
 #define NUM_LEAVES 524288
@@ -83,6 +88,14 @@
 #define HSM_SET_PARAMS                  0x86
 #define HSM_LOG_PROOF                   0x87
 #define HSM_BASELINE                    0x88
+#define HSM_MULTISIG_PK                 0x89
+#define HSM_MULTISIG_SIGN               0x8a
+#define HSM_MULTISIG_VERIFY             0x8b
+#define HSM_MULTISIG_AGG_PK             0x8c
+#define HSM_LOG_TRANS_PROOF             0x8d
+#define HSM_LOG_ROOTS                   0x8e
+#define HSM_LOG_ROOTS_PROOF             0x8f
+
 
 struct hsm_mpk {
     uint8_t mpk[BASEFIELD_SZ_G2];
@@ -117,7 +130,6 @@ struct hsm_auth_decrypt_request {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
     uint8_t ibeCt[IBE_CT_LEN];
-    uint8_t pinHash[SHA256_DIGEST_LEN];
 };
 
 struct hsm_auth_decrypt_response {
@@ -165,7 +177,7 @@ struct hsm_elgamal_decrypt_request {
 };
 
 struct hsm_elgamal_decrypt_response {
-    uint8_t msg[ELGAMAL_PT_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
 };
 
 struct hsm_baseline_request {
@@ -221,6 +233,7 @@ struct hsm_auth_mpc_decrypt_3_request {
 struct hsm_set_params_request {
     uint8_t groupSize;
     uint8_t thresholdSize;
+    uint8_t chunkSize;
     uint8_t logPk[COMPRESSED_PT_SZ];
 };
 
@@ -230,6 +243,51 @@ struct hsm_log_proof_request {
     uint8_t proof[PROOF_LEVELS][SHA256_DIGEST_LEN];
     uint8_t rootSig[SIG_LEN];
     uint8_t opening[FIELD_ELEM_LEN];
+};
+
+struct hsm_multisig_sign_request {
+    uint8_t msgDigest[SHA256_DIGEST_LEN];
+};
+
+struct hsm_multisig_verify_request {
+    uint8_t msgDigest[SHA256_DIGEST_LEN];
+    uint8_t sig[BASEFIELD_SZ_G1];
+};
+
+struct hsm_multisig_agg_pk_request {
+    uint8_t aggPk[BASEFIELD_SZ_G2];
+};
+
+struct hsm_log_roots_request {
+    uint8_t root[SHA256_DIGEST_LEN];
+};
+
+struct hsm_log_trans_proof_request {
+    uint8_t headOld[SHA256_DIGEST_LEN];
+    uint8_t headNew[SHA256_DIGEST_LEN];
+    uint8_t proofOld1[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t leafOld1[SHA256_DIGEST_LEN];
+    uint8_t goRightOld1[MAX_PROOF_LEVELS];
+    int lenOld1;
+    uint8_t proofOld2[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t leafOld2[SHA256_DIGEST_LEN];
+    uint8_t goRightOld2[MAX_PROOF_LEVELS];
+    int lenOld2;
+    uint8_t proofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t leafNew[SHA256_DIGEST_LEN];
+    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int lenNew;
+};
+
+struct hsm_log_roots_proof_request {
+    uint8_t headOld[SHA256_DIGEST_LEN];
+    uint8_t headNew[SHA256_DIGEST_LEN];
+    uint8_t rootProofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t rootProofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t goRightOld[MAX_PROOF_LEVELS];
+    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int lenNew;
+    int lenOld;
 };
 
 uint8_t pingKey[KEY_LEN];
@@ -256,7 +314,15 @@ int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outL
 int HSM_AuthMPCDecrypt_1(struct hsm_auth_mpc_decrypt_1_request *req, uint8_t *out, int *outLen);
 int HSM_AuthMPCDecrypt_2(struct hsm_auth_mpc_decrypt_2_request *req, uint8_t *out, int *outLen);
 int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen);
+int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen);
 int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen);
 int HSM_Baseline(struct hsm_baseline_request *req, uint8_t *out, int *outLen);
+int HSM_MultisigPk(uint8_t *out, int *outLen);
+int HSM_MultisigSign(struct hsm_multisig_sign_request *req, uint8_t *out, int *outLen);
+int HSM_MultisigVerify(struct hsm_multisig_verify_request *req, uint8_t *out, int *outLen);
+int HSM_MultisigAggPk(struct hsm_multisig_agg_pk_request *req, uint8_t *out, int *outLen);
 
+int HSM_LogRoots(struct hsm_log_roots_request *req, uint8_t *out, int *outLen);
+int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int *outLen);
+int HSM_LogTransProof(struct hsm_log_trans_proof_request *req, uint8_t *out, int *outLen);
 #endif

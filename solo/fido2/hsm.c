@@ -62,7 +62,7 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_ELGAMAL_DECRYPT:
             HSM_ElGamalDecrypt((struct hsm_elgamal_decrypt_request *)(in), out, outLen);
             break;
-        case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
+/*        case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
             HSM_AuthMPCDecrypt_1_Commit((struct hsm_auth_mpc_decrypt_1_commit_request *)(in), out, outLen);
             break;
         case HSM_AUTH_MPC_DECRYPT_1_OPEN:
@@ -79,15 +79,36 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
             break;
         case HSM_SET_MAC_KEYS:
             HSM_SetMacKeys((struct hsm_set_mac_keys_request *)(in), out, outLen);
-            break;
+            break;*/
         case HSM_SET_PARAMS:
             HSM_SetParams((struct hsm_set_params_request *)(in), out, outLen);
-            break;
+            break; 
         case HSM_LOG_PROOF:
             HSM_LogProof((struct hsm_log_proof_request *)(in), out, outLen);
             break;
         case HSM_BASELINE:
             HSM_Baseline((struct hsm_baseline_request *)(in), out, outLen);
+            break;
+        case HSM_MULTISIG_PK:
+            HSM_MultisigPk(out, outLen);
+            break;
+        case HSM_MULTISIG_SIGN:
+            HSM_MultisigSign((struct hsm_multisig_sign_request *)(in), out, outLen);
+            break;
+        case HSM_MULTISIG_VERIFY:
+            HSM_MultisigVerify((struct hsm_multisig_verify_request *)(in), out, outLen);
+            break;
+        case HSM_MULTISIG_AGG_PK:
+            HSM_MultisigAggPk((struct hsm_multisig_agg_pk_request *)(in), out, outLen);
+            break;
+        case HSM_LOG_ROOTS:
+            HSM_LogRoots((struct hsm_log_roots_request *)(in), out, outLen);
+            break;
+        case HSM_LOG_ROOTS_PROOF:
+            HSM_LogRootsProof((struct hsm_log_roots_proof_request *)(in), out, outLen);
+            break;
+        case HSM_LOG_TRANS_PROOF:
+            HSM_LogTransProof((struct hsm_log_trans_proof_request *)(in), out, outLen);
             break;
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
@@ -144,6 +165,20 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return sizeof(struct hsm_log_proof_request);
         case HSM_BASELINE:
             return sizeof(struct hsm_baseline_request);
+        case HSM_MULTISIG_PK:
+            return 0;
+        case HSM_MULTISIG_SIGN:
+            return sizeof(struct hsm_multisig_sign_request);
+        case HSM_MULTISIG_VERIFY:
+            return sizeof(struct hsm_multisig_verify_request);
+        case HSM_MULTISIG_AGG_PK:
+            return sizeof(struct hsm_multisig_agg_pk_request);
+        case HSM_LOG_ROOTS:
+            return sizeof(struct hsm_log_roots_request);
+        case HSM_LOG_ROOTS_PROOF:
+            return sizeof(struct hsm_log_roots_proof_request);
+        case HSM_LOG_TRANS_PROOF:
+            return sizeof(struct hsm_log_trans_proof_request);
         default:
             printf1(TAG_GREEN, "ERROR: Unknown request type %x", msgType);
             return 0;
@@ -308,6 +343,7 @@ void ibeDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *leaf, uint8_t *ms
 
 void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, uint8_t *out, int*outLen) {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
+    printf("in puncture and writeback\n");
     PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
 
     if (out) {
@@ -339,15 +375,11 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
         }
         return U2F_SW_NO_ERROR;
     }
+    printf("retrieved leaf\n");
 
     ibeDecrypt(req, leaf, msg);
 
-    /*if (memcmp(msg + 32, req->pinHash, SHA256_DIGEST_LEN) != 0) {
-        printf("BAD PIN HASH -- WILL NOT DECRYPT\n");
-        memset(msg, 0xaa, IBE_MSG_LEN);
-    }  else {
-        printf("Pin hash check passed.\n");
-    }*/
+    printf("did ibe decrypt\n");
 
     punctureAndWriteback(req, msg, out, outLen);
 
@@ -550,17 +582,17 @@ int HSM_ElGamalPk(uint8_t *out, int *outLen) {
 }
 
 int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, int *outLen) {
-    uint8_t buf[ELGAMAL_PT_LEN];
+    uint8_t buf[FIELD_ELEM_LEN];
     ElGamal_Decrypt(req->ct, buf);
     if (out) {
-        memcpy(out, buf, ELGAMAL_PT_LEN);
-        *outLen = ELGAMAL_PT_LEN;
+        memcpy(out, buf, FIELD_ELEM_LEN);
+        *outLen = FIELD_ELEM_LEN;
     } else {
-        u2f_response_writeback(buf, ELGAMAL_PT_LEN);
+        u2f_response_writeback(buf, FIELD_ELEM_LEN);
     }
     return U2F_SW_NO_ERROR;
 }
-
+/*
 void getMsg(struct hsm_auth_mpc_decrypt_1_commit_request *req, uint8_t *msg, uint8_t *leaf) {
     embedded_pairing_bls12_381_g2_t U;
     uint8_t V[IBE_MSG_LEN];
@@ -711,11 +743,10 @@ int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outL
 
     return U2F_SW_NO_ERROR;
 }
-
+*/
 int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "calling set params\n");
-    MPC_SetParams(req->groupSize, req->thresholdSize);
-    Log_SetParams(req->logPk, req->groupSize);
+    Log_SetParams(req->logPk, req->groupSize, req->chunkSize);
 
     if (out) {
         *outLen = 0;
@@ -727,8 +758,6 @@ int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen)
 int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "calling log proof\n");
     uint8_t resp = Log_Verify(req->ct, req->hsms, req->proof, req->rootSig, req->opening);
-
-    printf("result: %d\n", resp);
 
     if (out) {
         memcpy(out, resp, 1);
@@ -776,4 +805,92 @@ int HSM_Baseline(struct hsm_baseline_request *req, uint8_t *out, int *outLen) {
     }
 
     return U2F_SW_NO_ERROR;
+}
+
+int HSM_MultisigPk(uint8_t *out, int *outLen) {
+    uint8_t buf[BASEFIELD_SZ_G2];
+    Multisig_GetPk(buf);
+    if (out) {
+        memcpy(out, buf, BASEFIELD_SZ_G2);
+        *outLen = BASEFIELD_SZ_G2;
+    } else {
+        u2f_response_writeback(buf, BASEFIELD_SZ_G2);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_MultisigSign(struct hsm_multisig_sign_request *req, uint8_t *out, int *outLen) {
+    uint8_t buf[BASEFIELD_SZ_G1];
+    Multisig_Sign(req->msgDigest, SHA256_DIGEST_LEN, buf);
+    if (out) {
+        memcpy(out, buf, BASEFIELD_SZ_G1);
+        *outLen = BASEFIELD_SZ_G1;
+    } else {
+        u2f_response_writeback(buf, BASEFIELD_SZ_G1);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_MultisigVerify(struct hsm_multisig_verify_request *req, uint8_t *out, int *outLen) {
+    uint8_t result = Multisig_Verify(req->msgDigest, SHA256_DIGEST_LEN, req->sig);
+    if (out) {
+        memcpy(out, &result, 1);
+        *outLen = 1;
+    } else {
+        u2f_response_writeback(&result, 1);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_MultisigAggPk(struct hsm_multisig_agg_pk_request *req, uint8_t *out, int *outLen) {
+    Multisig_SetAggPk(req->aggPk);
+    *outLen = 0;
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_LogRoots(struct hsm_log_roots_request *req, uint8_t *out, int *outLen) {
+    Log_SetChunkRoot(req->root);
+    int queries[NUM_CHUNKS];
+    Log_GenChunkQueries(queries);
+    if (out) {
+        memcpy(out, (uint8_t *)queries, NUM_CHUNKS * sizeof(int));
+        *outLen = NUM_CHUNKS * sizeof(int);
+    } else {
+        u2f_response_writeback((uint8_t *)queries, NUM_CHUNKS * sizeof(int));
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int *outLen) {
+    uint8_t resp = Log_CheckChunkRootProof(req->headOld, req->rootProofOld, req->goRightOld, req->lenOld);
+    resp = resp & Log_CheckChunkRootProof(req->headNew, req->rootProofNew, req->goRightNew, req->lenNew);
+    if (resp == 0) printf("ROOTS PROOF FAIL\n");
+    else printf("trans proof success\n");
+    if (resp != 0) {
+        Log_SetOldChunkHead(req->headOld);
+        Log_SetNewChunkHead(req->headNew);
+    }
+    if (out) {
+        memcpy(out, &resp, 1);
+        *outLen = 1;
+    } else {
+        u2f_response_writeback(&resp, 1);
+    }
+    return U2F_SW_NO_ERROR;
+}
+
+int HSM_LogTransProof(struct hsm_log_trans_proof_request *req, uint8_t *out, int *outLen) {
+    uint8_t resp = Log_CheckTransProof(req->headOld, req->leafOld1, req->proofOld1, req->goRightOld1, req->lenOld1);
+    resp = resp & Log_CheckTransProof(req->headOld, req->leafOld2, req->proofOld2, req->goRightOld2, req->lenOld2);
+    resp = resp & Log_CheckTransProof(req->headNew, req->leafNew, req->proofNew, req->goRightNew, req->lenNew);
+    if (resp == 0) printf("TRANS PROOF FAIL\n");
+    else printf("trans proof success\n");
+    if (out) {
+        memcpy(out, &resp, 1);
+        *outLen = 1;
+    } else {
+        u2f_response_writeback(&resp, 1);
+    }
+    return U2F_SW_NO_ERROR;
+
 }

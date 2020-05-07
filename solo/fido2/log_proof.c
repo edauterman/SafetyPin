@@ -6,13 +6,24 @@
 
 uint8_t logPk[COMPRESSED_PT_SZ];
 int groupSize;
+uint8_t root[SHA256_DIGEST_LEN];
+uint8_t chunkRoot[SHA256_DIGEST_LEN];
+uint8_t oldChunkHead[SHA256_DIGEST_LEN];
+uint8_t newChunkHead[SHA256_DIGEST_LEN];
+int queries[2*NUM_CHUNKS];
+int ctr;
+int subCtr;
+int chunkSize;
 
-void Log_SetParams(uint8_t logPk_in[COMPRESSED_PT_SZ], int groupSize_in) {
+void Log_SetParams(uint8_t logPk_in[COMPRESSED_PT_SZ], int groupSize_in, int chunkSize_in) {
     memcpy(logPk, logPk_in, COMPRESSED_PT_SZ);
     groupSize = groupSize_in;
+    chunkSize = chunkSize_in;
+    ctr = 0;
+    subCtr = 0;
 }
 
-int Log_Verify(uint8_t ct[ELGAMAL_CT_LEN], uint8_t hsms[HSM_GROUP_SIZE], uint8_t proof[PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t rootSig[SIG_LEN], uint8_t opening[FIELD_ELEM_LEN]) {
+int Log_Verify(uint8_t ct[ELGAMAL_CT_LEN], uint8_t hsms[HSM_GROUP_SIZE], uint8_t proof[PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t root[SHA256_DIGEST_LEN], uint8_t opening[FIELD_ELEM_LEN]) {
     uint8_t curr[SHA256_DIGEST_LEN];
 
     /* Verify Merkle proof */
@@ -23,11 +34,100 @@ int Log_Verify(uint8_t ct[ELGAMAL_CT_LEN], uint8_t hsms[HSM_GROUP_SIZE], uint8_t
     crypto_sha256_final(curr);
 
     for (int i = 0; i < PROOF_LEVELS; i++) {
-        crypto_sha256_init();
+        crypto_sha256_init(); 
         crypto_sha256_update(curr, SHA256_DIGEST_LEN);
         crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
         crypto_sha256_final(curr);
     }
 
-    return (uECC_ecdsaVerify(logPk, curr, SHA256_DIGEST_LEN, rootSig) == 1) ? OKAY : ERROR;
+    return (memcmp(curr, root, SHA256_DIGEST_LEN) == 0);
+    //    return (uECC_ecdsaVerify(logPk, curr, SHA256_DIGEST_LEN, rootSig) == 1) ? OKAY : ERROR;
 }
+
+int Log_SetChunkRoot(uint8_t *chunkRootIn) {
+    memcpy(chunkRoot, chunkRootIn, SHA256_DIGEST_LEN);
+}
+
+void Log_SetOldChunkHead(uint8_t head[SHA256_DIGEST_LEN]) {
+    memcpy(oldChunkHead, head, SHA256_DIGEST_LEN);
+}
+
+void Log_SetNewChunkHead(uint8_t head[SHA256_DIGEST_LEN]) {
+    memcpy(newChunkHead, head, SHA256_DIGEST_LEN);
+}
+int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t goRight[MAX_PROOF_LEVELS], int index);
+
+int Log_GenChunkQueries (int *queriesOut) {
+    for (int i = 0; i < NUM_CHUNKS; i++) {
+        ctap_generate_rng(queries[2*i], sizeof(int));
+        queries[2*i] = queries[2*i] % (TOTAL_HSMS - 1);
+        queries[2*i+1] = queries[i] + 1;
+        queriesOut[i]  = queries[2*i+1];
+    }
+    ctr = 0;
+}
+
+
+int Log_CheckChunkRootProof (uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t goRight[MAX_PROOF_LEVELS], int len) {
+    uint8_t curr[SHA256_DIGEST_LEN];
+
+    memcpy(curr, head, SHA256_DIGEST_LEN);
+
+    int currIndex = queries[ctr];
+    for (int i = len - 1; i >= 0; i--) {
+        crypto_sha256_init();
+        //if (currIndex % 2 == 0) {
+        if (goRight[i] == 0) {
+            crypto_sha256_update(curr, SHA256_DIGEST_LEN);
+            crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
+        } else {
+            crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
+            crypto_sha256_update(curr, SHA256_DIGEST_LEN);
+        }
+        crypto_sha256_final(curr);
+    }
+    ctr++;
+
+    printf("chunkRoot: ");
+    for (int i = 0; i < SHA256_DIGEST_LEN; i++) printf("%02x", chunkRoot[i]);
+    printf("\n");
+    printf("computed root: ");
+    for (int i = 0; i < SHA256_DIGEST_LEN; i++) printf("%02x", curr[i]);
+    printf("\n");
+
+
+    return (memcmp(curr, chunkRoot, SHA256_DIGEST_LEN) ==  0);
+}
+
+int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t goRight[MAX_PROOF_LEVELS], int len) {
+    uint8_t curr[SHA256_DIGEST_LEN];
+
+    /* Verify Merkle proof */
+    memcpy(curr, leaf, SHA256_DIGEST_LEN);
+
+    for (int i = len - 1; i >= 0; i--) {
+        crypto_sha256_init();
+        if (goRight[i] == 0) {
+            crypto_sha256_update(curr, SHA256_DIGEST_LEN);
+            crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
+        } else {
+            crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
+            crypto_sha256_update(curr, SHA256_DIGEST_LEN);
+        }
+        crypto_sha256_final(curr);
+    }
+
+    subCtr++;
+    if (subCtr == 1) {
+        printf("old chunk head doesn't match\n");
+        if (memcmp(head, oldChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
+    }
+    if (subCtr == chunkSize) {
+        printf("new chunk head doesn't match\n");
+        if (memcmp(head, newChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
+        subCtr = 0;
+    }
+
+    printf("Doing final log trans proof check\n"); 
+    return (memcmp(curr, head, SHA256_DIGEST_LEN) == 0);
+} 

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 //#include "../crypto/cifra/src/arm/unacl/scalarmult.c"
 #include "crypto.h"
@@ -273,6 +274,19 @@ int checkReconstruction(fieldElem *sharesX, fieldElem *sharesY, fieldElem result
     return (uECC_equal(resultTest, result) != 0) ? OKAY : ERROR;
 }
 
+void reconstructEstimate() {
+    fieldElem one, two, curr;
+    uECC_setOne(one);
+    uECC_modAdd(two, one, one);
+    uECC_setOne(curr);
+    int logThresholdSize = log(thresholdSize) / log(2);
+    for (int i = 0; i < thresholdSize; i++) {
+        for (int j = 0; j < logThresholdSize; j++) {
+            uECC_modMult(curr, curr, two);
+        }
+    }
+}
+
 void MPC_Step1_Commit(uint8_t *dCommit, uint8_t *eCommit, uint8_t *msgIn, uint8_t *recoveryPinShareBuf, uint8_t *aesCt, uint8_t *aesCtTag) {
     struct MpcMsg *outerMpcMsg = (struct MpcMsg *)msgIn;
     fieldElem recoveryPinShare, savePinShare;
@@ -390,8 +404,8 @@ int MPC_Step2_Commit(uint8_t *resultCommit, uint8_t *dBuf, uint8_t *eBuf, uint8_
     /*if (validateShares(sharesX, sharesY) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
     if (checkReconstruction(sharesX, sharesY, d) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
     */
-     //if (checkShares(sharesX, sharesY, d) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
-     if (checkReconstructionWithLambdas(sharesY, d) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
+    // COMMENT THIS BACK IN!!! 
+    if (checkReconstructionWithLambdas(sharesY, d) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
 
     for (int i = 0; i < thresholdSize; i++) {
         uECC_bytesToFieldElem(sharesY[i], eShareBufs[i]);
@@ -400,9 +414,12 @@ int MPC_Step2_Commit(uint8_t *resultCommit, uint8_t *dBuf, uint8_t *eBuf, uint8_
     }
     /*if (validateShares(sharesX, sharesY) != OKAY) {memset(resultShareBuf, 1, FIELD_ELEM_LEN); return ERROR;}
     if (checkReconstruction(sharesX, sharesY, e) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;} */
-     //if (checkShares(sharesX, sharesY, e) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
-     if (checkReconstructionWithLambdas(sharesY, e) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
+    //reconstructEstimate();
     
+    // COMMENT THIS BACK IN!! 
+    if (checkReconstructionWithLambdas(sharesY, e) != OKAY) {memset(resultShareBuf, 2, FIELD_ELEM_LEN); return ERROR;}
+    //reconstructEstimate();
+
     //printf("going to finish multiplication step\n");
 
     /* Finish computing r * (pin - pin') */
@@ -480,8 +497,11 @@ int MPC_Step3(uint8_t *returnMsg, uint8_t *resultBuf, uint8_t resultShareBufs[HS
     }
     /*if (validateShares(sharesX, sharesY) != OKAY) {memset(returnMsg, 0xbb, FIELD_ELEM_LEN); return ERROR;}
     if (checkReconstruction(sharesX, sharesY, result) != OKAY) {memset(returnMsg, 0xcc, FIELD_ELEM_LEN); return ERROR;}*/
-    //if (checkShares(sharesX, sharesY, result) != OKAY) {memset(returnMsg, 0xcc, FIELD_ELEM_LEN); return ERROR;}
-     if (checkReconstructionWithLambdas(sharesY, result) != OKAY) {memset(returnMsg, 0xcc, FIELD_ELEM_LEN); return ERROR;}
+    
+    // COMMENT THIS BACK IN!!!! 
+    if (checkReconstructionWithLambdas(sharesY, result) != OKAY) {memset(returnMsg, 0xcc, FIELD_ELEM_LEN); return ERROR;}
+    //reconstructEstimate();
+
     //printf("got past share checks\n");
 
     uECC_fieldElemToBytes(resultBytes, result);

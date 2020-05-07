@@ -30,18 +30,14 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < NUM_HSMS; i++) {
     //HSM_GetMpk(d->hsms[i]);
 
-    BIGNUM *msg = BN_new();
-    BIGNUM *msgTest = BN_new();
-    ElGamal_ciphertext *c = ElGamalCiphertext_new(d->hsms[i]->params);
-    
-    BN_rand(msg, BN_num_bits(d->hsms[i]->params->order), 0, 0);
+    uint8_t msg[SHA256_DIGEST_LENGTH];
+    embedded_pairing_bls12_381_g1_t sig;
+    memset(msg, 0xff, SHA256_DIGEST_LENGTH);
 
-    HSM_ElGamalGetPk(d->hsms[i]);
-    HSM_ElGamalEncrypt(d->hsms[i], msg, c);
-    HSM_ElGamalDecrypt(d->hsms[i], msgTest, c);
-
-    printf("msg: %s\n", BN_bn2hex(msg));
-    printf("msgTest: %s\n", BN_bn2hex(msgTest));
+    HSM_MultisigGetPk(d->hsms[i]);
+    HSM_MultisigSetAggPk(d->hsms[i], &d->hsms[i]->multisigPk);
+    HSM_MultisigSign(d->hsms[i], &sig, msg);
+    HSM_MultisigVerify(d->hsms[i], &sig, msg);
   }  
 
   Datacenter_free(d);

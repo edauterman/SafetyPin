@@ -30,8 +30,11 @@ extern "C"{
 #define AES256_KEY_LEN 32
 #define AES256_IV_LEN 32
 
+//#define FIELD_ELEM_LEN 32
+
 typedef struct {
     BIGNUM *prime;
+    BIGNUM *base_prime;
     BIGNUM *numHsms;
     BIGNUM *numLeaves;
     BN_CTX *bn_ctx;
@@ -56,6 +59,8 @@ int aesDecrypt(const void *key, uint8_t *pt, const uint8_t *iv, const uint8_t *c
 int intsToBignums(BIGNUM **bns, uint8_t *ints, int len);
 
 void hmac(uint8_t *key,  uint8_t *out, uint8_t *in, int inLen);
+
+int Params_hashToPoint (Params *p, EC_POINT *point, const uint8_t *str, int strlen);
 #ifdef __cplusplus
 }
 #endif
