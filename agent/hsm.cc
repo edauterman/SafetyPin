@@ -1208,14 +1208,15 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
                 memcpy(proofReq.proofOld1[k], state->tProofs[query].oldProof1->hash[k], SHA256_DIGEST_LENGTH);
                 memcpy(proofReq.proofOld2[k], state->tProofs[query].oldProof2->hash[k], SHA256_DIGEST_LENGTH);
                 memcpy(proofReq.proofNew[k], state->tProofs[query].newProof->hash[k], SHA256_DIGEST_LENGTH);
-                proofReq.goRightOld1[k] = state->tProofs[query].oldProof1->goRight ? 1 : 0;
-                proofReq.goRightOld2[k] = state->tProofs[query].oldProof2->goRight ? 1 : 0;
-                proofReq.goRightNew[k] = state->tProofs[query].newProof->goRight ? 1 : 0;
+                proofReq.goRightOld1[k] = state->tProofs[query].oldProof1->goRight[k] ? 1 : 0;
+                proofReq.goRightOld2[k] = state->tProofs[query].oldProof2->goRight[k] ? 1 : 0;
+                proofReq.goRightNew[k] = state->tProofs[query].newProof->goRight[k] ? 1 : 0;
             }
             proofReq.lenOld1 = state->tProofs[query].oldProof1->len;
             proofReq.lenOld2 = state->tProofs[query].oldProof2->len;
             proofReq.lenNew = state->tProofs[query].newProof->len;
-            proofReq.index = state->tProofs[query].id;
+            memcpy(proofReq.headOld, state->tProofs[query].oldProof1->head, SHA256_DIGEST_LENGTH);
+            memcpy(proofReq.headNew, state->tProofs[query].newProof->head, SHA256_DIGEST_LENGTH);
             pthread_mutex_lock(&h->m);
 #ifdef HID
             CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_TRANS_PROOF, 0, 0,

@@ -9,7 +9,9 @@ int Log_Verify(uint8_t ct[ELGAMAL_CT_LEN], uint8_t hsms[HSM_GROUP_SIZE], uint8_t
 int Log_SetChunkRoot(uint8_t *chunkRootIn);
 int Log_GenChunkQueries (int *queries);
 
-int Log_CheckChunkRootProof (uint8_t oldHead[SHA256_DIGEST_LEN], uint8_t newHead[SHA256_DIGEST_LEN], uint8_t proof[ROOT_PROOF_LEVELS][SHA256_DIGEST_LEN]);
-int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proof[PROOF_LEVELS][SHA256_DIGEST_LEN], int index);
+int Log_CheckChunkRootProof (uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t goRight[MAX_PROOF_LEVELS], int len);
+void Log_SetOldChunkHead(uint8_t head[SHA256_DIGEST_LEN]);
+void Log_SetNewChunkHead(uint8_t head[SHA256_DIGEST_LEN]);
+int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t goRight[MAX_PROOF_LEVELS], int len);
 
 #endif

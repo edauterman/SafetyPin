@@ -348,6 +348,8 @@ typedef struct {
 } HSM_LOG_ROOTS_RESP;
 
 typedef struct {
+    uint8_t headOld[SHA256_DIGEST_LENGTH];
+    uint8_t headNew[SHA256_DIGEST_LENGTH];
     uint8_t proofOld1[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
     uint8_t leafOld1[SHA256_DIGEST_LENGTH];
     uint8_t goRightOld1[MAX_PROOF_LEVELS];
@@ -360,7 +362,6 @@ typedef struct {
     uint8_t leafNew[SHA256_DIGEST_LENGTH];
     uint8_t goRightNew[MAX_PROOF_LEVELS];
     int lenNew;
-    int index;
 } HSM_LOG_TRANS_PROOF_REQ;
 
 typedef struct {

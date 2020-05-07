@@ -31,6 +31,8 @@
 #define NUM_CHUNKS 23       // log2(lambda * N)
 #define CHUNK_SIZE 100      // however many recoveries each HSM does in epoch
 #define TOTAL_HSMS 50000
+#define NUM_TRANSITIONS 65536
+#define MAX_PROOF_LEVELS 35
 #define SIG_LEN (FIELD_ELEM_LEN * 2)
 
 #define AES_CT_LEN FIELD_ELEM_LEN
@@ -260,21 +262,31 @@ struct hsm_log_roots_request {
 };
 
 struct hsm_log_trans_proof_request {
-    uint8_t oldHead[SHA256_DIGEST_LEN];
-    uint8_t newHead[SHA256_DIGEST_LEN];
-    uint8_t firstOldProof[PROOF_LEVELS][SHA256_DIGEST_LEN];
-    uint8_t firstOldLeaf[SHA256_DIGEST_LEN];
-    uint8_t secondOldProof[PROOF_LEVELS][SHA256_DIGEST_LEN];
-    uint8_t secondOldLeaf[SHA256_DIGEST_LEN];
-    uint8_t newProof[PROOF_LEVELS][SHA256_DIGEST_LEN];
-    uint8_t newLeaf[SHA256_DIGEST_LEN];
-    int index;
+    uint8_t headOld[SHA256_DIGEST_LEN];
+    uint8_t headNew[SHA256_DIGEST_LEN];
+    uint8_t proofOld1[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t leafOld1[SHA256_DIGEST_LEN];
+    uint8_t goRightOld1[MAX_PROOF_LEVELS];
+    int lenOld1;
+    uint8_t proofOld2[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t leafOld2[SHA256_DIGEST_LEN];
+    uint8_t goRightOld2[MAX_PROOF_LEVELS];
+    int lenOld2;
+    uint8_t proofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t leafNew[SHA256_DIGEST_LEN];
+    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int lenNew;
 };
 
 struct hsm_log_roots_proof_request {
-    uint8_t oldHead[SHA256_DIGEST_LEN];
-    uint8_t newHead[SHA256_DIGEST_LEN];
-    uint8_t rootProof[ROOT_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t headOld[SHA256_DIGEST_LEN];
+    uint8_t headNew[SHA256_DIGEST_LEN];
+    uint8_t rootProofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t rootProofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint8_t goRightOld[MAX_PROOF_LEVELS];
+    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int lenNew;
+    int lenOld;
 };
 
 uint8_t pingKey[KEY_LEN];
