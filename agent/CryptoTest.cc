@@ -488,6 +488,27 @@ void MerkleTreeTest() {
     } else {
         printf("FAIL: Merkle proof doesn't verify.\n");
     }
+    uint8_t newValue[SHA256_DIGEST_LENGTH];
+    memset(newValue, 0xff, SHA256_DIGEST_LENGTH);
+    MerkleTree_InsertLeaf(head, 1, newValue);
+    MerkleTree_InsertLeaf(head, 3, newValue);
+    MerkleTree_InsertLeaf(head, 5, newValue);
+    proof = MerkleTree_GetProof(head, 1);
+    printf("Got proof\n");
+    if (MerkleTree_VerifyProof(head, proof, newValue, 1) == OKAY) {
+        printf("Merkle proof verifies.\n");
+    } else {
+        printf("FAIL: Merkle proof doesn't verify.\n");
+    }
+    proof = MerkleTree_GetProof(head, 3);
+    printf("Got proof\n");
+    if (MerkleTree_VerifyProof(head, proof, newValue, 1) == OKAY) {
+        printf("Merkle proof verifies.\n");
+    } else {
+        printf("FAIL: Merkle proof doesn't verify.\n");
+    }
+
+    
 }
 
 int main(int argc, char *argv[]) {

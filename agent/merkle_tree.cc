@@ -72,7 +72,6 @@ Node *MerkleTree_CreateNewLeaf(int id, uint8_t *value) {
     leaf->leftID = id;
     leaf->midID = id;
     leaf->rightID = id;
-    printf("set id = %d\n", id);
     return leaf;
 }
 
@@ -139,24 +138,19 @@ MerkleProof *MerkleTree_GetProof(Node *head, int id) {
     Node *curr = head;
     int ctr = 0;
     while (curr->id != id) {
-        printf("curr id = %d, mid = %d, id looking for = %d\n", curr->id, curr->midID, id);
         if (id < curr->midID) {
-            printf("go left\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->rightChild);
             proof->goRight[ctr] = false;
             curr = curr->leftChild;
         } else {
-            printf("go right\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->leftChild);
             proof->goRight[ctr] = true;
             curr = curr->rightChild;
         }
         ctr++;
-        printf("ctr = %d\n", ctr);
         if (curr == NULL) return NULL;  // ID not present.
     }
     proof->len = ctr;
-    printf("proof len = %d\n", ctr);
     return proof;
 }
 
@@ -188,16 +182,13 @@ int MerkleTree_InsertLeaf(Node *head, int id, uint8_t *value) {
 
 Node *MerkleTree_CreateTree(int *ids, uint8_t **values, int len) {
     Node **leaves = (Node **)malloc(len * sizeof(Node *));
-    printf("going to make leaves\n");
     for (int i = 0; i < len; i++) {
         leaves[i] = MerkleTree_CreateNewLeaf(ids[i], values[i]);
     }
-    printf("created all the leaves\n");
     Node **currNodes = leaves;
     Node **parentNodes;
     int currLen = len / 2;
     while (currLen > 0) {
-        printf("currLen = %d\n", currLen);
         parentNodes = (Node **)malloc(currLen * sizeof(Node *));
         for (int i = 0; i < currLen; i++) {
             parentNodes[i] = MerkleTree_CreateNewParent(currNodes[2 * i], currNodes[2 * i + 1]);
@@ -219,15 +210,12 @@ int MerkleTree_VerifyProof(Node *head, MerkleProof *proof, uint8_t *value, int i
     mdctx = EVP_MD_CTX_create();
     memcpy(currHash, value, SHA256_DIGEST_LENGTH);
 
-    printf("proof len: %d\n", proof->len);
     for (int i = proof->len - 1; i >= 0; i--) {
         CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
         if (proof->goRight[i]) {
-            printf("right\n");
             memcpy(buf, proof->hash[i], SHA256_DIGEST_LENGTH);
             memcpy(buf + SHA256_DIGEST_LENGTH, currHash, SHA256_DIGEST_LENGTH);
         } else {
-            printf("left\n");
             memcpy(buf, currHash, SHA256_DIGEST_LENGTH);
             memcpy(buf + SHA256_DIGEST_LENGTH, proof->hash[i], SHA256_DIGEST_LENGTH);
         }
@@ -238,7 +226,6 @@ int MerkleTree_VerifyProof(Node *head, MerkleProof *proof, uint8_t *value, int i
     if (memcmp(nextHash, head->hash, SHA256_DIGEST_LENGTH) != 0) return ERROR;
 
 cleanup:
-    printf("in cleanup\n");
     if (mdctx) EVP_MD_CTX_destroy(mdctx);
     return rv;
 }
