@@ -151,6 +151,7 @@ MerkleProof *MerkleTree_GetProof(Node *head, int id) {
         if (curr == NULL) return NULL;  // ID not present.
     }
     proof->len = ctr;
+    memcpy(proof->head, head->hash, SHA256_DIGEST_LENGTH);
     return proof;
 }
 

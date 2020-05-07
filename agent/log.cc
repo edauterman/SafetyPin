@@ -11,6 +11,7 @@
 #include "log.h"
 #include "hsm.h"
 #include "params.h"
+#include "merkle_tree.h"
 
 EC_KEY *logKey;
 
@@ -20,14 +21,6 @@ LogProof *LogProof_new() {
 
 void LogProof_free(LogProof *p) {
     free(p);
-}
-
-MerkleTree *MerkleTree_new() {
-    return (MerkleTree *)malloc(sizeof(MerkleTree));
-}
-
-void MerkleTree_free(MerkleTree *t) {
-    free(t);
 }
 
 int Log_Init(Params *params) {
@@ -95,6 +88,38 @@ cleanup:
     return rv;
 }
 
+LogState *Log_RunSetup() {
+    LogState *state = (LogState *)malloc(sizeof(LogState));
+
+    uint8_t **leafValues = (uint8_t **)malloc(NUM_USERS * sizeof(uint8_t *));
+    int *leafIds = (int *)malloc(NUM_USERS * sizeof(int));
+    uint8_t **rootHashes = (uint8_t **)malloc((NUM_TRANSITIONS + 1) * sizeof(uint8_t *));
+    int *rootIds = (int *)malloc((NUM_TRANSITIONS + 1) * sizeof(int));
+    for (int i = 0; i < NUM_USERS; i++) {
+        leafValues[i] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
+        memset(leafValues[i], 0xff, SHA256_DIGEST_LENGTH);
+        leafIds[i] = 2*i;
+    }
+    Node *head = MerkleTree_CreateTree(leafIds, leafValues, NUM_USERS);
+    rootHashes[0] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
+    memcpy(rootHashes[0], head->hash, SHA256_DIGEST_LENGTH);
+    rootIds[0] = 0;
+
+    for (int i = 0; i < NUM_TRANSITIONS; i++) {
+        int id = 2 * i + 1;
+        state->tProofs[i].id = id;
+        state->tProofs[i].oldProof1 = MerkleTree_GetProof(head, id - 1);
+        state->tProofs[i].oldProof2 = MerkleTree_GetProof(head, id + 1);
+        MerkleTree_InsertLeaf(head, id, leafValues[0]);
+        state->tProofs[i].newProof = MerkleTree_GetProof(head, id);
+        rootHashes[i+1] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
+        rootIds[i] = i+1;
+        memcpy(rootHashes[i+1], head->hash, SHA256_DIGEST_LENGTH);
+    }
+
+    state->rootsTree = MerkleTree_CreateTree(rootIds, rootHashes, NUM_TRANSITIONS + 1);
+}
+/*
 int Log_CreateMerkleTree(MerkleTree *t) {
     int rv;
     EVP_MD_CTX *mdctx = NULL;
@@ -143,7 +168,6 @@ cleanup:
     return rv;
 }
 
-// TODO: the root tree will be a different size from the commitment trees
 int Log_GenerateRootProof(LogRootProof *p, RootMerkleTree *tRoot, int index) {
     int rv;
   
@@ -162,7 +186,7 @@ int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, Merkle
     int rv;
   
     /* Proof for index in old tree. */ 
-    int currIndex = index;
+/*    int currIndex = index;
     memcpy(p->firstOldLeaf, tOld->nodes[0][currIndex], SHA256_DIGEST_LENGTH);
     for (int i = 0; i < PROOF_LEVELS; i++) {
         if (currIndex % 2 == 0) {
@@ -174,7 +198,7 @@ int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, Merkle
     }
 
     /* Proof for index in old tree. */ 
-    currIndex = index + 1;
+/*    currIndex = index + 1;
     memcpy(p->secondOldLeaf, tOld->nodes[0][currIndex], SHA256_DIGEST_LENGTH);
     for (int i = 0; i < PROOF_LEVELS; i++) {
         if (currIndex % 2 == 0) {
@@ -186,7 +210,7 @@ int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, Merkle
     }
 
     /* Proof for index in old tree. */ 
-    currIndex = index;
+/*    currIndex = index;
     memcpy(p->newLeaf, tNew->nodes[0][currIndex], SHA256_DIGEST_LENGTH);
     for (int i = 0; i < PROOF_LEVELS; i++) {
         if (currIndex % 2 == 0) {
@@ -202,4 +226,4 @@ int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, Merkle
 
 cleanup:
     return rv;
-}
+}*/

@@ -9,6 +9,7 @@
 #include "log.h"
 #include "params.h"
 #include "elgamal.h"
+#include "merkle_tree.h"
 #include "shamir.h"
 #include "u2f.h"
 #include "usb.h"
@@ -34,6 +35,7 @@ extern "C" {
 
 #define NUM_CHUNKS 23   // log2(lambda * N)
 #define CHUNK_SIZE 100  // however many recoveries each HSM does in epoch
+//#define NUM_TRANSITIONS (TOTAL_HSMS * CHUNK_SIZE)
 
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)
@@ -346,14 +348,18 @@ typedef struct {
 } HSM_LOG_ROOTS_RESP;
 
 typedef struct {
-    uint8_t oldHead[SHA256_DIGEST_LENGTH];
-    uint8_t newHead[SHA256_DIGEST_LENGTH];
-    uint8_t firstOldProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
-    uint8_t firstOldLeaf[SHA256_DIGEST_LENGTH];
-    uint8_t secondOldProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
-    uint8_t secondOldLeaf[SHA256_DIGEST_LENGTH];
-    uint8_t newProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
-    uint8_t newLeaf[SHA256_DIGEST_LENGTH];
+    uint8_t proofOld1[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t leafOld1[SHA256_DIGEST_LENGTH];
+    uint8_t goRightOld1[MAX_PROOF_LEVELS];
+    int lenOld1;
+    uint8_t proofOld2[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t leafOld2[SHA256_DIGEST_LENGTH];
+    uint8_t goRightOld2[MAX_PROOF_LEVELS];
+    int lenOld2;
+    uint8_t proofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t leafNew[SHA256_DIGEST_LENGTH];
+    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int lenNew;
     int index;
 } HSM_LOG_TRANS_PROOF_REQ;
 
@@ -362,9 +368,14 @@ typedef struct {
 } HSM_LOG_TRANS_PROOF_RESP;
 
 typedef struct {
-    uint8_t oldHead[SHA256_DIGEST_LENGTH];
-    uint8_t newHead[SHA256_DIGEST_LENGTH];
-    uint8_t rootProof[ROOT_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t headOld[SHA256_DIGEST_LENGTH];
+    uint8_t headNew[SHA256_DIGEST_LENGTH];
+    uint8_t rootProofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t rootProofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
+    uint8_t goRightOld[MAX_PROOF_LEVELS];
+    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int lenNew;
+    int lenOld;
 } HSM_LOG_ROOTS_PROOF_REQ;
 
 typedef struct {
@@ -433,7 +444,7 @@ int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgD
 int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest);
 int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk);
 
-int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, RootMerkleTree *tRoots, MerkleTree *tOld, MerkleTree *tNew, uint8_t *head);
+int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogState *state);
 #ifdef __cplusplus
 }
 #endif

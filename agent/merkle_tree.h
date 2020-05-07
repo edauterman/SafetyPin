@@ -4,6 +4,7 @@
 #include <openssl/sha.h>
 
 #define MAX_TREE_DEPTH 35
+#define MAX_PROOF_LEVELS MAX_TREE_DEPTH
 
 typedef struct Node Node;
 
@@ -19,6 +20,7 @@ struct Node {
 };
 
 typedef struct {
+    uint8_t head[SHA256_DIGEST_LENGTH];
     uint8_t hash[MAX_TREE_DEPTH][SHA256_DIGEST_LENGTH];
     bool goRight[MAX_TREE_DEPTH];
     int len;

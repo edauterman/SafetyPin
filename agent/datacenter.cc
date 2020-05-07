@@ -690,7 +690,7 @@ cleanup:
 }
 
 // Assumes that aggPk already set
-int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, RootMerkleTree *tRoot, MerkleTree *tOld, MerkleTree *tNew) {
+int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, LogState *state) {
     int rv;
     embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS];
     embedded_pairing_bls12_381_g1_t aggSig;
@@ -699,11 +699,11 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
     CHECK_C (RAND_bytes(head, SHA256_DIGEST_LENGTH));
 
     for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_LogEpochVerification(d->hsms[i], &sigs[i], tRoot, tOld, tNew, head));
+        CHECK_C (HSM_LogEpochVerification(d->hsms[i], &sigs[i], state));
     }
     Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
     for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_MultisigVerify(d->hsms[i], &aggSig, head));
+        CHECK_C (HSM_MultisigVerify(d->hsms[i], &aggSig, state->rootsTree->hash));
     }
 
 cleanup:

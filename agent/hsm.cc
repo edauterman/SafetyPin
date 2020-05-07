@@ -1149,16 +1149,14 @@ cleanup:
     return rv;
 }
 
-int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, RootMerkleTree *tRoots, MerkleTree *tOld, MerkleTree *tNew, uint8_t *head) {
+int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogState *state) {
     int rv;
     int i, j, k;
-    LogTransProof p;
-    LogRootProof pRoot;
 
     /* Send Merkle root over start and end digests for each chunk. */
     HSM_LOG_ROOTS_REQ req;
     HSM_LOG_ROOTS_RESP resp;
-    memcpy(req.root, tRoots->nodes[PROOF_LEVELS - 1][0], SHA256_DIGEST_LENGTH);
+    memcpy(req.root, state->rootsTree->hash, SHA256_DIGEST_LENGTH);
     string resp_str;
     pthread_mutex_lock(&h->m);
  #ifdef HID
@@ -1173,14 +1171,22 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, RootM
 
     /* Audit proofs for log (lambda * N) chunks */
     for (i = 0; i < NUM_CHUNKS; i++) {
+        int query = resp.queries[i];
         HSM_LOG_ROOTS_PROOF_REQ rootReq;
         HSM_LOG_ROOTS_PROOF_RESP rootResp;
-        CHECK_C (Log_GenerateRootProof(&pRoot, tRoots, resp.queries[i]));
-        for (j = 0; j < ROOT_PROOF_LEVELS; j++) {
-            memcpy(rootReq.rootProof[k], pRoot.rootP[k], SHA256_DIGEST_LENGTH);
+
+        MerkleProof *rootProofOld = MerkleTree_GetProof(state->rootsTree, query - 1);
+        MerkleProof *rootProofNew = MerkleTree_GetProof(state->rootsTree, query);
+        for (j = 0; j < rootProofNew->len; j++) {
+            memcpy(rootReq.rootProofNew[k], rootProofNew->hash[k], SHA256_DIGEST_LENGTH);
+            memcpy(rootReq.rootProofNew[k], rootProofOld->hash[k], SHA256_DIGEST_LENGTH);
+            rootReq.goRightNew[k] = rootProofNew->goRight[k] ? 1 : 0;
+            rootReq.goRightOld[k] = rootProofNew->goRight[k] ? 1 : 0;
         }
-        memcpy(rootReq.oldHead, tOld->nodes[PROOF_LEVELS - 1][0], SHA256_DIGEST_LENGTH);
-        memcpy(rootReq.newHead, tNew->nodes[PROOF_LEVELS - 1][0], SHA256_DIGEST_LENGTH);
+        rootReq.lenNew = rootProofNew->len;
+        rootReq.lenOld = rootProofOld->len;
+        memcpy(rootReq.headOld, rootProofOld->head, SHA256_DIGEST_LENGTH);
+        memcpy(rootReq.headNew, rootProofNew->head, SHA256_DIGEST_LENGTH);
         pthread_mutex_lock(&h->m);
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_ROOTS_PROOF, 0, 0,
@@ -1195,18 +1201,21 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, RootM
             HSM_LOG_TRANS_PROOF_REQ proofReq;
             HSM_LOG_TRANS_PROOF_RESP proofResp;
 
-            CHECK_C (Log_GenerateSingleTransitionProof(&p, tOld, tNew, j));
-            memcpy(proofReq.oldHead, p.oldRoot, SHA256_DIGEST_LENGTH);
-            memcpy(proofReq.newHead, p.newRoot, SHA256_DIGEST_LENGTH);
-            memcpy(proofReq.firstOldLeaf, p.firstOldLeaf, SHA256_DIGEST_LENGTH);
-            memcpy(proofReq.secondOldLeaf, p.secondOldLeaf, SHA256_DIGEST_LENGTH);
-            memcpy(proofReq.newLeaf, p.newLeaf, SHA256_DIGEST_LENGTH);
+            memset(proofReq.leafOld1, 0xff, SHA256_DIGEST_LENGTH);
+            memset(proofReq.leafOld2, 0xff, SHA256_DIGEST_LENGTH);
+            memset(proofReq.leafNew, 0xff, SHA256_DIGEST_LENGTH);
             for (k = 0; k < PROOF_LEVELS; k++) {
-                memcpy(proofReq.firstOldProof[k], p.firstOldP[k], SHA256_DIGEST_LENGTH);
-                memcpy(proofReq.secondOldProof[k], p.secondOldP[k], SHA256_DIGEST_LENGTH);
-                memcpy(proofReq.newProof[k], p.newP[k], SHA256_DIGEST_LENGTH);
+                memcpy(proofReq.proofOld1[k], state->tProofs[query].oldProof1->hash[k], SHA256_DIGEST_LENGTH);
+                memcpy(proofReq.proofOld2[k], state->tProofs[query].oldProof2->hash[k], SHA256_DIGEST_LENGTH);
+                memcpy(proofReq.proofNew[k], state->tProofs[query].newProof->hash[k], SHA256_DIGEST_LENGTH);
+                proofReq.goRightOld1[k] = state->tProofs[query].oldProof1->goRight ? 1 : 0;
+                proofReq.goRightOld2[k] = state->tProofs[query].oldProof2->goRight ? 1 : 0;
+                proofReq.goRightNew[k] = state->tProofs[query].newProof->goRight ? 1 : 0;
             }
-            proofReq.index = j;
+            proofReq.lenOld1 = state->tProofs[query].oldProof1->len;
+            proofReq.lenOld2 = state->tProofs[query].oldProof2->len;
+            proofReq.lenNew = state->tProofs[query].newProof->len;
+            proofReq.index = state->tProofs[query].id;
             pthread_mutex_lock(&h->m);
 #ifdef HID
             CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_TRANS_PROOF, 0, 0,
@@ -1220,7 +1229,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, RootM
     }
 
     /* Sign log head. */
-    CHECK_C (HSM_MultisigSign(h, sig, head));
+    CHECK_C (HSM_MultisigSign(h, sig, state->rootsTree->hash));
     
 cleanup:
     return rv;
