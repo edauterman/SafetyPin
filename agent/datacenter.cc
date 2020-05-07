@@ -720,6 +720,7 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
     embedded_pairing_bls12_381_g1_t aggSig;
     uint8_t head[SHA256_DIGEST_LENGTH];
     thread t[NUM_HSMS];
+    thread t[NUM_HSMS];
 
     CHECK_C (RAND_bytes(head, SHA256_DIGEST_LENGTH));
 
@@ -732,7 +733,10 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
  
     Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
     for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_MultisigVerify(d->hsms[i], &aggSig, state->rootsTree->hash));
+        t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, state->rootsTree->hash);
+    }
+    for (int i = 0; i < NUM_HSMS; i++) {
+        t[i].join();
     }
 
 cleanup:
