@@ -1196,16 +1196,19 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
         for (k = 0; k < rootProofOld->len; k++) {
             printf("old proof item %d\n", k);
             memcpy(rootReq.rootProofOld[k], rootProofOld->hash[k], SHA256_DIGEST_LENGTH);
-            rootReq.goRightOld[k] = rootProofOld->goRight[k] ? 1 : 0;
+            rootReq.idsOld[k] = rootProofOld->ids[k];
         }
         for (k = 0; k < rootProofNew->len; k++) {
             printf("new proof item %d\n", k);
             memcpy(rootReq.rootProofNew[k], rootProofNew->hash[k], SHA256_DIGEST_LENGTH);
-            rootReq.goRightNew[k] = rootProofNew->goRight[k] ? 1 : 0;
+            rootReq.idsNew[k] = rootProofNew->ids[k];
         }
         printf("finished copying in parts of proof\n");
+        rootReq.idNew = rootProofNew->id;
         rootReq.lenNew = rootProofNew->len;
+        rootReq.idOld = rootProofOld->id;
         rootReq.lenOld = rootProofOld->len;
+        printf("ids = %d, %d\n", rootReq.idNew, rootReq.idOld);
         memcpy(rootReq.headOld, rootProofOld->leaf, SHA256_DIGEST_LENGTH);
         memcpy(rootReq.headNew, rootProofNew->leaf, SHA256_DIGEST_LENGTH);
         printf("Going to send request\n");
@@ -1234,21 +1237,24 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
             memset(proofReq.leafNew, 0xff, SHA256_DIGEST_LENGTH);
             for (k = 0; k < state->tProofs[subquery].oldProof1->len; k++) {
                 memcpy(proofReq.proofOld1[k], state->tProofs[subquery].oldProof1->hash[k], SHA256_DIGEST_LENGTH);
-                proofReq.goRightOld1[k] = state->tProofs[subquery].oldProof1->goRight[k] ? 1 : 0;
+                proofReq.idsOld1[k] = state->tProofs[subquery].oldProof1->ids[k];
             }
 
             for (k = 0; k < state->tProofs[subquery].oldProof2->len; k++) {
                 memcpy(proofReq.proofOld2[k], state->tProofs[subquery].oldProof2->hash[k], SHA256_DIGEST_LENGTH);
-                proofReq.goRightOld2[k] = state->tProofs[subquery].oldProof2->goRight[k] ? 1 : 0;
+                proofReq.idsOld2[k] = state->tProofs[subquery].oldProof2->ids[k];
             }
 
             for (k = 0; k < state->tProofs[subquery].newProof->len; k++) {
                 memcpy(proofReq.proofNew[k], state->tProofs[subquery].newProof->hash[k], SHA256_DIGEST_LENGTH);
-                proofReq.goRightNew[k] = state->tProofs[subquery].newProof->goRight[k] ? 1 : 0;
+                proofReq.idsNew[k] = state->tProofs[subquery].newProof->ids[k];
             }
             proofReq.lenOld1 = state->tProofs[subquery].oldProof1->len;
             proofReq.lenOld2 = state->tProofs[subquery].oldProof2->len;
             proofReq.lenNew = state->tProofs[subquery].newProof->len;
+            proofReq.idOld1 = state->tProofs[subquery].oldProof1->id;
+            proofReq.idOld2 = state->tProofs[subquery].oldProof2->id;
+            proofReq.idNew = state->tProofs[subquery].newProof->id;
             memcpy(proofReq.headOld, state->tProofs[subquery].oldProof1->head, SHA256_DIGEST_LENGTH);
             memcpy(proofReq.headNew, state->tProofs[subquery].newProof->head, SHA256_DIGEST_LENGTH);
             printf("Going to send request, size = %d\n", sizeof(proofReq));

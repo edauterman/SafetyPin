@@ -515,7 +515,12 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
 int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen) {
 //    uint8_t buf[1024];
     uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
-    memset(buf, 0xff, CTAP_RESPONSE_BUFFER_SIZE - 16);
+    uint8_t key[16];    
+    memcpy(buf, req->buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
+    crypto_aes256_init(key, NULL);
+    crypto_aes256_decrypt(buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
+    crypto_aes256_encrypt(buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
+
     //memset(buf, 0xff, 1024);
     if (out) {
         //memcpy(out, buf, 1024);
@@ -860,12 +865,13 @@ int HSM_LogRoots(struct hsm_log_roots_request *req, uint8_t *out, int *outLen) {
 }
 
 int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int *outLen) {
-    uint8_t resp = Log_CheckChunkRootProof(req->headOld, req->rootProofOld, req->goRightOld, req->lenOld);
-    resp = resp & Log_CheckChunkRootProof(req->headNew, req->rootProofNew, req->goRightNew, req->lenNew);
+    uint8_t resp = Log_CheckChunkRootProof(req->idOld, req->headOld, req->rootProofOld, req->idsOld, req->lenOld);
+    resp = resp & Log_CheckChunkRootProof(req->idNew, req->headNew, req->rootProofNew, req->idsNew, req->lenNew);
     if (resp != 0) {
         Log_SetOldChunkHead(req->headOld);
         Log_SetNewChunkHead(req->headNew);
     }
+    if (resp == 0) printf("FAIL log roots proof\n");
     if (out) {
         memcpy(out, &resp, 1);
         *outLen = 1;
@@ -876,9 +882,9 @@ int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int
 }
 
 int HSM_LogTransProof(struct hsm_log_trans_proof_request *req, uint8_t *out, int *outLen) {
-    uint8_t resp = Log_CheckTransProof(req->headOld, req->leafOld1, req->proofOld1, req->goRightOld1, req->lenOld1);
-    resp = resp & Log_CheckTransProof(req->headOld, req->leafOld2, req->proofOld2, req->goRightOld2, req->lenOld2);
-    resp = resp & Log_CheckTransProof(req->headNew, req->leafNew, req->proofNew, req->goRightNew, req->lenNew);
+    uint8_t resp = Log_CheckTransProof(req->idOld1, req->headOld, req->leafOld1, req->proofOld1, req->idsOld1, req->lenOld1);
+    resp = resp & Log_CheckTransProof(req->idOld2, req->headOld, req->leafOld2, req->proofOld2, req->idsOld2, req->lenOld2);
+    resp = resp & Log_CheckTransProof(req->idNew, req->headNew, req->leafNew, req->proofNew, req->idsNew, req->lenNew);
     if (resp == 0) printf("FAIL\n");
     if (out) {
         memcpy(out, &resp, 1);

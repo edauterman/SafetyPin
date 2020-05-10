@@ -353,15 +353,18 @@ typedef struct {
     uint8_t headNew[SHA256_DIGEST_LENGTH];
     uint8_t proofOld1[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
     uint8_t leafOld1[SHA256_DIGEST_LENGTH];
-    uint8_t goRightOld1[MAX_PROOF_LEVELS];
+    int idsOld1[MAX_PROOF_LEVELS];
+    int idOld1;
     int lenOld1;
     uint8_t proofOld2[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
     uint8_t leafOld2[SHA256_DIGEST_LENGTH];
-    uint8_t goRightOld2[MAX_PROOF_LEVELS];
+    int idsOld2[MAX_PROOF_LEVELS];
+    int idOld2;
     int lenOld2;
     uint8_t proofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
     uint8_t leafNew[SHA256_DIGEST_LENGTH];
-    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int idsNew[MAX_PROOF_LEVELS];
+    int idNew;
     int lenNew;
 } HSM_LOG_TRANS_PROOF_REQ;
 
@@ -374,9 +377,11 @@ typedef struct {
     uint8_t headNew[SHA256_DIGEST_LENGTH];
     uint8_t rootProofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
     uint8_t rootProofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
-    uint8_t goRightOld[MAX_PROOF_LEVELS];
-    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int idsOld[MAX_PROOF_LEVELS];
+    int idsNew[MAX_PROOF_LEVELS];
+    int idNew;
     int lenNew;
+    int idOld;
     int lenOld;
 } HSM_LOG_ROOTS_PROOF_REQ;
 

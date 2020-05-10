@@ -23,7 +23,8 @@ typedef struct {
     uint8_t head[SHA256_DIGEST_LENGTH];
     uint8_t leaf[SHA256_DIGEST_LENGTH];
     uint8_t hash[MAX_TREE_DEPTH][SHA256_DIGEST_LENGTH];
-    bool goRight[MAX_TREE_DEPTH];
+    int ids[MAX_TREE_DEPTH];
+    int id;
     int len;
 } MerkleProof;
 

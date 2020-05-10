@@ -696,7 +696,6 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
     embedded_pairing_bls12_381_g1_t aggSig;
     uint8_t head[SHA256_DIGEST_LENGTH];
     thread t[NUM_HSMS];
-    thread t[NUM_HSMS];
 
     CHECK_C (RAND_bytes(head, SHA256_DIGEST_LENGTH));
 
