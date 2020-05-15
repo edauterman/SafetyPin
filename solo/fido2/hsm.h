@@ -28,7 +28,7 @@
 
 #define PROOF_LEVELS 30
 #define ROOT_PROOF_LEVELS 16
-#define NUM_CHUNKS 23       // log2(lambda * N)
+#define NUM_CHUNKS 92       // log2(lambda * N)
 #define CHUNK_SIZE 100      // however many recoveries each HSM does in epoch
 #define TOTAL_HSMS 500
 #define NUM_TRANSITIONS 65536

@@ -33,7 +33,7 @@ extern "C" {
 //#define HSM_MAX_THRESHOLD_SIZE 2
 #define HSM_MAX_THRESHOLD_SIZE  50
 
-#define NUM_CHUNKS 23   // log2(lambda * N)
+#define NUM_CHUNKS 92   // log2(lambda * N)
 #define CHUNK_SIZE 100  // however many recoveries each HSM does in epoch
 //#define NUM_TRANSITIONS (TOTAL_HSMS * CHUNK_SIZE)
 
