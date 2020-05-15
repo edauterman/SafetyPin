@@ -714,22 +714,27 @@ cleanup:
 }
 
 // Assumes that aggPk already set
-int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, LogState *state) {
+int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, LogState *state, embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS]) {
     int rv;
-    embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS];
-    embedded_pairing_bls12_381_g1_t aggSig;
-    uint8_t head[SHA256_DIGEST_LENGTH];
+/*    embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS];
+    embedded_pairing_bls12_381_g1_t aggSig; */
     thread t[NUM_HSMS];
-    thread t[NUM_HSMS];
+    /*long verifySec, verifyMicro, aggSec, aggMicro;
+    double verifyTime, aggTime;
+    struct timeval tStart, tVerify, tEnd;
 
-    CHECK_C (RAND_bytes(head, SHA256_DIGEST_LENGTH));
-
+    gettimeofday(&tStart, NULL); 
+*/
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i] = thread(HSM_LogEpochVerification, d->hsms[i], &sigs[i], state);
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
+	printf("HSM %d done.\n", i);
     }
+
+    printf("all state transition verification done\n");
+/*    gettimeofday(&tVerify, NULL);
  
     Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
     for (int i = 0; i < NUM_HSMS; i++) {
@@ -738,6 +743,20 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
     }
+
+    gettimeofday(&tEnd, NULL);
+
+    verifySec = (tVerify.tv_sec - tStart.tv_sec);
+    verifyMicro = (tVerify.tv_usec - tStart.tv_usec);
+    verifyTime = verifySec + (verifyMicro / 1000000.0);
+    aggSec = (tEnd.tv_sec - tStart.tv_sec);
+    aggMicro = (tEnd.tv_usec - tStart.tv_usec);
+    aggTime = aggSec + (aggMicro / 1000000.0);
+
+    printf("------ Transition verification time: %f, %d sec, %d micros\n", verifyTime, verifySec, verifyMicro);
+    printf("------ Signature aggregation and verification: %f, %d sec, %d micros\n", aggTime, aggSec, aggMicro);
+
+*/
 
 cleanup:
     return rv;

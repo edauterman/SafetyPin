@@ -20,11 +20,11 @@ extern "C" {
 
 //#define HID
 
-#define NUM_HSMS 10
-#define HSM_GROUP_SIZE 1
+#define NUM_HSMS 100
+#define HSM_GROUP_SIZE 100
 //#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 1
-#define TOTAL_HSMS 500
+#define HSM_THRESHOLD_SIZE 50
+#define TOTAL_HSMS 50000
 
 //#define HSM_MAX_GROUP_SIZE 3
 //#define HSM_MAX_GROUP_SIZE 6
@@ -33,8 +33,8 @@ extern "C" {
 //#define HSM_MAX_THRESHOLD_SIZE 2
 #define HSM_MAX_THRESHOLD_SIZE  50
 
-#define NUM_CHUNKS 23   // log2(lambda * N)
-#define CHUNK_SIZE 100  // however many recoveries each HSM does in epoch
+#define NUM_CHUNKS 92   // log2(lambda * N)
+#define CHUNK_SIZE 90  // however many recoveries each HSM does in epoch
 //#define NUM_TRANSITIONS (TOTAL_HSMS * CHUNK_SIZE)
 
 #define KEY_LEN 32
@@ -47,7 +47,7 @@ extern "C" {
 //#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
-#define PUNC_ENC_REPL 5 
+#define PUNC_ENC_REPL 6
 //#define PUNC_ENC_REPL 1
 #define NUM_ATTEMPTS 1
 
@@ -345,7 +345,7 @@ typedef struct {
 } HSM_LOG_ROOTS_REQ;
 
 typedef struct {
-    int queries[NUM_CHUNKS];
+    int queries[23];
 } HSM_LOG_ROOTS_RESP;
 
 typedef struct {

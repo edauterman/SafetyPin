@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <thread>
 #include <map>
 #include <sys/time.h>
 
@@ -34,7 +35,9 @@ int main(int argc, char *argv[]) {
 
   embedded_pairing_bls12_381_g2_t aggPk;
   embedded_pairing_bls12_381_g2_t multisigPks[NUM_HSMS];
- 
+  embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS];
+  embedded_pairing_bls12_381_g1_t aggSig;
+  thread t[NUM_HSMS];
 
   printf("rootsTree ids = (%d, %d, %d)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
 
@@ -53,14 +56,46 @@ int main(int argc, char *argv[]) {
     HSM_MultisigSetAggPk(d->hsms[i], &aggPk);
   }
 
+  long verifySec, verifyMicro, aggSec, aggMicro;
+  double verifyTime, aggTime;
+  struct timeval tStart, tVerify, tEnd;
+
+  gettimeofday(&tStart, NULL);
+
   printf("Going to start log epoch verification\n");
 
 //  Datacenter_LogEpochVerification(d, &d->hsms[0]->multisigPk, state);
-  Datacenter_LogEpochVerification(d, &aggPk, state);
+  Datacenter_LogEpochVerification(d, &aggPk, state, sigs);
 
   Datacenter_free(d);
 
-  printf("Test completed. \n");
+  d = Datacenter_new();
+  if (Datacenter_init(d) != OKAY) {
+    printf("No device found. Exiting.\n");
+    return 0;
+  }
+
+  gettimeofday(&tVerify, NULL);
+
+  Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
+  for (int i = 0; i < NUM_HSMS; i++) {
+      t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, state->rootsTree->hash);
+  }
+  for (int i = 0; i < NUM_HSMS; i++) {
+      t[i].join();
+  }
+
+  gettimeofday(&tEnd, NULL);
+
+    verifySec = (tVerify.tv_sec - tStart.tv_sec);
+    verifyMicro = (tVerify.tv_usec - tStart.tv_usec);
+    verifyTime = verifySec + (verifyMicro / 1000000.0);
+    aggSec = (tEnd.tv_sec - tStart.tv_sec);
+    aggMicro = (tEnd.tv_usec - tStart.tv_usec);
+    aggTime = aggSec + (aggMicro / 1000000.0);
+
+    printf("------ Transition verification time: %f, %d sec, %d micros\n", verifyTime, verifySec, verifyMicro);
+    printf("------ Signature aggregation and verification: %f, %d sec, %d micros\n", aggTime, aggSec, aggMicro);
 
   return 0;
 }

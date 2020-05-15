@@ -16,7 +16,7 @@ Node *Node_new() {
 void Node_free(Node *n) {
     if (n->rightChild != NULL) Node_free(n->rightChild);
     if (n->leftChild != NULL) Node_free(n->leftChild);
-    if (n->parent != NULL) Node_free(n->parent);
+//    if (n->parent != NULL) Node_free(n->parent);
     free(n);
 }
 
@@ -50,7 +50,7 @@ Node *MerkleTree_CreateNewParent(Node *leftChild, Node *rightChild) {
     parent->midID = rightChild->leftID;
     parent->id = -1;
 
-    printf("node ids = (%d, %d, %d)\n", parent->leftID, parent->midID, parent->rightID);
+//    printf("node ids = (%d, %d, %d)\n", parent->leftID, parent->midID, parent->rightID);
 
     uint8_t buf[SHA256_DIGEST_LENGTH * 2];
     MerkleTree_CopyNodeHash(buf, leftChild);
@@ -75,7 +75,7 @@ Node *MerkleTree_CreateNewLeaf(int id, uint8_t *value) {
     leaf->leftID = id;
     leaf->midID = id;
     leaf->rightID = id;
-    printf("leaf ids = (%d, %d, %d)\n", leaf->leftID, leaf->midID, leaf->rightID);
+//    printf("leaf ids = (%d, %d, %d)\n", leaf->leftID, leaf->midID, leaf->rightID);
     return leaf;
 }
 
@@ -142,14 +142,14 @@ MerkleProof *MerkleTree_GetProof(Node *head, int id) {
     Node *curr = head;
     int ctr = 0;
     while (curr->id != id) {
-        printf("node ids (%d, %d, %d), looking for %d\n", curr->leftID, curr->midID, curr->rightID, id);
+//        printf("node ids (%d, %d, %d), looking for %d\n", curr->leftID, curr->midID, curr->rightID, id);
         if (id < curr->midID) {
-            printf("left\n");
+//            printf("left\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->rightChild);
             proof->goRight[ctr] = false;
             curr = curr->leftChild;
         } else {
-            printf("right\n");
+//            printf("right\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->leftChild);
             proof->goRight[ctr] = true;
             curr = curr->rightChild;
@@ -191,6 +191,7 @@ int MerkleTree_InsertLeaf(Node *head, int id, uint8_t *value) {
 
 Node *MerkleTree_CreateTree(int *ids, uint8_t **values, int len) {
     Node **leaves = (Node **)malloc(len * sizeof(Node *));
+    if (leaves == NULL) printf("MALLOC FAIL\n");
     for (int i = 0; i < len; i++) {
         leaves[i] = MerkleTree_CreateNewLeaf(ids[i], values[i]);
     }
@@ -202,7 +203,7 @@ Node *MerkleTree_CreateTree(int *ids, uint8_t **values, int len) {
         printf("Starting next level with %d nodes\n", currLen);
         parentNodes = (Node **)malloc(currLen * sizeof(Node *));
         for (int i = 0; i < currLen; i++) {
-            if (i % 1000 == 0) printf("Have processed %d/%d nodes in level\n", i, currLen);
+            if (i % 1000000 == 0) printf("Have processed %d/%d nodes in level\n", i, currLen);
             parentNodes[i] = MerkleTree_CreateNewParent(currNodes[2 * i], currNodes[2 * i + 1]);
         }
         currLen /= 2;
