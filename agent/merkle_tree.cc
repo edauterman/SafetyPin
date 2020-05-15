@@ -58,6 +58,7 @@ Node *MerkleTree_CreateNewParent(Node *leftChild, Node *rightChild) {
 
     CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
     CHECK_C (EVP_DigestUpdate(mdctx, buf, 2 * SHA256_DIGEST_LENGTH));
+    CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&parent->midID, sizeof(int)));
     CHECK_C (EVP_DigestFinal_ex(mdctx, parent->hash, NULL));
 
     rightChild->parent = parent;
@@ -95,6 +96,7 @@ int MerkleTree_UpdateRightChild(Node *parent, Node *rightChild) {
 
     CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
     CHECK_C (EVP_DigestUpdate(mdctx, buf, 2 * SHA256_DIGEST_LENGTH));
+    CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&parent->midID, sizeof(int)));
     CHECK_C (EVP_DigestFinal_ex(mdctx, parent->hash, NULL));
 
 cleanup:
@@ -117,6 +119,7 @@ int MerkleTree_UpdateLeftChild(Node *parent, Node *leftChild) {
 
     CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
     CHECK_C (EVP_DigestUpdate(mdctx, buf, 2 * SHA256_DIGEST_LENGTH));
+    CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&parent->midID, sizeof(int)));
     CHECK_C (EVP_DigestFinal_ex(mdctx, parent->hash, NULL));
 
 cleanup:
@@ -142,24 +145,23 @@ MerkleProof *MerkleTree_GetProof(Node *head, int id) {
     Node *curr = head;
     int ctr = 0;
     while (curr->id != id) {
-//        printf("node ids (%d, %d, %d), looking for %d\n", curr->leftID, curr->midID, curr->rightID, id);
         if (id < curr->midID) {
-//            printf("left\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->rightChild);
-            proof->goRight[ctr] = false;
+            proof->ids[ctr] = curr->midID;
             curr = curr->leftChild;
         } else {
-//            printf("right\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->leftChild);
-            proof->goRight[ctr] = true;
+            proof->ids[ctr] = curr->midID;
             curr = curr->rightChild;
         }
         ctr++;
         if (curr == NULL) return NULL;  // ID not present.
     }
     proof->len = ctr;
+ 
     memcpy(proof->head, head->hash, SHA256_DIGEST_LENGTH);
     memcpy(proof->leaf, curr->hash, SHA256_DIGEST_LENGTH);
+    proof->id = id;
     return proof;
 }
 
@@ -219,13 +221,12 @@ int MerkleTree_VerifyProof(Node *head, MerkleProof *proof, uint8_t *value, int i
     uint8_t nextHash[SHA256_DIGEST_LENGTH];
     uint8_t buf[2 * SHA256_DIGEST_LENGTH];
 
-
     mdctx = EVP_MD_CTX_create();
     memcpy(currHash, value, SHA256_DIGEST_LENGTH);
 
     for (int i = proof->len - 1; i >= 0; i--) {
         CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
-        if (proof->goRight[i]) {
+        if (id >= proof->ids[i]) {
             memcpy(buf, proof->hash[i], SHA256_DIGEST_LENGTH);
             memcpy(buf + SHA256_DIGEST_LENGTH, currHash, SHA256_DIGEST_LENGTH);
         } else {
@@ -233,6 +234,7 @@ int MerkleTree_VerifyProof(Node *head, MerkleProof *proof, uint8_t *value, int i
             memcpy(buf + SHA256_DIGEST_LENGTH, proof->hash[i], SHA256_DIGEST_LENGTH);
         }
         CHECK_C (EVP_DigestUpdate(mdctx, buf, 2 * SHA256_DIGEST_LENGTH));
+        CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&proof->ids[i], sizeof(int)));
         CHECK_C (EVP_DigestFinal_ex(mdctx, nextHash, NULL));
         memcpy(currHash, nextHash, SHA256_DIGEST_LENGTH);
     }

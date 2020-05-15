@@ -78,7 +78,8 @@ int HSM_GetMpk(HSM *h) {
                 sizeof(resp)));
 #endif
 
-    IBE_UnmarshalMpk(resp.mpk, &h->mpk);
+    // TODO: need to redo this!!
+    //IBE_UnmarshalMpk(resp.mpk, &h->mpk);
 
     printf("Got mpk\n");
 cleanup:
@@ -111,7 +112,7 @@ int HSM_TestSetup(HSM *h) {
     pthread_mutex_lock(&h->m);
 
     printf("going to run test setup\n");
-    PuncEnc_BuildTree((uint8_t *)h->cts, req.msk, req.hmacKey, &h->mpk);
+    PuncEnc_BuildTree(h->params, (uint8_t *)h->cts, req.msk, req.hmacKey, h->mpk);
     //PuncEnc_BuildTree((uint8_t *)h->cts, req.msk, req.hmacKey, &h->mpk);
 
 #ifdef HID
@@ -129,7 +130,7 @@ cleanup:
     return rv;
 }
 
-int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk) {
+int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], EC_POINT **mpk) {
     int rv = ERROR;
     HSM_TEST_SETUP_REQ req;
     string resp_str;
@@ -142,6 +143,7 @@ int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmac
     memcpy(h->cts, cts, TREE_SIZE * CT_LEN);
     memcpy(req.msk, msk, KEY_LEN);
     memcpy(req.hmacKey, hmacKey, KEY_LEN);
+    h->mpk = mpk;
     //memcpy(&h->mpk, mpk, sizeof(embedded_pairing_bls12_381_g2_t));
 
 #ifdef HID
@@ -394,7 +396,7 @@ cleanup:
     return rv;
 }
 
-int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]) {
+int HSM_Encrypt(HSM *h, uint32_t tag, BIGNUM *msg, ElGamal_ciphertext *c[PUNC_ENC_REPL]) {
     int rv;
     uint32_t indexes[PUNC_ENC_REPL];
 
@@ -403,90 +405,15 @@ int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *
     CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
 
     for (int i = 0; i < PUNC_ENC_REPL; i++)  {
-        IBE_Encrypt(&h->mpk, indexes[i], msg, msgLen, c[i]);
+        printf("encrypt to %d\n", indexes[i]);
+        ElGamal_Encrypt(h->params, msg, h->mpk[indexes[i]], NULL, NULL, c[i]);
     }
     pthread_mutex_unlock(&h->m);
 cleanup:
     return rv;
 }
 
-int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen) {
-    int rv = ERROR;
-    HSM_DECRYPT_REQ req;
-    HSM_DECRYPT_RESP resp;
-    string resp_str;
-    int numLeaves;
-    int levels;
-    uint32_t currIndex;
-    uint32_t totalTraveled;
-    uint32_t currInterval;
-    uint32_t indexes[PUNC_ENC_REPL];
-    uint8_t zeros[msgLen];
-
-    int i = 0;
-    pthread_mutex_lock(&h->m);
-
-    //CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
-
-    //for (int i = 0; i < PUNC_ENC_REPL; i++) {
-
-        numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
-        levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
-        currIndex = tag; //indexes[i];
-        totalTraveled = 0;
-        currInterval = numLeaves;
-    
-        for (int j = 0; j < levels; j++) {
-            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
-        
-            memcpy(req.treeCts[levels - j - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
-            totalTraveled += currInterval;
-            currInterval /= 2;
-            currIndex /= 2;
-        }
-
-        IBE_MarshalCt(req.ibeCt, msgLen, c[0]);
-        //req.index = indexes[i];
-        req.index = tag;
-        
-        printf("index = %d\n", req.index);
-        embedded_pairing_bls12_381_g1_t sk;
-        embedded_pairing_bls12_381_g2_t mpk;
-        embedded_pairing_bls12_381_g1affine_t sk_affine;
-        uint8_t buf[48];
-        embedded_pairing_core_bigint_256_t msk;
-        uint8_t hash[32];
-        memset(hash, 0xff, 32);
-        embedded_pairing_bls12_381_zp_from_hash(&msk, hash);
-        IBE_Setup(&msk, &mpk);
-        IBE_Extract(&msk, req.index, &sk);
-        embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
-        embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
-
-
-#ifdef HID
-        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_DECRYPT, 0, 0,
-                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-        memcpy(&resp, resp_str.data(), resp_str.size());
-#else
-        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_DECRYPT, (uint8_t *)&req,
-                    sizeof(req), (uint8_t *)&resp, sizeof(resp)));
-#endif
-        
-        if (memcmp(resp.msg, zeros, msgLen) != 0) {
-            printf("Got valid decryption\n");
-            memcpy(msg, resp.msg, msgLen);
-        }
-    //}
-
-    printf("finished retrieving decryption\n");
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
-    return rv;
-}
-
-int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t msg[IBE_MSG_LEN]) {
+int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], BIGNUM *msg) {
     int rv = ERROR;
     HSM_AUTH_DECRYPT_REQ req;
     HSM_AUTH_DECRYPT_RESP resp;
@@ -497,14 +424,11 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
     uint32_t totalTraveled;
     uint32_t currInterval;
     uint32_t indexes[PUNC_ENC_REPL];
-    uint8_t zeros[IBE_MSG_LEN];
     bool gotPlaintext = false;
 
     pthread_mutex_lock(&h->m);
 
     CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
-
-    memset(zeros, 0, IBE_MSG_LEN);
 
     for (int i = 0; i < PUNC_ENC_REPL; i++) {
 
@@ -531,8 +455,9 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
             currIndex /= 2;
         }
 
-        IBE_MarshalCt(req.ibeCt, IBE_MSG_LEN, c[i]);
+        ElGamal_Marshal(h->params, req.elGamalCt, c[i]);
         req.index = indexes[i];
+        printf("retrieving from %d\n", indexes[i]);
 
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_DECRYPT, 0, 0,
@@ -542,7 +467,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint
         CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_DECRYPT, (uint8_t *)&req,
                     sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
-        memcpy(msg, resp.msg, IBE_MSG_LEN);
+        BN_bin2bn(resp.msg, FIELD_ELEM_LEN, msg);
 
         gotPlaintext =  true;
         h->isPunctured[indexes[i]] = true;
@@ -717,6 +642,7 @@ cleanup:
     return rv;
 }
 
+/*
 int HSM_AuthMPCDecrypt1Commit(HSM *h, uint8_t *dCommit, uint8_t *eCommit, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *aesCt, uint8_t *aesCtTag, ShamirShare *pinShare) {
     int rv = ERROR;
     HSM_AUTH_MPC_DECRYPT_1_COMMIT_REQ req;
@@ -931,7 +857,7 @@ cleanup:
     if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
     return rv;
 }
-
+*/
 int HSM_SetMacKeys(HSM *h, uint8_t **macKeys) {
     int rv;
     HSM_SET_MAC_KEYS_REQ req;
@@ -1191,16 +1117,18 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
         for (k = 0; k < rootProofOld->len; k++) {
             //printf("old proof item %d\n", k);
             memcpy(rootReq.rootProofOld[k], rootProofOld->hash[k], SHA256_DIGEST_LENGTH);
-            rootReq.goRightOld[k] = rootProofOld->goRight[k] ? 1 : 0;
+            rootReq.idsOld[k] = rootProofOld->ids[k];
         }
         for (k = 0; k < rootProofNew->len; k++) {
             //printf("new proof item %d\n", k);
             memcpy(rootReq.rootProofNew[k], rootProofNew->hash[k], SHA256_DIGEST_LENGTH);
-            rootReq.goRightNew[k] = rootProofNew->goRight[k] ? 1 : 0;
+            rootReq.idsNew[k] = rootProofNew->ids[k];
         }
-        //printf("finished copying in parts of proof\n");
+        rootReq.idNew = rootProofNew->id;
         rootReq.lenNew = rootProofNew->len;
+        rootReq.idOld = rootProofOld->id;
         rootReq.lenOld = rootProofOld->len;
+        printf("ids = %d, %d\n", rootReq.idNew, rootReq.idOld);
         memcpy(rootReq.headOld, rootProofOld->leaf, SHA256_DIGEST_LENGTH);
         memcpy(rootReq.headNew, rootProofNew->leaf, SHA256_DIGEST_LENGTH);
         //printf("Going to send request\n");
@@ -1229,21 +1157,24 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
             memset(proofReq.leafNew, 0xff, SHA256_DIGEST_LENGTH);
             for (k = 0; k < state->tProofs[subquery].oldProof1->len; k++) {
                 memcpy(proofReq.proofOld1[k], state->tProofs[subquery].oldProof1->hash[k], SHA256_DIGEST_LENGTH);
-                proofReq.goRightOld1[k] = state->tProofs[subquery].oldProof1->goRight[k] ? 1 : 0;
+                proofReq.idsOld1[k] = state->tProofs[subquery].oldProof1->ids[k];
             }
 
             for (k = 0; k < state->tProofs[subquery].oldProof2->len; k++) {
                 memcpy(proofReq.proofOld2[k], state->tProofs[subquery].oldProof2->hash[k], SHA256_DIGEST_LENGTH);
-                proofReq.goRightOld2[k] = state->tProofs[subquery].oldProof2->goRight[k] ? 1 : 0;
+                proofReq.idsOld2[k] = state->tProofs[subquery].oldProof2->ids[k];
             }
 
             for (k = 0; k < state->tProofs[subquery].newProof->len; k++) {
                 memcpy(proofReq.proofNew[k], state->tProofs[subquery].newProof->hash[k], SHA256_DIGEST_LENGTH);
-                proofReq.goRightNew[k] = state->tProofs[subquery].newProof->goRight[k] ? 1 : 0;
+                proofReq.idsNew[k] = state->tProofs[subquery].newProof->ids[k];
             }
             proofReq.lenOld1 = state->tProofs[subquery].oldProof1->len;
             proofReq.lenOld2 = state->tProofs[subquery].oldProof2->len;
             proofReq.lenNew = state->tProofs[subquery].newProof->len;
+            proofReq.idOld1 = state->tProofs[subquery].oldProof1->id;
+            proofReq.idOld2 = state->tProofs[subquery].oldProof2->id;
+            proofReq.idNew = state->tProofs[subquery].newProof->id;
             memcpy(proofReq.headOld, state->tProofs[subquery].oldProof1->head, SHA256_DIGEST_LENGTH);
             memcpy(proofReq.headNew, state->tProofs[subquery].newProof->head, SHA256_DIGEST_LENGTH);
             //printf("Going to send request, size = %d\n", sizeof(proofReq));

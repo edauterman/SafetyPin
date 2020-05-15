@@ -502,7 +502,7 @@ void MerkleTreeTest() {
     }
     proof = MerkleTree_GetProof(head, 3);
     printf("Got proof\n");
-    if (MerkleTree_VerifyProof(head, proof, newValue, 1) == OKAY) {
+    if (MerkleTree_VerifyProof(head, proof, newValue, 3) == OKAY) {
         printf("Merkle proof verifies.\n");
     } else {
         printf("FAIL: Merkle proof doesn't verify.\n");

@@ -26,9 +26,6 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_PUNCTURE:
             HSM_Puncture((struct hsm_puncture_request *)(in), out, outLen);
             break;
-        case HSM_DECRYPT:
-            HSM_Decrypt((struct hsm_decrypt_request *)(in), out, outLen);
-            break;
         case HSM_MPK:
             HSM_GetMpk(out, outLen);
             break;
@@ -294,64 +291,17 @@ int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen) {
     return U2F_SW_NO_ERROR;
 }
 
-int HSM_Decrypt(struct hsm_decrypt_request *req, uint8_t *out, int *outLen) {
-    printf1(TAG_GREEN, "starting to decrypt\n");
-    uint8_t leaf[CT_LEN];
-    embedded_pairing_bls12_381_g2_t U;
-    uint8_t V[IBE_MSG_LEN];
-    uint8_t W[IBE_MSG_LEN];
-    embedded_pairing_bls12_381_g1_t sk;
-    uint8_t msg[IBE_MSG_LEN];
-
-    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
-        if (out) {
-            memset(out, 0xa, IBE_MSG_LEN);
-            *outLen = IBE_MSG_LEN;
-        } else {
-            printf("Couldn't retrieve leaf\n");
-            memset(msg, 0, IBE_MSG_LEN);
-            u2f_response_writeback(msg, IBE_MSG_LEN);
-        }
-        return U2F_SW_NO_ERROR;
-    }
-    IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
-    IBE_UnmarshalSk(leaf, &sk);
-    
-    IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
-
-    if (out) {
-        memcpy(out, msg, IBE_MSG_LEN);
-        *outLen =  IBE_MSG_LEN;
-    } else {
-        u2f_response_writeback(msg, IBE_MSG_LEN);
-    }
-
-    return U2F_SW_NO_ERROR;
-}
-
-void ibeDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *leaf, uint8_t *msg) {
-    embedded_pairing_bls12_381_g2_t U;
-    uint8_t V[IBE_MSG_LEN];
-    uint8_t W[IBE_MSG_LEN];
-    embedded_pairing_bls12_381_g1_t sk;
-
-    IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
-    IBE_UnmarshalSk(leaf, &sk);
-    //IBE_Extract(req->index, &sk);
-    IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
-}
-
 void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, uint8_t *out, int*outLen) {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
     printf("in puncture and writeback\n");
     PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
 
     if (out) {
-        memcpy(out, msg, IBE_MSG_LEN);
-        memcpy(out + IBE_MSG_LEN, newCts, KEY_LEVELS * CT_LEN);
-        *outLen = IBE_MSG_LEN + (KEY_LEVELS * CT_LEN);
+        memcpy(out, msg, FIELD_ELEM_LEN);
+        memcpy(out + FIELD_ELEM_LEN, newCts, KEY_LEVELS * CT_LEN);
+        *outLen = FIELD_ELEM_LEN + (KEY_LEVELS * CT_LEN);
     } else {
-        u2f_response_writeback(msg, IBE_MSG_LEN);
+        u2f_response_writeback(msg, FIELD_ELEM_LEN);
         u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
     }
     printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
@@ -362,22 +312,22 @@ void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, ui
 int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *outLen) {
     printf1(TAG_GREEN, "starting to decrypt\n");
     uint8_t leaf[CT_LEN];
-    uint8_t msg[IBE_MSG_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
 
     if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
         printf("Couldn't retrieve leaf\n");
         if (out) {
-            memset(msg, 0, IBE_MSG_LEN +  (KEY_LEVELS * CT_LEN));
-            *outLen = IBE_MSG_LEN + (KEY_LEVELS * CT_LEN);
+            memset(msg, 0, FIELD_ELEM_LEN +  (KEY_LEVELS * CT_LEN));
+            *outLen = FIELD_ELEM_LEN + (KEY_LEVELS * CT_LEN);
         } else {
-            memset(msg, 0, IBE_MSG_LEN + (KEY_LEVELS * CT_LEN));
-            u2f_response_writeback(msg, IBE_MSG_LEN  + (KEY_LEVELS * CT_LEN));
+            memset(msg, 0, FIELD_ELEM_LEN + (KEY_LEVELS * CT_LEN));
+            u2f_response_writeback(msg, FIELD_ELEM_LEN  + (KEY_LEVELS * CT_LEN));
         }
         return U2F_SW_NO_ERROR;
     }
     printf("retrieved leaf\n");
 
-    ibeDecrypt(req, leaf, msg);
+    ElGamal_DecryptWithSk(req->elGamalCt, leaf, msg);
 
     printf("did ibe decrypt\n");
 
@@ -515,7 +465,12 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
 int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen) {
 //    uint8_t buf[1024];
     uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
-    memset(buf, 0xff, CTAP_RESPONSE_BUFFER_SIZE - 16);
+    uint8_t key[16];    
+    memcpy(buf, req->buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
+    crypto_aes256_init(key, NULL);
+    crypto_aes256_decrypt(buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
+    crypto_aes256_encrypt(buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
+
     //memset(buf, 0xff, 1024);
     if (out) {
         //memcpy(out, buf, 1024);
@@ -860,12 +815,13 @@ int HSM_LogRoots(struct hsm_log_roots_request *req, uint8_t *out, int *outLen) {
 }
 
 int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int *outLen) {
-    uint8_t resp = Log_CheckChunkRootProof(req->headOld, req->rootProofOld, req->goRightOld, req->lenOld);
-    resp = resp & Log_CheckChunkRootProof(req->headNew, req->rootProofNew, req->goRightNew, req->lenNew);
+    uint8_t resp = Log_CheckChunkRootProof(req->idOld, req->headOld, req->rootProofOld, req->idsOld, req->lenOld);
+    resp = resp & Log_CheckChunkRootProof(req->idNew, req->headNew, req->rootProofNew, req->idsNew, req->lenNew);
     if (resp != 0) {
         Log_SetOldChunkHead(req->headOld);
         Log_SetNewChunkHead(req->headNew);
     }
+    if (resp == 0) printf("FAIL log roots proof\n");
     if (out) {
         memcpy(out, &resp, 1);
         *outLen = 1;
@@ -876,9 +832,9 @@ int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int
 }
 
 int HSM_LogTransProof(struct hsm_log_trans_proof_request *req, uint8_t *out, int *outLen) {
-    uint8_t resp = Log_CheckTransProof(req->headOld, req->leafOld1, req->proofOld1, req->goRightOld1, req->lenOld1);
-    resp = resp & Log_CheckTransProof(req->headOld, req->leafOld2, req->proofOld2, req->goRightOld2, req->lenOld2);
-    resp = resp & Log_CheckTransProof(req->headNew, req->leafNew, req->proofNew, req->goRightNew, req->lenNew);
+    uint8_t resp = Log_CheckTransProof(req->idOld1, req->headOld, req->leafOld1, req->proofOld1, req->idsOld1, req->lenOld1);
+    resp = resp & Log_CheckTransProof(req->idOld2, req->headOld, req->leafOld2, req->proofOld2, req->idsOld2, req->lenOld2);
+    resp = resp & Log_CheckTransProof(req->idNew, req->headNew, req->leafNew, req->proofNew, req->idsNew, req->lenNew);
     if (resp == 0) printf("FAIL\n");
     if (out) {
         memcpy(out, &resp, 1);

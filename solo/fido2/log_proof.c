@@ -55,7 +55,6 @@ void Log_SetOldChunkHead(uint8_t head[SHA256_DIGEST_LEN]) {
 void Log_SetNewChunkHead(uint8_t head[SHA256_DIGEST_LEN]) {
     memcpy(newChunkHead, head, SHA256_DIGEST_LEN);
 }
-int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t goRight[MAX_PROOF_LEVELS], int index);
 
 int Log_GenChunkQueries (int *queriesOut) {
     for (int i = 0; i < NUM_CHUNKS; i++) {
@@ -69,7 +68,7 @@ int Log_GenChunkQueries (int *queriesOut) {
 }
 
 
-int Log_CheckChunkRootProof (uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t goRight[MAX_PROOF_LEVELS], int len) {
+int Log_CheckChunkRootProof (int id, uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], int ids[MAX_PROOF_LEVELS], int len) {
     uint8_t curr[SHA256_DIGEST_LEN];
 
     memcpy(curr, head, SHA256_DIGEST_LEN);
@@ -78,13 +77,14 @@ int Log_CheckChunkRootProof (uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_
     for (int i = len - 1; i >= 0; i--) {
         crypto_sha256_init();
         //if (currIndex % 2 == 0) {
-        if (goRight[i] == 0) {
+        if (id < ids[i]) {
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
         } else {
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
         }
+        crypto_sha256_update((uint8_t *)&ids[i], sizeof(int));
         crypto_sha256_final(curr);
     }
     ctr++;
@@ -92,7 +92,7 @@ int Log_CheckChunkRootProof (uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_
     return (memcmp(curr, chunkRoot, SHA256_DIGEST_LEN) ==  0);
 }
 
-int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t goRight[MAX_PROOF_LEVELS], int len) {
+int Log_CheckTransProof(int id, uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], int ids[MAX_PROOF_LEVELS], int len) {
     uint8_t curr[SHA256_DIGEST_LEN];
 
     /* Verify Merkle proof */
@@ -100,13 +100,14 @@ int Log_CheckTransProof(uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIG
 
     for (int i = len - 1; i >= 0; i--) {
         crypto_sha256_init();
-        if (goRight[i] == 0) {
+        if (id < ids[i]) {
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
         } else {
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
         }
+        crypto_sha256_update((uint8_t *)&ids[i], sizeof(int));
         crypto_sha256_final(curr);
     }
 

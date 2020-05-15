@@ -119,21 +119,21 @@ struct hsm_puncture_request  {
 struct hsm_decrypt_request {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
-    uint8_t ibeCt[IBE_CT_LEN];
+    uint8_t elGamalCt[ELGAMAL_CT_LEN];
 };
 
 struct hsm_decrypt_response {
-    uint8_t msg[IBE_MSG_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
 };
 
 struct hsm_auth_decrypt_request {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
-    uint8_t ibeCt[IBE_CT_LEN];
+    uint8_t elGamalCt[ELGAMAL_CT_LEN];
 };
 
 struct hsm_auth_decrypt_response {
-    uint8_t msg[IBE_MSG_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
     uint8_t newCts[KEY_LEVELS][CT_LEN];
 };
 
@@ -267,15 +267,18 @@ struct hsm_log_trans_proof_request {
     uint8_t headNew[SHA256_DIGEST_LEN];
     uint8_t proofOld1[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
     uint8_t leafOld1[SHA256_DIGEST_LEN];
-    uint8_t goRightOld1[MAX_PROOF_LEVELS];
+    int idsOld1[MAX_PROOF_LEVELS];
+    int idOld1;
     int lenOld1;
     uint8_t proofOld2[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
     uint8_t leafOld2[SHA256_DIGEST_LEN];
-    uint8_t goRightOld2[MAX_PROOF_LEVELS];
+    int idsOld2[MAX_PROOF_LEVELS];
+    int idOld2;
     int lenOld2;
     uint8_t proofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
     uint8_t leafNew[SHA256_DIGEST_LEN];
-    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int idsNew[MAX_PROOF_LEVELS];
+    int idNew;
     int lenNew;
 };
 
@@ -284,9 +287,11 @@ struct hsm_log_roots_proof_request {
     uint8_t headNew[SHA256_DIGEST_LEN];
     uint8_t rootProofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
     uint8_t rootProofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
-    uint8_t goRightOld[MAX_PROOF_LEVELS];
-    uint8_t goRightNew[MAX_PROOF_LEVELS];
+    int idsOld[MAX_PROOF_LEVELS];
+    int idsNew[MAX_PROOF_LEVELS];
+    int idNew;
     int lenNew;
+    int idOld;
     int lenOld;
 };
 
@@ -301,7 +306,6 @@ int HSM_SmallSetup(uint8_t *out, int *outLen);
 int HSM_TestSetup(struct hsm_test_setup_request *req, uint8_t *out, int *outLen);
 int HSM_Retrieve(struct hsm_retrieve_request *req, uint8_t *out, int *outLen);
 int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen);
-int HSM_Decrypt(struct hsm_decrypt_request *req, uint8_t *out, int *outLen);
 int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *outLen);
 int HSM_MicroBench(uint8_t *out, int *outLen);
 int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen);
