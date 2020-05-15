@@ -96,12 +96,6 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished auth decrypt\n");
                 break;
 
-            case HSM_DECRYPT:
-                printf1(TAG_GREEN, "starting decrypt\n");
-                rcode = HSM_Decrypt((struct hsm_decrypt_request *)payload, NULL, NULL);
-                printf1(TAG_GREEN, "finished decrypt\n");
-                break;
-
             case HSM_MICROBENCH:
                 printf1(TAG_GREEN, "starting microbenchmarks\n");
                 //rcode = U2F_SW_NO_ERROR;

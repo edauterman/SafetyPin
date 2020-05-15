@@ -47,18 +47,16 @@ int main(int argc, char *argv[]) {
 
 
   struct timeval t4, t5, t6;
-  uint8_t msg[IBE_MSG_LEN];
-  uint8_t msgTest[IBE_MSG_LEN];
-  uint8_t pin[PIN_LEN];
-  memset(msg, 0xff, IBE_MSG_LEN);
-  memset(pin, 0xff, PIN_LEN);
-  IBE_ciphertext *cts[PUNC_ENC_REPL];
+  BIGNUM *msg = BN_new();
+  BIGNUM *msgTest = BN_new();
+  BN_rand_range(msg, d->hsms[0]->params->order);
+  ElGamal_ciphertext *cts[PUNC_ENC_REPL];
   for (int i = 0; i < PUNC_ENC_REPL; i++) {
-    cts[i] = IBE_ciphertext_new(IBE_MSG_LEN);
+    cts[i] = ElGamalCiphertext_new(d->hsms[0]->params);
   }
     
   gettimeofday(&t4, NULL);
-  HSM_Encrypt(d->hsms[0], 0, msg, IBE_MSG_LEN, cts);
+  HSM_Encrypt(d->hsms[0], 0, msg, cts);
   gettimeofday(&t5, NULL);
   HSM_AuthDecrypt(d->hsms[0], 0, cts, msgTest);
   gettimeofday(&t6, NULL);

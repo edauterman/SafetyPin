@@ -152,21 +152,21 @@ typedef struct {
 typedef struct {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
-    uint8_t ibeCt[IBE_CT_LEN];
+    uint8_t ibeCt[ELGAMAL_CT_LEN];
 } HSM_DECRYPT_REQ;
 
 typedef struct {
-    uint8_t msg[IBE_MSG_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
 } HSM_DECRYPT_RESP;
 
 typedef struct {
     uint32_t index;
     uint8_t treeCts[LEVELS][CT_LEN];
-    uint8_t ibeCt[IBE_CT_LEN];
+    uint8_t elGamalCt[ELGAMAL_CT_LEN];
 } HSM_AUTH_DECRYPT_REQ;
 
 typedef struct {
-    uint8_t msg[IBE_MSG_LEN];
+    uint8_t msg[FIELD_ELEM_LEN];
     uint8_t newCts[KEY_LEVELS][CT_LEN];
 } HSM_AUTH_DECRYPT_RESP;
 
@@ -398,7 +398,7 @@ typedef struct {
     uint8_t cts[TREE_SIZE * CT_LEN];
     //uint8_t cts[TREE_SIZE][CT_LEN];
     bool isPunctured[NUM_LEAVES];
-    embedded_pairing_bls12_381_g2_t mpk;
+    EC_POINT **mpk;
     EC_POINT *elGamalPk;
     pthread_mutex_t m;
     uint8_t id;
@@ -414,7 +414,7 @@ int HSM_GetMpk(HSM *h);
 int HSM_Setup(HSM *h);
 int HSM_SmallSetup(HSM *h);
 int HSM_TestSetup(HSM *h);
-int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk);
+int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], EC_POINT **mpk);
 int HSM_SetMacKeys(HSM *h, uint8_t **macKeys);
 int HSM_SetParams(HSM *h, uint8_t *logPk);
 
@@ -423,9 +423,8 @@ int HSM_Retrieve(HSM *h, uint32_t index);
 int HSM_Puncture(HSM *h, uint32_t index);
 
 /* Encryption/decryption. Decrypt only for testing. Only use AuthDecrypt. */
-int HSM_Encrypt(HSM *h, uint32_t tag, uint8_t *msg, int msgLen, IBE_ciphertext *c[PUNC_ENC_REPL]);
-int HSM_Decrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *msg, int msgLen);
-int HSM_AuthDecrypt(HSM *h, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t msg[IBE_MSG_LEN]);
+int HSM_Encrypt(HSM *h, uint32_t tag, BIGNUM *msg, ElGamal_ciphertext *c[PUNC_ENC_REPL]);
+int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], BIGNUM *msg);
 
 int HSM_ElGamalGetPk(HSM *h);
 int HSM_ElGamalEncrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c);

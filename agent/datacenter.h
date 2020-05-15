@@ -18,7 +18,7 @@ typedef struct {
 } Datacenter;
 
 typedef struct {
-    IBE_ciphertext *recoveryCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
+    ElGamal_ciphertext *recoveryCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
     BIGNUM *r;
     BIGNUM *s;
 //    IBE_ciphertext *saltCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];

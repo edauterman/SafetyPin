@@ -54,7 +54,7 @@ void setIBELeaves(embedded_pairing_core_bigint_256_t *ibeMsk, uint8_t *leaves) {
 }
 
 // cts of size TREE_SIZE * CT_LEN
-void PuncEnc_BuildTree(uint8_t *cts, uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_LEN], embedded_pairing_bls12_381_g2_t *mpk) {
+void PuncEnc_BuildTree(Params *params, uint8_t *cts, uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_LEN], EC_POINT **mpk) {
     /* For each level in subtree, choose random key, encrypt two children keys or leaf */
     printf("building tree at host\n");
 
@@ -63,6 +63,7 @@ void PuncEnc_BuildTree(uint8_t *cts, uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_
     int index = 0;
     int currNumLeaves = NUM_LEAVES;
     uint8_t *keys;
+    BIGNUM *x;
     //uint8_t keys[TREE_SIZE][KEY_LEN];
     embedded_pairing_core_bigint_256_t ibeMsk;
 
@@ -70,12 +71,15 @@ void PuncEnc_BuildTree(uint8_t *cts, uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_
     keys = (uint8_t *)malloc(TREE_SIZE * KEY_LEN);
     uint8_t *currLeaves = (uint8_t *)leaves;
     int currPtr =  TREE_SIZE;
+    x = BN_new();
 
-    uint8_t hash[32];
-    memset(hash, 0xff, 32);
-    embedded_pairing_bls12_381_zp_from_hash(&ibeMsk, hash);
-    embedded_pairing_bls12_381_g2_multiply_affine(mpk, embedded_pairing_bls12_381_g2affine_generator, &ibeMsk);
-    setIBELeaves(&ibeMsk, leaves);
+    for (int i = 0; i < NUM_LEAVES; i++) {
+        BN_rand_range(x, params->order);
+        mpk[i] = EC_POINT_new(params->group);
+        EC_POINT_mul(params->group, mpk[i], x, NULL, NULL, params->bn_ctx);
+        memset(leaves + i * LEAF_LEN, 0, LEAF_LEN);
+        BN_bn2bin(x, leaves + i * LEAF_LEN + KEY_LEN - BN_num_bytes(x));
+    }
 
 //    printf("set ibe leaves\n");
 

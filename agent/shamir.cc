@@ -289,3 +289,7 @@ void Shamir_UnmarshalCompressed(uint8_t *buf, uint8_t x, ShamirShare *share) {
     BN_bin2bn(&x, 1, share->x);
     BN_bin2bn(buf, 32, share->y);
 }
+
+void Shamir_UnmarshalX(ShamirShare *share, uint8_t x) {
+    BN_bin2bn(&x, 1, share->x);
+}
