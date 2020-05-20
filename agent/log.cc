@@ -92,9 +92,9 @@ LogState *Log_RunSetup() {
     LogState *state = (LogState *)malloc(sizeof(LogState));
 
     uint8_t **leafValues = (uint8_t **)malloc(NUM_USERS * sizeof(uint8_t *));
-    int *leafIds = (int *)malloc(NUM_USERS * sizeof(int));
+    uint64_t *leafIds = (uint64_t *)malloc(NUM_USERS * sizeof(uint64_t));
     uint8_t **rootHashes = (uint8_t **)malloc((NUM_TRANSITIONS + 1) * sizeof(uint8_t *));
-    int *rootIds = (int *)malloc((NUM_TRANSITIONS + 1) * sizeof(int));
+    uint64_t *rootIds = (uint64_t *)malloc((NUM_TRANSITIONS + 1) * sizeof(uint64_t));
     for (int i = 0; i < NUM_USERS; i++) {
         leafValues[i] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
         memset(leafValues[i], 0xff, SHA256_DIGEST_LENGTH);

@@ -77,7 +77,7 @@ int Log_CheckChunkRootProof (int id, uint8_t head[SHA256_DIGEST_LEN], uint8_t pr
     for (int i = len - 1; i >= 0; i--) {
         crypto_sha256_init();
         //if (currIndex % 2 == 0) {
-        if (id < ids[i]) {
+        if (id <= ids[i]) {
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
         } else {
@@ -100,7 +100,7 @@ int Log_CheckTransProof(int id, uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SH
 
     for (int i = len - 1; i >= 0; i--) {
         crypto_sha256_init();
-        if (id < ids[i]) {
+        if (id <= ids[i]) {
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
         } else {
