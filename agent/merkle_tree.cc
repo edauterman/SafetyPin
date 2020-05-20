@@ -53,14 +53,12 @@ Node *MerkleTree_CreateNewParent(Node *leftChild, Node *rightChild, uint64_t max
     parent->leftChild = leftChild;
     parent->leftID = leftChild != NULL ? leftChild->leftID : rightChild->rightID - maxDiff + 1;
     parent->rightID = rightChild != NULL ? rightChild->rightID : leftChild->leftID + maxDiff - 1;
-    if (leftChild != NULL) printf("leftChild->rightID = %d\n", leftChild->rightID);
-    if (rightChild != NULL) printf("rightChild->leftID = %d\n", rightChild->leftID);
     //parent->midID = leftChild != NULL ? leftChild->rightID : rightChild->leftID - 1;
     parent->midID = parent->leftID + maxDiff / 2 - 1;
     //parent->midID = parent->leftID + maxDiff / 2;
     parent->id = -1;
 
-    printf("node ids = (%ld, %ld, %ld)\n", parent->leftID, parent->midID, parent->rightID);
+    //printf("node ids = (%ld, %ld, %ld)\n", parent->leftID, parent->midID, parent->rightID);
 
     uint8_t buf[SHA256_DIGEST_LENGTH * 2];
     MerkleTree_CopyNodeHash(buf, leftChild);
@@ -68,7 +66,7 @@ Node *MerkleTree_CreateNewParent(Node *leftChild, Node *rightChild, uint64_t max
 
     CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
     CHECK_C (EVP_DigestUpdate(mdctx, buf, 2 * SHA256_DIGEST_LENGTH));
-    //CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&parent->midID, sizeof(uint64_t)));
+    CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&parent->midID, sizeof(uint64_t)));
     CHECK_C (EVP_DigestFinal_ex(mdctx, parent->hash, NULL));
 
     if (rightChild != NULL) rightChild->parent = parent;
@@ -86,7 +84,7 @@ Node *MerkleTree_CreateNewLeaf(uint64_t id, uint8_t *value) {
     leaf->leftID = id;
     leaf->midID = id;
     leaf->rightID = id;
-    printf("leaf ids = (%d, %d, %d)\n", leaf->leftID, leaf->midID, leaf->rightID);
+    //printf("leaf ids = (%d, %d, %d)\n", leaf->leftID, leaf->midID, leaf->rightID);
     return leaf;
 }
 
@@ -106,7 +104,7 @@ int MerkleTree_UpdateRightChild(Node *parent, Node *rightChild) {
 
     CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
     CHECK_C (EVP_DigestUpdate(mdctx, buf, 2 * SHA256_DIGEST_LENGTH));
-    //CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&parent->midID, sizeof(uint64_t)));
+    CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&parent->midID, sizeof(uint64_t)));
     CHECK_C (EVP_DigestFinal_ex(mdctx, parent->hash, NULL));
 
 cleanup:
@@ -130,7 +128,7 @@ int MerkleTree_UpdateLeftChild(Node *parent, Node *leftChild) {
 
     CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
     CHECK_C (EVP_DigestUpdate(mdctx, buf, 2 * SHA256_DIGEST_LENGTH));
-    //CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&parent->midID, sizeof(uint64_t)));
+    CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&parent->midID, sizeof(uint64_t)));
     CHECK_C (EVP_DigestFinal_ex(mdctx, parent->hash, NULL));
 
 cleanup:
@@ -155,16 +153,12 @@ MerkleProof *MerkleTree_GetProof(Node *head, uint64_t id) {
     MerkleProof *proof = MerkleProof_new();
     Node *curr = head;
     int ctr = 0;
-    printf("looking for %ld\n", id);
     while (curr->id != id) {
-        printf("id = %ld, ", curr->midID);
         if (id <= curr->midID) {
-            printf("left\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->rightChild);
             proof->ids[ctr] = curr->midID;
             curr = curr->leftChild;
         } else {
-            printf("right\n");
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->leftChild);
             proof->ids[ctr] = curr->midID;
             curr = curr->rightChild;
@@ -172,7 +166,6 @@ MerkleProof *MerkleTree_GetProof(Node *head, uint64_t id) {
         ctr++;
         if (curr == NULL) return NULL;  // ID not present.
     }
-    printf("not null\n");
     proof->len = ctr;
  
     memcpy(proof->head, head->hash, SHA256_DIGEST_LENGTH);
@@ -229,35 +222,27 @@ int MerkleTree_InsertLeaf(Node *head, uint64_t id, uint8_t *value) {
             }
         }
         if (done) break;
-        printf("ctr = %d\n", ctr);
         ctr++;
     }
-    printf("break w/ ctr = %d\n", ctr);
 
     Node *child = leaf;
     uint64_t currId = id;
     uint64_t maxDiff = 2;
-    printf("--- inserting %d\n", id);
     for (int i = MAX_TREE_DEPTH - 2; i >= 0; i--) {
         if (i > ctr) {
             Node *tmp;
             if (currId % 2 == 0) {
-                printf("creating new parent for left child, %d\n", currId);
                 tmp = MerkleTree_CreateNewParent(child, NULL, maxDiff);
             } else {
-                printf("creating new parent for right child, %d\n", currId);
                 tmp = MerkleTree_CreateNewParent(NULL, child, maxDiff);
             }
             child = child->parent;
             currId /= 2;
             maxDiff *= 2;
         } else {
-            printf("attaching to existing parent: (%ld, %ld, %ld)\n", curr->leftID, curr->midID, curr->rightID);
             if (id <= curr->midID) {
-                printf("add to left\n");
                 MerkleTree_UpdateLeftChild(curr, child);
             } else {
-                printf("add to right\n");
                 MerkleTree_UpdateRightChild(curr, child);
             }
             child = child->parent;
@@ -311,21 +296,17 @@ int MerkleTree_VerifyProof(Node *head, MerkleProof *proof, uint8_t *value, uint6
     mdctx = EVP_MD_CTX_create();
     memcpy(currHash, value, SHA256_DIGEST_LENGTH);
 
-    printf("proof len: %d\n", proof->len);
     for (int i = proof->len - 1; i >= 0; i--) {
         CHECK_C (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL));
-        printf("proof id = %ld\n", proof->ids[i]);
         if (id > proof->ids[i]) {
-            printf("right\n");
             memcpy(buf, proof->hash[i], SHA256_DIGEST_LENGTH);
             memcpy(buf + SHA256_DIGEST_LENGTH, currHash, SHA256_DIGEST_LENGTH);
         } else {
-            printf("left\n");
             memcpy(buf, currHash, SHA256_DIGEST_LENGTH);
             memcpy(buf + SHA256_DIGEST_LENGTH, proof->hash[i], SHA256_DIGEST_LENGTH);
         }
         CHECK_C (EVP_DigestUpdate(mdctx, buf, 2 * SHA256_DIGEST_LENGTH));
-        //CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&proof->ids[i], sizeof(uint64_t)));
+        CHECK_C (EVP_DigestUpdate(mdctx, (uint8_t *)&proof->ids[i], sizeof(uint64_t)));
         CHECK_C (EVP_DigestFinal_ex(mdctx, nextHash, NULL));
         memcpy(currHash, nextHash, SHA256_DIGEST_LENGTH);
     }

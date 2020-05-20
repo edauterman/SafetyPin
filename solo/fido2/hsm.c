@@ -832,9 +832,7 @@ int HSM_LogRootsProof(struct hsm_log_roots_proof_request *req, uint8_t *out, int
 }
 
 int HSM_LogTransProof(struct hsm_log_trans_proof_request *req, uint8_t *out, int *outLen) {
-    uint8_t resp = Log_CheckTransProof(req->idOld1, req->headOld, req->leafOld1, req->proofOld1, req->idsOld1, req->lenOld1);
-    resp = resp & Log_CheckTransProof(req->idOld2, req->headOld, req->leafOld2, req->proofOld2, req->idsOld2, req->lenOld2);
-    resp = resp & Log_CheckTransProof(req->idNew, req->headNew, req->leafNew, req->proofNew, req->idsNew, req->lenNew);
+    uint8_t resp = Log_CheckTransProof(req->id, req->headOld, req->headNew, req->leafNew, req->proofOld, req->proofNew, req->idsOld, req->idsNew, req->lenOld, req->lenNew);
     if (resp == 0) printf("FAIL\n");
     if (out) {
         memcpy(out, &resp, 1);

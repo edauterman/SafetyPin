@@ -22,8 +22,7 @@ typedef struct {
 } LogProof;
 
 typedef struct {
-    MerkleProof *oldProof1;
-    MerkleProof *oldProof2;
+    MerkleProof *oldProof;
     MerkleProof *newProof;
     int id; 
 } TransitionProof;

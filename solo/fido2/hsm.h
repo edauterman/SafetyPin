@@ -265,20 +265,13 @@ struct hsm_log_roots_request {
 struct hsm_log_trans_proof_request {
     uint8_t headOld[SHA256_DIGEST_LEN];
     uint8_t headNew[SHA256_DIGEST_LEN];
-    uint8_t proofOld1[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
-    uint8_t leafOld1[SHA256_DIGEST_LEN];
-    int idsOld1[MAX_PROOF_LEVELS];
-    int idOld1;
-    int lenOld1;
-    uint8_t proofOld2[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
-    uint8_t leafOld2[SHA256_DIGEST_LEN];
-    int idsOld2[MAX_PROOF_LEVELS];
-    int idOld2;
-    int lenOld2;
+    uint8_t proofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
+    uint64_t idsOld[MAX_PROOF_LEVELS];
+    int lenOld;
     uint8_t proofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
     uint8_t leafNew[SHA256_DIGEST_LEN];
-    int idsNew[MAX_PROOF_LEVELS];
-    int idNew;
+    uint64_t idsNew[MAX_PROOF_LEVELS];
+    uint64_t id;
     int lenNew;
 };
 
@@ -287,11 +280,11 @@ struct hsm_log_roots_proof_request {
     uint8_t headNew[SHA256_DIGEST_LEN];
     uint8_t rootProofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
     uint8_t rootProofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN];
-    int idsOld[MAX_PROOF_LEVELS];
-    int idsNew[MAX_PROOF_LEVELS];
-    int idNew;
+    uint64_t idsOld[MAX_PROOF_LEVELS];
+    uint64_t idsNew[MAX_PROOF_LEVELS];
+    uint64_t idNew;
     int lenNew;
-    int idOld;
+    uint64_t idOld;
     int lenOld;
 };
 

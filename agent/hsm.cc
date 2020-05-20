@@ -1107,7 +1107,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
         HSM_LOG_ROOTS_PROOF_REQ rootReq;
         HSM_LOG_ROOTS_PROOF_RESP rootResp;
 
-        printf("rootsTree ids = (%d, %d, %d)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
+        printf("rootsTree ids = (%ld, %ld, %ld)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
         MerkleProof *rootProofOld = MerkleTree_GetProof(state->rootsTree, (query - 1) * CHUNK_SIZE);
         MerkleProof *rootProofNew = MerkleTree_GetProof(state->rootsTree, query * CHUNK_SIZE);
         printf("root tree head: ");
@@ -1148,7 +1148,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
                     sizeof(rootReq), (uint8_t *)&rootResp, sizeof(rootResp)));
 #endif
         pthread_mutex_unlock(&h->m);
-        printf("Ran root proofs\n");
+        printf("Ran root proofs, result = %d\n", rootResp.result);
         CHECK_C(rootResp.result == 1);
 
         for (j = 0; j < CHUNK_SIZE; j++) {
@@ -1157,31 +1157,22 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
             HSM_LOG_TRANS_PROOF_RESP proofResp;
             int subquery = ((query - 1) * CHUNK_SIZE) + j;
 
-            memcpy(proofReq.leafOld1, state->tProofs[subquery].oldProof1->leaf, SHA256_DIGEST_LENGTH);
-            memcpy(proofReq.leafOld2, state->tProofs[subquery].oldProof2->leaf, SHA256_DIGEST_LENGTH);
+            //memcpy(proofReq.leafOld, state->tProofs[subquery].oldProof->leaf, SHA256_DIGEST_LENGTH);
             memcpy(proofReq.leafNew, state->tProofs[subquery].newProof->leaf, SHA256_DIGEST_LENGTH);
             memset(proofReq.leafNew, 0xff, SHA256_DIGEST_LENGTH);
-            for (k = 0; k < state->tProofs[subquery].oldProof1->len; k++) {
-                memcpy(proofReq.proofOld1[k], state->tProofs[subquery].oldProof1->hash[k], SHA256_DIGEST_LENGTH);
-                proofReq.idsOld1[k] = state->tProofs[subquery].oldProof1->ids[k];
-            }
-
-            for (k = 0; k < state->tProofs[subquery].oldProof2->len; k++) {
-                memcpy(proofReq.proofOld2[k], state->tProofs[subquery].oldProof2->hash[k], SHA256_DIGEST_LENGTH);
-                proofReq.idsOld2[k] = state->tProofs[subquery].oldProof2->ids[k];
+            for (k = 0; k < state->tProofs[subquery].oldProof->len; k++) {
+                memcpy(proofReq.proofOld[k], state->tProofs[subquery].oldProof->hash[k], SHA256_DIGEST_LENGTH);
+                proofReq.idsOld[k] = state->tProofs[subquery].oldProof->ids[k];
             }
 
             for (k = 0; k < state->tProofs[subquery].newProof->len; k++) {
                 memcpy(proofReq.proofNew[k], state->tProofs[subquery].newProof->hash[k], SHA256_DIGEST_LENGTH);
                 proofReq.idsNew[k] = state->tProofs[subquery].newProof->ids[k];
             }
-            proofReq.lenOld1 = state->tProofs[subquery].oldProof1->len;
-            proofReq.lenOld2 = state->tProofs[subquery].oldProof2->len;
+            proofReq.lenOld = state->tProofs[subquery].oldProof->len;
             proofReq.lenNew = state->tProofs[subquery].newProof->len;
-            proofReq.idOld1 = state->tProofs[subquery].oldProof1->id;
-            proofReq.idOld2 = state->tProofs[subquery].oldProof2->id;
-            proofReq.idNew = state->tProofs[subquery].newProof->id;
-            memcpy(proofReq.headOld, state->tProofs[subquery].oldProof1->head, SHA256_DIGEST_LENGTH);
+            proofReq.id = state->tProofs[subquery].oldProof->id;
+            memcpy(proofReq.headOld, state->tProofs[subquery].oldProof->head, SHA256_DIGEST_LENGTH);
             memcpy(proofReq.headNew, state->tProofs[subquery].newProof->head, SHA256_DIGEST_LENGTH);
             printf("Going to send request, size = %d\n", sizeof(proofReq));
             pthread_mutex_lock(&h->m);

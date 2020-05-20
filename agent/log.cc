@@ -95,10 +95,10 @@ LogState *Log_RunSetup() {
     uint64_t *leafIds = (uint64_t *)malloc(NUM_USERS * sizeof(uint64_t));
     uint8_t **rootHashes = (uint8_t **)malloc((NUM_TRANSITIONS + 1) * sizeof(uint8_t *));
     uint64_t *rootIds = (uint64_t *)malloc((NUM_TRANSITIONS + 1) * sizeof(uint64_t));
-    for (int i = 0; i < NUM_USERS; i++) {
+    for (uint64_t i = 0; i < NUM_USERS; i++) {
         leafValues[i] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
         memset(leafValues[i], 0xff, SHA256_DIGEST_LENGTH);
-        leafIds[i] = 2*i;
+        leafIds[i] = i;
     }
     printf("Going to start creating Merkle tree\n");
     Node *head = MerkleTree_CreateTree(leafIds, leafValues, NUM_USERS);
@@ -106,26 +106,25 @@ LogState *Log_RunSetup() {
     memcpy(rootHashes[0], head->hash, SHA256_DIGEST_LENGTH);
     rootIds[0] = 0;
 
-    for (int i = 0; i < NUM_TRANSITIONS; i++) {
-        int id = 2 * i + 1;
+    for (uint64_t i = 0; i < NUM_TRANSITIONS; i++) {
+        uint64_t id = i + NUM_USERS;
         state->tProofs[i].id = id;
-        state->tProofs[i].oldProof1 = MerkleTree_GetProof(head, id - 1);
-        state->tProofs[i].oldProof2 = MerkleTree_GetProof(head, id + 1);
+        state->tProofs[i].oldProof = MerkleTree_GetEmptyProof(head, id);
         MerkleTree_InsertLeaf(head, id, leafValues[0]);
         state->tProofs[i].newProof = MerkleTree_GetProof(head, id);
         rootHashes[i+1] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
         rootIds[i+1] = i+1;
-        printf("root ids = %d\n", rootIds[i]);
+        printf("root ids = %ld\n", rootIds[i]);
         memcpy(rootHashes[i+1], head->hash, SHA256_DIGEST_LENGTH);
     }
 
     state->rootsTree = MerkleTree_CreateTree(rootIds, rootHashes, NUM_TRANSITIONS + 1);
-    printf("rootsTree ids = (%d, %d, %d)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
+    printf("rootsTree ids = (%ld, %ld, %ld)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
     printf("rootHashes[0] = ");
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", rootHashes[0][i]);
     printf("\n");
     printf("head for proof 0 = ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", state->tProofs[0].oldProof1->head[i]);
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", state->tProofs[0].oldProof->head[i]);
     printf("\n");
     return state;
 }
