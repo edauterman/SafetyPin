@@ -1034,6 +1034,7 @@ int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *ms
 
     pthread_mutex_lock(&h->m);
     memcpy(req.msgDigest, msgDigest, SHA256_DIGEST_LENGTH);
+    memset(req.sig, 0, BASEFIELD_SZ_G1);
     embedded_pairing_bls12_381_g1affine_from_projective(&sigAffine, sig);
     embedded_pairing_bls12_381_g1_marshal(req.sig, &sigAffine, true);
 #ifdef HID

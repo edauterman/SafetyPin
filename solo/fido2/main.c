@@ -23,6 +23,7 @@
 #include "ibe.h"
 #include "punc_enc.h"
 #include "hsm.h"
+#include "multisig.h"
 #include "uECC.h"
 #include "../crypto/micro-ecc/uECC.h"
 #include APP_CONFIG
@@ -69,6 +70,7 @@ int main(int argc, char *argv[])
     PuncEnc_Init();
     uECC_init();
     ElGamal_Init();
+    Multisig_Setup();
     ctap_generate_rng(pingKey, KEY_LEN);
 
     printf1(TAG_GREEN, "starting!\n");
