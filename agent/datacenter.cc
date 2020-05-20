@@ -672,14 +672,14 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     	//printf("pinShares[%d] = %s\n", i, BN_bn2hex(pinShares[i]->y));
 	    t2[i].join();
         Shamir_UnmarshalX(saveKeyShares[i], i + 1);
-        printf("saveKeyShares[%d] = %s\n", i, BN_bn2hex(saveKeyShares[i]->y));
+        //printf("saveKeyShares[%d] = %s\n", i, BN_bn2hex(saveKeyShares[i]->y));
     }
 
     /* Reassemble original saveKey. */
     CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, encryptedSaveKey));
 
     /* Salted hash of pin. */
-    printf("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
+    //printf("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
     CHECK_C (hashPinAndSalt(pin, c->s, saltHash));
     memset(encryptedSaveKeyBuf, 0, FIELD_ELEM_LEN);
     BN_bn2bin(encryptedSaveKey, encryptedSaveKeyBuf + FIELD_ELEM_LEN - BN_num_bytes(encryptedSaveKey));

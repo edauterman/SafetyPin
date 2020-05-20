@@ -445,7 +445,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], 
         size_t ctIndexes[levels];
     
         for (int j = 0; j < levels; j++) {
-            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
+//            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
             memcpy(req.treeCts[levels - j - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
  
@@ -457,7 +457,7 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], 
 
         ElGamal_Marshal(h->params, req.elGamalCt, c[i]);
         req.index = indexes[i];
-        printf("retrieving from %d\n", indexes[i]);
+//        printf("retrieving from %d\n", indexes[i]);
 
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_DECRYPT, 0, 0,
@@ -475,10 +475,10 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], 
         for (int j = 0; j < levels - 1; j++) {
             memcpy(h->cts + (ctIndexes[j] * CT_LEN), resp.newCts[j], CT_LEN);
         }
-        printf("finished ciphertexts %d/%d\n", i, PUNC_ENC_REPL);
+//        printf("finished ciphertexts %d/%d\n", i, PUNC_ENC_REPL);
     }
 
-    printf("finished retrieving auth decryption\n");
+//    printf("finished retrieving auth decryption\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
@@ -623,9 +623,6 @@ int HSM_ElGamalDecrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     pthread_mutex_lock(&h->m);
     
     ElGamal_Marshal(h->params, req.ct, c);
-    printf("ct: ");
-    for (int i = 0; i < 65; i++) printf("%02x", req.ct[i]);
-    printf("\n");
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_ELGAMAL_DECRYPT, 0, 0,
                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
@@ -930,9 +927,9 @@ int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
 
-    if (resp.result == 0) {
+/*    if (resp.result == 0) {
         printf("LOG PROOF FAIL: %d\n", resp.result);
-    }
+    }*/
 
 cleanup:
     pthread_mutex_unlock(&h->m);
@@ -1096,7 +1093,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
 */
     /* Audit proofs for log (lambda * N) chunks */
     for (i = 0; i < NUM_CHUNKS; i++) {
-	if (i % 10 == 0) printf("chunk %d/%d\n", i, NUM_CHUNKS);
+	//if (i % 10 == 0) printf("chunk %d/%d\n", i, NUM_CHUNKS);
         int query = resp.queries[i % 23];
 //        printf("Starting auditing round %d for chunk %d\n", i, query);
         HSM_LOG_ROOTS_PROOF_REQ rootReq;
@@ -1128,7 +1125,6 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
         rootReq.lenNew = rootProofNew->len;
         rootReq.idOld = rootProofOld->id;
         rootReq.lenOld = rootProofOld->len;
-        printf("ids = %d, %d\n", rootReq.idNew, rootReq.idOld);
         memcpy(rootReq.headOld, rootProofOld->leaf, SHA256_DIGEST_LENGTH);
         memcpy(rootReq.headNew, rootProofNew->leaf, SHA256_DIGEST_LENGTH);
         //printf("Going to send request\n");
