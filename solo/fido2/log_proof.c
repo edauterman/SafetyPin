@@ -68,7 +68,7 @@ int Log_GenChunkQueries (int *queriesOut) {
 }
 
 
-int Log_CheckChunkRootProof (int id, uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], int ids[MAX_PROOF_LEVELS], int len) {
+int Log_CheckChunkRootProof (uint64_t id, uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint64_t ids[MAX_PROOF_LEVELS], int len) {
     uint8_t curr[SHA256_DIGEST_LEN];
 
     memcpy(curr, head, SHA256_DIGEST_LEN);
@@ -77,14 +77,14 @@ int Log_CheckChunkRootProof (int id, uint8_t head[SHA256_DIGEST_LEN], uint8_t pr
     for (int i = len - 1; i >= 0; i--) {
         crypto_sha256_init();
         //if (currIndex % 2 == 0) {
-        if (id < ids[i]) {
+        if (id <= ids[i]) {
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
         } else {
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
         }
-        crypto_sha256_update((uint8_t *)&ids[i], sizeof(int));
+        crypto_sha256_update((uint8_t *)&ids[i], sizeof(uint64_t));
         crypto_sha256_final(curr);
     }
     ctr++;
@@ -92,40 +92,59 @@ int Log_CheckChunkRootProof (int id, uint8_t head[SHA256_DIGEST_LEN], uint8_t pr
     return (memcmp(curr, chunkRoot, SHA256_DIGEST_LEN) ==  0);
 }
 
-int Log_CheckTransProof(int id, uint8_t head[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], int ids[MAX_PROOF_LEVELS], int len) {
+int Log_CheckTransProof(uint64_t id, uint8_t headOld[SHA256_DIGEST_LEN], uint8_t headNew[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t proofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint64_t idsOld[MAX_PROOF_LEVELS], uint64_t idsNew[MAX_PROOF_LEVELS], int lenOld, int lenNew) {
+
     uint8_t curr[SHA256_DIGEST_LEN];
 
-    /* Verify Merkle proof */
-    memcpy(curr, leaf, SHA256_DIGEST_LEN);
+    /* Verify Merkle proof for old head */
+    memset(curr, 0, SHA256_DIGEST_LEN);
 
-    for (int i = len - 1; i >= 0; i--) {
+    for (int i = lenOld - 1; i >= 0; i--) {
         crypto_sha256_init();
-        if (id < ids[i]) {
+        if (id <= idsOld[i]) {
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
-            crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
+            crypto_sha256_update(proofOld[i], SHA256_DIGEST_LEN);
         } else {
-            crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
+            crypto_sha256_update(proofOld[i], SHA256_DIGEST_LEN);
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
         }
-        crypto_sha256_update((uint8_t *)&ids[i], sizeof(int));
+        crypto_sha256_update((uint8_t *)&idsOld[i], sizeof(uint64_t));
         crypto_sha256_final(curr);
     }
 
-    /*printf("computed head: ");
-    for (int i = 0; i < SHA256_DIGEST_LEN; i++) printf("%02x", curr[i]);
-    printf("\n");
-*/
+    if (memcmp(curr, headOld, SHA256_DIGEST_LEN) != 0) return ERROR;
 
+    /* Verify Merkle proof for new head */
+    memcpy(curr, leaf, SHA256_DIGEST_LEN);
 
+    for (int i = lenNew - 1; i >= 0; i--) {
+        crypto_sha256_init();
+        if (id <= idsNew[i]) {
+            crypto_sha256_update(curr, SHA256_DIGEST_LEN);
+            crypto_sha256_update(proofNew[i], SHA256_DIGEST_LEN);
+        } else {
+            crypto_sha256_update(proofNew[i], SHA256_DIGEST_LEN);
+            crypto_sha256_update(curr, SHA256_DIGEST_LEN);
+        }
+        crypto_sha256_update((uint8_t *)&idsNew[i], sizeof(uint64_t));
+        crypto_sha256_final(curr);
+    }
+
+    /* Check proofs match */
+    for (int i = lenOld - 1; i >= 0; i--) {
+        if (memcmp(proofOld[i], proofNew[i], SHA256_DIGEST_LEN) != 0) return ERROR;
+    }
+
+    if (memcmp(curr, headNew, SHA256_DIGEST_LEN) != 0) return ERROR;
 
     subCtr++;
     if (subCtr == 1) {
-        if (memcmp(head, oldChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
+        if (memcmp(headOld, oldChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
     }
-    if (subCtr == 3 * chunkSize) {
-        if (memcmp(head, newChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
+    if (subCtr == chunkSize) {
+        if (memcmp(headNew, newChunkHead, SHA256_DIGEST_LEN != 0)) return ERROR;
         subCtr = 0;
     }
 
-    return (memcmp(curr, head, SHA256_DIGEST_LEN) == 0);
+    return OKAY;
 } 

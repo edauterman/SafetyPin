@@ -471,12 +471,12 @@ void MultisigTest() {
 
 void MerkleTreeTest() {
     printf("----- MERKLE TREE TEST ------ \n");
-    int ids[32];
+    uint64_t ids[32];
     uint8_t **values = (uint8_t **)malloc(32 * sizeof(uint8_t *));
-    for (int i = 0; i < 32; i++) {
-        ids[i] = 2 * i;
+    for (uint64_t i = 0; i < 32; i++) {
+        ids[i] = i;
         values[i] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
-        memset(values[i], 0xff, SHA256_DIGEST_LENGTH);
+        memset(values[i], 0xaa, SHA256_DIGEST_LENGTH);
     }
     printf("going to create tree\n");
     Node *head = MerkleTree_CreateTree(ids, values, 32);
@@ -489,10 +489,10 @@ void MerkleTreeTest() {
         printf("FAIL: Merkle proof doesn't verify.\n");
     }
     uint8_t newValue[SHA256_DIGEST_LENGTH];
-    memset(newValue, 0xff, SHA256_DIGEST_LENGTH);
-    MerkleTree_InsertLeaf(head, 1, newValue);
-    MerkleTree_InsertLeaf(head, 3, newValue);
-    MerkleTree_InsertLeaf(head, 5, newValue);
+    memset(newValue, 0xaa, SHA256_DIGEST_LENGTH);
+    MerkleTree_InsertLeaf(head, 32, newValue);
+    MerkleTree_InsertLeaf(head, 33, newValue);
+    MerkleTree_InsertLeaf(head, 34, newValue);
     proof = MerkleTree_GetProof(head, 1);
     printf("Got proof\n");
     if (MerkleTree_VerifyProof(head, proof, newValue, 1) == OKAY) {
@@ -500,13 +500,30 @@ void MerkleTreeTest() {
     } else {
         printf("FAIL: Merkle proof doesn't verify.\n");
     }
-    proof = MerkleTree_GetProof(head, 3);
+    proof = MerkleTree_GetProof(head, 33);
     printf("Got proof\n");
-    if (MerkleTree_VerifyProof(head, proof, newValue, 3) == OKAY) {
+    if (MerkleTree_VerifyProof(head, proof, newValue, 33) == OKAY) {
         printf("Merkle proof verifies.\n");
     } else {
         printf("FAIL: Merkle proof doesn't verify.\n");
     }
+/*    MerkleTree_InsertLeaf(head, 35, newValue);
+    proof = MerkleTree_GetProof(head, 35);
+    printf("Got proof\n");
+    if (MerkleTree_VerifyProof(head, proof, newValue, 35) == OKAY) {
+        printf("Merkle proof verifies.\n");
+    } else {
+        printf("FAIL: Merkle proof doesn't verify.\n");
+    }
+ */
+    proof = MerkleTree_GetEmptyProof(head, 256);
+    printf("Got empty proof\n");
+    if (MerkleTree_VerifyEmptyProof(head, proof, 256) == OKAY) {
+        printf("Merkle proof verifies.\n");
+    } else {
+        printf("FAIL: Merkle proof doesn't verify.\n");
+    }
+ 
 
     
 }
