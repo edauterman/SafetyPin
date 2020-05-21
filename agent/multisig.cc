@@ -16,16 +16,20 @@ void Multisig_Setup(embedded_pairing_core_bigint_256_t *sk, embedded_pairing_bls
 
 void Multisig_Sign(embedded_pairing_core_bigint_256_t *sk, uint8_t *msg, int msgLen, embedded_pairing_bls12_381_g1_t *sig) {
     embedded_pairing_bls12_381_g1affine_t base;
-    uint8_t hashedMsg[2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
+    //uint8_t hashedMsg[2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
+    uint8_t hashedMsg[384];
 
-    hash_to_bytes(hashedMsg, 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size, msg, msgLen);
+    //hash_to_bytes(hashedMsg, 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size, msg, msgLen);
+    hash_to_bytes(hashedMsg, 384, msg, msgLen);
     embedded_pairing_bls12_381_g1affine_from_hash(&base, hashedMsg);
     embedded_pairing_bls12_381_g1_multiply_affine(sig, &base, sk);
 }
 
 
 bool Multisig_Verify(embedded_pairing_bls12_381_g2_t *pk, uint8_t *msg, int msgLen, embedded_pairing_bls12_381_g1_t *sig) {
-    uint8_t hashedMsg[2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
+    uint8_t hashedMsg[384];
+    //uint8_t hashedMsg[sizeof(embedded_pairing_bls12_381_fq_t)];
+    //uint8_t hashedMsg[2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
     embedded_pairing_bls12_381_g1affine_t base;
     embedded_pairing_bls12_381_g2affine_t pkAffine;
     embedded_pairing_bls12_381_g1affine_t sigAffine;
@@ -33,40 +37,16 @@ bool Multisig_Verify(embedded_pairing_bls12_381_g2_t *pk, uint8_t *msg, int msgL
     embedded_pairing_bls12_381_fq12_t res2;
 
     // e(pk, H(m))
-    hash_to_bytes(hashedMsg, 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size, msg, msgLen);
+    hash_to_bytes(hashedMsg, 384, msg, msgLen);
+    hash_to_bytes(hashedMsg, sizeof(embedded_pairing_bls12_381_fq_t), msg, msgLen);
     embedded_pairing_bls12_381_g1affine_from_hash(&base, hashedMsg);
     embedded_pairing_bls12_381_g2affine_from_projective(&pkAffine, pk);
     embedded_pairing_bls12_381_pairing(&res1, &base, &pkAffine); 
-
-    printf("*** hashed msg: ");
-    for (int i = 0; i < 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size; i++) printf("%02x", hashedMsg[i]);
-    printf("\n");
-
-
-
-    uint8_t baseBuf[embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
-    embedded_pairing_bls12_381_g1_marshal(baseBuf, &base, false);
-    printf("*** basePt: ");
-    for (int i = 0; i < embedded_pairing_bls12_381_g1_marshalled_uncompressed_size; i++) printf("%02x", baseBuf[i]);
-    printf("\n");
 
     // e(g, sig)
     embedded_pairing_bls12_381_g1affine_from_projective(&sigAffine, sig);
     embedded_pairing_bls12_381_pairing(&res2, &sigAffine, embedded_pairing_bls12_381_g2affine_generator);
 
-/*    uint8_t res1Buf[embedded_pairing_bls12_381_gt_marshalled_size];
-    uint8_t res2Buf[embedded_pairing_bls12_381_gt_marshalled_size];
-    embedded_pairing_bls12_381_gt_marshal(res1Buf, &res1);
-    embedded_pairing_bls12_381_gt_marshal(res2Buf, &res2);
-   
-    printf("res1: ");
-    for (int i = 0; i < embedded_pairing_bls12_381_gt_marshalled_size; i++) printf("%02x", res1Buf[i]);
-    printf("\n");
-
-    printf("res2: ");
-    for (int i = 0; i < embedded_pairing_bls12_381_gt_marshalled_size; i++) printf("%02x", res2Buf[i]);
-    printf("\n");
-*/
     // Check if equal
     return embedded_pairing_bls12_381_gt_equal(&res1, &res2);
 }

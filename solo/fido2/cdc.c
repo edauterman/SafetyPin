@@ -22,6 +22,7 @@
 
 //uint8_t inOutBuf[1];
 uint8_t inOutBuf[5000];
+//uint8_t inOutBuf[4096];
 
 // THIS IS THE ONE
 //uint8_t inOutBuf[10800];
