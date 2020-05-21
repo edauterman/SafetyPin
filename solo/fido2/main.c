@@ -94,8 +94,6 @@ int main(int argc, char *argv[])
     }*/
     //memset(output_msg, 0x11, sizeof(output_msg));
 
-
-
     while(1)
     {
         t_old = t_new;

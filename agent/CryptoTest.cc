@@ -441,7 +441,7 @@ void MultisigTest() {
     embedded_pairing_bls12_381_g1_t sig[2];
     embedded_pairing_bls12_381_g1_t aggSig;
 
-    memset(msg, 0xff, 32);
+    memset(msg, 0xaa, 32);
     Multisig_Setup(&sk[0], &pk[0]);
     Multisig_Sign(&sk[0], msg, 32, &sig[0]);
     if (Multisig_Verify(&pk[0], msg, 32, &sig[0])) {

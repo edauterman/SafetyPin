@@ -335,7 +335,7 @@ void wait_for_usb_tether(void)
     //    ;
     //while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
     //    ;
-    delay(10);
+    //delay(10);
     //while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
     //    ;
 }
