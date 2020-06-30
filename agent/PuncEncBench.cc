@@ -27,9 +27,11 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  HSM_GetMpk(d->hsms[0]);
+/*  HSM_GetMpk(d->hsms[0]);
   HSM_TestSetup(d->hsms[0]);
-  
+  */
+  Datacenter_TestSetup(d);
+
   struct timeval t1, t2, t3;
   BIGNUM *msg = BN_new();
   BIGNUM *msgTest = BN_new();
@@ -46,11 +48,7 @@ int main(int argc, char *argv[]) {
   gettimeofday(&t3, NULL);
 
   if (BN_cmp(msg, msgTest) !=  0) {
-    printf("FAIL: got back ");
-    for (int i = 0; i < IBE_MSG_LEN; i++) {
-        printf("%02x", msgTest[i]);
-    }
-    printf("\n");
+    printf("FAIL");
   }
 
   long encryptSeconds = (t2.tv_sec - t1.tv_sec);

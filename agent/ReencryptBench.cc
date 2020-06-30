@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 //  HSM_Retrieve(d->hsms[0], 0);
   gettimeofday(&t1, NULL);
 
-  for (int i = 0; i < 5140; i++) {
+  for (int i = 0; i < 16448; i++) {
       HSM_LongMsg(d->hsms[0]);
   }
 

@@ -270,7 +270,6 @@ int HSM_Retrieve(struct hsm_retrieve_request *req, uint8_t *out, int *outLen) {
 }
 
 int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen) {
-    printf1(TAG_GREEN, "puncturing leaf\n");
     uint8_t newCts[KEY_LEVELS][CT_LEN];
 
     uint32_t t1 = millis();
@@ -293,7 +292,6 @@ int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen) {
 
 void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, uint8_t *out, int*outLen) {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
-    printf("in puncture and writeback\n");
     PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
 
     if (out) {
@@ -304,18 +302,15 @@ void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, ui
         u2f_response_writeback(msg, FIELD_ELEM_LEN);
         u2f_response_writeback(newCts, KEY_LEVELS * CT_LEN);
     }
-    printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
 
 
 }
 
 int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *outLen) {
-    printf1(TAG_GREEN, "starting to decrypt\n");
     uint8_t leaf[CT_LEN];
     uint8_t msg[FIELD_ELEM_LEN];
 
     if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
-        printf("Couldn't retrieve leaf\n");
         if (out) {
             memset(msg, 0, FIELD_ELEM_LEN +  (KEY_LEVELS * CT_LEN));
             *outLen = FIELD_ELEM_LEN + (KEY_LEVELS * CT_LEN);
@@ -325,11 +320,8 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
         }
         return U2F_SW_NO_ERROR;
     }
-    printf("retrieved leaf\n");
 
     ElGamal_DecryptWithSk(req->elGamalCt, leaf, msg);
-
-    printf("did ibe decrypt\n");
 
     punctureAndWriteback(req, msg, out, outLen);
 
