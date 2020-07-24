@@ -20,10 +20,10 @@ extern "C" {
 
 //#define HID
 
-#define NUM_HSMS 100
-#define HSM_GROUP_SIZE 100
+#define NUM_HSMS 10
+#define HSM_GROUP_SIZE 10
 //#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 50
+#define HSM_THRESHOLD_SIZE 5
 #define TOTAL_HSMS 50000
 
 //#define HSM_MAX_GROUP_SIZE 3
@@ -347,7 +347,7 @@ typedef struct {
 } HSM_LOG_ROOTS_REQ;
 
 typedef struct {
-    int queries[23];
+    int queries[NUM_CHUNKS];
 } HSM_LOG_ROOTS_RESP;
 
 typedef struct {

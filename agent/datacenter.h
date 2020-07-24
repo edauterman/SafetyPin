@@ -6,10 +6,10 @@
 #include "params.h"
 #include "punc_enc.h"
 
-#define NUM_HSMS 100
-#define HSM_GROUP_SIZE 100
+#define NUM_HSMS 10
+#define HSM_GROUP_SIZE 10
 //#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 50
+#define HSM_THRESHOLD_SIZE 5
 //#define HSM_THRESHOLD_SIZE 3
 #define PIN_LEN 10
 
