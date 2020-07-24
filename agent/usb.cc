@@ -39,16 +39,17 @@ UsbDevice *UsbDevice_new(const char *handle) {
     //tty.c_cc[VMIN] = 1;
 
     CHECK_C (tcsetattr(dev->fd, TCSANOW, &tty) == 0);
-    tcflush(dev->fd, TCOFLUSH);
+/*    tcflush(dev->fd, TCOFLUSH);
     tcflush(dev->fd, TCIFLUSH);
 
     cfsetispeed(&tty, B115200);
     //cfsetispeed(&tty, B9600);
     cfsetospeed(&tty, B115200);
     //cfsetospeed(&tty, B9600);
-
+*/
     dev->sessionCtr = 0;
     printf("going to exchange with %s\n", handle);
+    printf("fd = %d\n", dev->fd);
     if (dev->fd) UsbDevice_exchange(dev, HSM_RESET, NULL, 0, NULL, 0);
     printf("reset\n");
 
@@ -84,7 +85,8 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
     
     while (bytesWritten <= reqLen) {
         CDCFrame frame;
-        int bytesToWrite = reqLen - bytesWritten < CDC_PAYLOAD_SZ ? reqLen - bytesWritten : CDC_PAYLOAD_SZ;
+	memset((uint8_t *)&frame, 0, CDC_FRAME_SZ);
+	int bytesToWrite = reqLen - bytesWritten < CDC_PAYLOAD_SZ ? reqLen - bytesWritten : CDC_PAYLOAD_SZ;
         memset(frame.payload, 0, CDC_PAYLOAD_SZ);
         if (reqLen > 0) {
             memcpy(frame.payload, req + bytesWritten, bytesToWrite);
@@ -129,7 +131,8 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
                 read(dev->fd, buf, CDC_FRAME_SZ);
             }*/
             //tcdrain(dev->fd);
-            tcflush(dev->fd, TCIFLUSH);
+            // WAS COMMENTED IN (BELOW)
+	    //tcflush(dev->fd, TCIFLUSH);
         }
         bytesWritten += CDC_PAYLOAD_SZ;
         i++;
@@ -143,7 +146,8 @@ cleanup:
 int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, uint8_t *resp, int respLen) {
     int rv = OKAY;
 
-    tcflush(dev->fd, TCIOFLUSH);
+    // WAS COMMENTED IN (BELOW)
+//    tcflush(dev->fd, TCIOFLUSH);
     /* Send. */
     send(dev, msgType, req, reqLen, true);
 
@@ -162,13 +166,64 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     while (bytesRead < respLen || respLen == 0) {
         CDCFrame frame;
         int framePointer = 0;
-        while (framePointer < CDC_FRAME_SZ) {
+	int ctr = 0;
+	while (framePointer < CDC_FRAME_SZ) {
             FD_ZERO(&fds);
             FD_SET(dev->fd, &fds);
     
             debug_print("bytesRead = %d, framePointer = %d\n", bytesRead, framePointer);
             int selectRes = select(dev->fd + 1, &fds, NULL, NULL, &timeout);
             if (selectRes <= 0) {
+		if (ctr == 0) {
+			printf("ERROR for fd %d, msg code %d, reqLen %d, framePtr = %d/64\n", dev->fd, msgType, reqLen, framePointer);
+			if (msgType != HSM_LOG_ROOTS_PROOF) {
+				printf("NOT TYPE LOG_ROOTS_PROOF\n");
+			} else {
+			HSM_LOG_ROOTS_PROOF_REQ *logReq = (HSM_LOG_ROOTS_PROOF_REQ *)req;
+			printf("headOld: ");
+			for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+				printf("%02x", logReq->headOld[i]);
+			}
+			printf("\n");
+			printf("headNew: ");
+			for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+				printf("%02x", logReq->headNew[i]);
+			}
+			printf("\n");
+			printf("rootProofOld: ");
+			for (int i = 0; i < MAX_PROOF_LEVELS; i++) {
+				for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) {
+					printf("%02x", logReq->rootProofOld[i][j]);
+				}
+				printf("    ");
+			}
+			printf("\n");
+			printf("rootProofNew: ");
+			for (int i = 0; i < MAX_PROOF_LEVELS; i++) {
+				for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) {
+					printf("%02x", logReq->rootProofNew[i][j]);
+				}
+				printf("    ");
+			}
+			printf("\n");
+			printf("idsOld: ");
+			for (int i = 0; i < MAX_PROOF_LEVELS; i++) {
+				printf("%02x", logReq->idsOld[i]);
+			}
+			printf("\n");
+			printf("idsNew: ");
+			for (int i = 0; i < MAX_PROOF_LEVELS; i++) {
+				printf("%02x", logReq->idsNew[i]);
+			}
+			printf("\n");
+			printf("idNew: %d\n", logReq->idNew);
+			printf("lenNew: %d\n", logReq->lenNew);
+			printf("idOld: %d\n", logReq->idOld);
+			printf("lenOld: %d\n", logReq->lenOld);
+			}
+
+		}
+		ctr++;
                 debug_print("*** SELECT ERR: %d\n", selectRes);
                 // NEXT TWO LINES WERE IN
                 //tcflush(dev->fd, TCIOFLUSH);
@@ -183,7 +238,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
             debug_print("num bytes read: %d\n", numBytes);
             debug_print("current frame after receiving %d bytes: ", numBytes);
             for (int i = 0; i < CDC_FRAME_SZ; i++) {
-                debug_print("%x", ((uint8_t *)&frame)[i]);
+	            debug_print("%x", ((uint8_t *)&frame)[i]);
             }
             debug_print("\n");
 

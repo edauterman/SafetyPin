@@ -39,21 +39,38 @@ int main(int argc, char *argv[]) {
   embedded_pairing_bls12_381_g1_t aggSig;
   thread t[NUM_HSMS];
 
-  printf("rootsTree ids = (%d, %d, %d)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
+//  printf("rootsTree ids = (%d, %d, %d)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
 
   Log_Init(d->hsms[0]->params);
   Log_GetPk(d->hsms[0]->params, logPk);
-  
+
+  printf("Initialized log\n");
+
   for (int i = 0; i < NUM_HSMS; i++) {
     HSM_SetParams(d->hsms[i], logPk);
-    memcpy((uint8_t *)&multisigPks[i], (uint8_t *)&d->hsms[i]->multisigPk, sizeof(embedded_pairing_bls12_381_g2_t));
-//    HSM_MultisigSetAggPk(d->hsms[i], &d->hsms[i]->multisigPk);
+    //HSM_MultisigGetPk(d->hsms[i]); 
+//    memcpy((uint8_t *)&multisigPks[i], (uint8_t *)&d->hsms[i]->multisigPk, sizeof(embedded_pairing_bls12_381_g2_t));
+    //HSM_MultisigSetAggPk(d->hsms[i], &d->hsms[i]->multisigPk);
+  }
+
+  for (int i = 0; i < NUM_HSMS; i++) {
+      t[i] = thread(HSM_MultisigGetPk, d->hsms[i]);
+      //t[i] = thread(HSM_MultisigSign, d->hsms[i], &sigs[i], state->rootsTree->hash);
+  }
+  for (int i = 0; i < NUM_HSMS; i++) {
+      t[i].join();
+      memcpy((uint8_t *)&multisigPks[i], (uint8_t *)&d->hsms[i]->multisigPk, sizeof(embedded_pairing_bls12_381_g2_t));
+      printf("got pk for %d\n", i);
   }
 
   Multisig_AggPks(multisigPks, NUM_HSMS, &aggPk);
 
   for (int i = 0; i < NUM_HSMS; i++) {
-    HSM_MultisigSetAggPk(d->hsms[i], &aggPk);
+    //HSM_MultisigSetAggPk(d->hsms[i], &multisigPks[i]);
+      t[i] = thread(HSM_MultisigSetAggPk, d->hsms[i], &aggPk);
+  }
+  for (int i = 0; i < NUM_HSMS; i++) {
+      t[i].join();
   }
 
   long verifySec, verifyMicro, aggSec, aggMicro;
@@ -67,24 +84,78 @@ int main(int argc, char *argv[]) {
 //  Datacenter_LogEpochVerification(d, &d->hsms[0]->multisigPk, state);
   Datacenter_LogEpochVerification(d, &aggPk, state, sigs);
 
+  
   Datacenter_free(d);
 
-  d = Datacenter_new();
+/*  d = Datacenter_new();
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
   }
 
-  gettimeofday(&tVerify, NULL);
 
-  Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
+  /*
+  embedded_pairing_bls12_381_g2_t aggPk2;
+  embedded_pairing_bls12_381_g2_t multisigPks2[NUM_HSMS];
+  embedded_pairing_bls12_381_g1_t sigs2[NUM_HSMS];
+  embedded_pairing_bls12_381_g1_t aggSig2;
+ 
+
+
   for (int i = 0; i < NUM_HSMS; i++) {
-      t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, state->rootsTree->hash);
+    HSM_SetParams(d->hsms[i], logPk);
+    HSM_MultisigGetPk(d->hsms[i]); 
+    memcpy((uint8_t *)&multisigPks2[i], (uint8_t *)&d->hsms[i]->multisigPk, sizeof(embedded_pairing_bls12_381_g2_t));
+    printf("OLD multisig pk %d: ", i);
+    for (int j = 0; j < sizeof(embedded_pairing_bls12_381_g2_t); j++) {
+	printf("%02x", ((uint8_t *) &multisigPks[i])[j]);
+    }
+    printf("\n");
+    printf("multisig pk %d: ", i);
+    for (int j = 0; j < sizeof(embedded_pairing_bls12_381_g2_t); j++) {
+	printf("%02x", ((uint8_t *) &multisigPks2[i])[j]);
+    }
+    printf("\n");
+    //    HSM_MultisigSetAggPk(d->hsms[i], &d->hsms[i]->multisigPk);
+  }
+
+  Multisig_AggPks(multisigPks2, NUM_HSMS, &aggPk2);
+
+    printf("agg pk: ");
+    for (int j = 0; j < sizeof(embedded_pairing_bls12_381_g2_t); j++) {
+	printf("%02x", ((uint8_t *) &aggPk2)[j]);
+    }
+    printf("\n");
+
+
+  for (int i = 0; i < NUM_HSMS; i++) {
+    HSM_MultisigSetAggPk(d->hsms[i], &aggPk2);
+  }
+*/
+
+/*  uint8_t buf[SHA256_DIGEST_LENGTH];
+  memset(buf, 0xaa, SHA256_DIGEST_LENGTH);
+
+  for (int i = 0; i < NUM_HSMS; i++) {
+      t[i] = thread(HSM_MultisigSign, d->hsms[i], &sigs[i], buf);
+      //t[i] = thread(HSM_MultisigSign, d->hsms[i], &sigs[i], state->rootsTree->hash);
   }
   for (int i = 0; i < NUM_HSMS; i++) {
       t[i].join();
   }
 
+  gettimeofday(&tVerify, NULL);
+
+//  Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
+  for (int i = 0; i < NUM_HSMS; i++) {
+      t[i] = thread(HSM_MultisigVerify, d->hsms[i], &sigs[i], buf);
+      //t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, buf);
+      //t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, state->rootsTree->hash);
+  }
+  for (int i = 0; i < NUM_HSMS; i++) {
+      t[i].join();
+  }
+*/
   gettimeofday(&tEnd, NULL);
 
     verifySec = (tVerify.tv_sec - tStart.tv_sec);
