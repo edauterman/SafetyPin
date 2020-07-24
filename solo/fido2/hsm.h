@@ -42,12 +42,13 @@
 #define ELGAMAL_CT_LEN (COMPRESSED_PT_SZ + FIELD_ELEM_LEN)
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
-#define NUM_LEAVES 524288
+#define NUM_LEAVES 2097152
 //#define NUM_LEAVES 16384 
 //#define NUM_LEAVES 65536 
 //#define NUM_LEAVES NUM_SUB_LEAVES
 //#define LEVELS 5    //log2(NUM_LEAVES) + 1
-#define LEVELS 20    //log2(NUM_LEAVES) + 1
+#define LEVELS 22    //log2(NUM_LEAVES) + 1
+//#define LEVELS 20    //log2(NUM_LEAVES) + 1
 //#define LEVELS 15    //log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1)
 #define SUB_TREE_LEVELS 5

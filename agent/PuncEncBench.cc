@@ -27,9 +27,11 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  HSM_GetMpk(d->hsms[0]);
+/*  HSM_GetMpk(d->hsms[0]);
   HSM_TestSetup(d->hsms[0]);
-  
+  */
+  Datacenter_TestSetup(d);
+
   struct timeval t1, t2, t3;
   BIGNUM *msg = BN_new();
   BIGNUM *msgTest = BN_new();

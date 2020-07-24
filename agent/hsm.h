@@ -55,11 +55,13 @@ extern "C" {
 
 #define RESPONSE_BUFFER_SIZE 4096
 
-#define NUM_LEAVES 524288
+#define NUM_LEAVES 2097152
+//#define NUM_LEAVES 524288
 //#define NUM_LEAVES 16384
 //#define NUM_LEAVES NUM_SUB_LEAVES
 //#define NUM_LEAVES 256
-#define LEVELS 20 // log2(NUM_LEAVES) + 1
+#define LEVELS 22 // log2(NUM_LEAVES) + 1
+//#define LEVELS 20 // log2(NUM_LEAVES) + 1
 //#define LEVELS 15 // log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES) + 1
 #define SUB_TREE_LEVELS 5

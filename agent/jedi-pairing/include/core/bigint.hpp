@@ -58,6 +58,7 @@ namespace embedded_pairing::core {
          * fall back to other implementations in case some integer sizes
          * are not supported.
          */
+//#if 0
 #if defined(__SIZEOF_INT128__)
         typedef unsigned __int128 dword_t;
         typedef uint64_t word_t;

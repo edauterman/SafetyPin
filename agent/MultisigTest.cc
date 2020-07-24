@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
     uint8_t msg[SHA256_DIGEST_LENGTH];
     embedded_pairing_bls12_381_g1_t sig;
-    memset(msg, 0xff, SHA256_DIGEST_LENGTH);
+    memset(msg, 0xaa, SHA256_DIGEST_LENGTH);
 
     HSM_MultisigGetPk(d->hsms[i]);
     HSM_MultisigSetAggPk(d->hsms[i], &d->hsms[i]->multisigPk);
