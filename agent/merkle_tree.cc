@@ -266,7 +266,7 @@ Node *MerkleTree_CreateTree(uint64_t *ids, uint8_t **values, uint64_t len) {
         printf("Starting next level with %d nodes\n", currLen);
         parentNodes = (Node **)malloc(currLen * sizeof(Node *));
         for (uint64_t i = 0; i < currLen; i++) {
-            if (i % 1000 == 0) printf("Have processed %d/%d nodes in level\n", i, currLen);
+            if (i % 100000 == 0) printf("Have processed %d/%d nodes in level\n", i, currLen);
             if (2 * i + 1 == currLen) {
                 parentNodes[i] = MerkleTree_CreateNewParent(currNodes[2 * i], NULL, maxDiff);
             } else {

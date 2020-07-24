@@ -118,14 +118,14 @@ LogState *Log_RunSetup() {
     memset(buf, 0xff, SHA256_DIGEST_LENGTH);
 
     for (uint64_t i = 0; i < NUM_TRANSITIONS; i++) {
-        uint64_t id = i + NUM_USERS;
+    	uint64_t id = i + NUM_USERS;
         state->tProofs[i].id = id;
         state->tProofs[i].oldProof = MerkleTree_GetEmptyProof(head, id);
-        MerkleTree_InsertLeaf(head, id, leafValues[0]);
+        MerkleTree_InsertLeaf(head, id, buf);
         state->tProofs[i].newProof = MerkleTree_GetProof(head, id);
         rootHashes[i+1] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
         rootIds[i+1] = i+1;
-        printf("root ids = %ld\n", rootIds[i]);
+//        printf("root ids = %ld\n", rootIds[i]);
         memcpy(rootHashes[i+1], head->hash, SHA256_DIGEST_LENGTH);
     }
 

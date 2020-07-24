@@ -20,7 +20,7 @@ extern "C" {
 
 //#define HID
 
-#define NUM_HSMS 100
+#define NUM_HSMS 10
 #define HSM_GROUP_SIZE 100
 //#define HSM_GROUP_SIZE 5
 #define HSM_THRESHOLD_SIZE 50
@@ -34,7 +34,7 @@ extern "C" {
 #define HSM_MAX_THRESHOLD_SIZE  50
 
 #define NUM_CHUNKS 92   // log2(lambda * N)
-#define CHUNK_SIZE  1  // however many recoveries each HSM does in epoch
+#define CHUNK_SIZE  17  // however many recoveries each HSM does in epoch
 //#define NUM_TRANSITIONS (TOTAL_HSMS * CHUNK_SIZE)
 
 #define KEY_LEN 32
@@ -47,7 +47,7 @@ extern "C" {
 //#define ELGAMAL_PT_LEN COMPRESSED_PT_SZ
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
 
-#define PUNC_ENC_REPL 6
+#define PUNC_ENC_REPL 5
 //#define PUNC_ENC_REPL 1
 #define NUM_ATTEMPTS 1
 
@@ -55,11 +55,11 @@ extern "C" {
 
 #define RESPONSE_BUFFER_SIZE 4096
 
-#define NUM_LEAVES 524288
+#define NUM_LEAVES 2097152 
 //#define NUM_LEAVES 16384
 //#define NUM_LEAVES NUM_SUB_LEAVES
 //#define NUM_LEAVES 256
-#define LEVELS 20 // log2(NUM_LEAVES) + 1
+#define LEVELS 22 // log2(NUM_LEAVES) + 1
 //#define LEVELS 15 // log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES) + 1
 #define SUB_TREE_LEVELS 5
@@ -345,7 +345,7 @@ typedef struct {
 } HSM_LOG_ROOTS_REQ;
 
 typedef struct {
-    int queries[23];
+    int queries[NUM_CHUNKS];
 } HSM_LOG_ROOTS_RESP;
 
 typedef struct {

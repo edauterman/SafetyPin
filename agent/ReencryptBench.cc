@@ -17,6 +17,7 @@
 #include "hsm.h"
 #include "ibe.h"
 #include "common.h"
+#include <thread>
 
 using namespace std;
 
@@ -33,8 +34,23 @@ int main(int argc, char *argv[]) {
 //  HSM_Retrieve(d->hsms[0], 0);
   gettimeofday(&t1, NULL);
 
-  for (int i = 0; i < 5140; i++) {
-      HSM_LongMsg(d->hsms[0]);
+  thread t[NUM_HSMS];
+  for (int i = 0; i < 10000; i++) {
+	Datacenter *d = Datacenter_new();
+	Datacenter_init(d);
+	for (int j = 0; j < NUM_HSMS; j++) {
+      		t[j] = thread(HSM_LongMsg, d->hsms[j]);
+	}
+	for (int j = 0; j < NUM_HSMS; j++) {
+		t[j].join();
+	}
+	Datacenter_free(d);
+	/*for (int j = 0; j < NUM_HSMS; j++) {
+		HSM_LongMsg(d->hsms[j]);
+	}*/
+	if (i % 100 == 0) {
+		printf("iteration %d...\n", i);
+	}
   }
 
   gettimeofday(&t2, NULL);
