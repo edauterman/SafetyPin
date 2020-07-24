@@ -24,8 +24,8 @@
 #define ROOT_PROOF_LEAVES 65536
 #define SIG_LEN 64
 //#define NUM_TRANSITIONS 50000   // should be TOTAL_HSMS * CHUNK_SIZE
-#define NUM_TRANSITIONS 127   // should be TOTAL_HSMS * CHUNK_SIZE
-//#define NUM_TRANSITIONS 1048575   // should be TOTAL_HSMS * CHUNK_SIZE
+//#define NUM_TRANSITIONS 2047   // should be TOTAL_HSMS * CHUNK_SIZE
+#define NUM_TRANSITIONS 1048575   // should be TOTAL_HSMS * CHUNK_SIZE
 //#define NUM_TRANSITIONS 4194303   // should be TOTAL_HSMS * CHUNK_SIZE
 
 typedef struct {
