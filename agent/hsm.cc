@@ -764,29 +764,6 @@ cleanup:
     return rv;
 }
 */
-int HSM_SetMacKeys(HSM *h, uint8_t **macKeys) {
-    int rv;
-    HSM_SET_MAC_KEYS_REQ req;
-    string resp_str;
-
-    pthread_mutex_lock(&h->m);
-
-    for (int i = 0; i < NUM_HSMS; i++) {
-        memcpy(req.macKeys[i], macKeys[i], KEY_LEN);
-    }
-#ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_SET_MAC_KEYS, 0, 0,
-                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-#else
-    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SET_MAC_KEYS, (uint8_t *)&req,
-                sizeof(req), NULL, 0));
-#endif
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    return rv;
-}
-
->>>>>>> 759d238810a91e8ee84770de0b71b3b81831637c
 int HSM_SetParams(HSM *h, uint8_t *logPk) {
     int rv;
     HSM_SET_PARAMS_REQ req;
