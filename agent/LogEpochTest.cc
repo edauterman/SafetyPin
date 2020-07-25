@@ -86,14 +86,14 @@ int main(int argc, char *argv[]) {
 
   
   Datacenter_free(d);
-
-/*  d = Datacenter_new();
+/*
+  d = Datacenter_new();
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
   }
 
-
+*/
   /*
   embedded_pairing_bls12_381_g2_t aggPk2;
   embedded_pairing_bls12_381_g2_t multisigPks2[NUM_HSMS];
@@ -133,28 +133,29 @@ int main(int argc, char *argv[]) {
   }
 */
 
-/*  uint8_t buf[SHA256_DIGEST_LENGTH];
-  memset(buf, 0xaa, SHA256_DIGEST_LENGTH);
-
+/*
   for (int i = 0; i < NUM_HSMS; i++) {
-      t[i] = thread(HSM_MultisigSign, d->hsms[i], &sigs[i], buf);
-      //t[i] = thread(HSM_MultisigSign, d->hsms[i], &sigs[i], state->rootsTree->hash);
+//      t[i] = thread(HSM_MultisigSign, d->hsms[i], &sigs[i], buf);
+      t[i] = thread(HSM_MultisigSign, d->hsms[i], &sigs[i], state->rootsTree->hash);
   }
   for (int i = 0; i < NUM_HSMS; i++) {
       t[i].join();
   }
+*/
+  printf("did signatures\n");
 
   gettimeofday(&tVerify, NULL);
 
-//  Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
+/*  Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
+  printf("aggregated sigs\n");
   for (int i = 0; i < NUM_HSMS; i++) {
-      t[i] = thread(HSM_MultisigVerify, d->hsms[i], &sigs[i], buf);
       //t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, buf);
-      //t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, state->rootsTree->hash);
+      t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, state->rootsTree->hash);
   }
   for (int i = 0; i < NUM_HSMS; i++) {
       t[i].join();
   }
+  printf("did verification\n");
 */
   gettimeofday(&tEnd, NULL);
 

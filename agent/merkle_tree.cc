@@ -153,7 +153,6 @@ MerkleProof *MerkleTree_GetProof(Node *head, uint64_t id) {
     MerkleProof *proof = MerkleProof_new();
     Node *curr = head;
     int ctr = 0;
-    printf("looking for %ld\n", id);
     while (curr->id != id) {
         if (id <= curr->midID) {
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->rightChild);
@@ -175,7 +174,6 @@ MerkleProof *MerkleTree_GetProof(Node *head, uint64_t id) {
     memcpy(proof->head, head->hash, SHA256_DIGEST_LENGTH);
     memcpy(proof->leaf, curr->hash, SHA256_DIGEST_LENGTH);
     proof->id = id;
-    printf("Returning id %ld\n", id);
     return proof;
 }
 

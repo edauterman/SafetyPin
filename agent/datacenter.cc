@@ -721,7 +721,8 @@ cleanup:
 int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, LogState *state, embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS]) {
     int rv;
     thread t[NUM_HSMS];
-    
+    embedded_pairing_bls12_381_g1_t aggSig;
+
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i] = thread(HSM_LogEpochVerification, d->hsms[i], &sigs[i], state);
     }
@@ -730,18 +731,28 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
 	printf("HSM %d done.\n", i);
     }
 
+    for (int i = 0; i < NUM_HSMS; i++) {
+        t[i] = thread(HSM_MultisigSign, d->hsms[i], &sigs[i], state->rootsTree->hash);
+    }
+    for (int i = 0; i < NUM_HSMS; i++) {
+        t[i].join();
+    }
+
+
+
     printf("all state transition verification done\n");
-/*    gettimeofday(&tVerify, NULL);
+//    gettimeofday(&tVerify, NULL);
  
     Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
     for (int i = 0; i < NUM_HSMS; i++) {
+//        t[i] = thread(HSM_MultisigVerify, d->hsms[i], &sigs[i], state->rootsTree->hash);
         t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, state->rootsTree->hash);
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
     }
 
-    gettimeofday(&tEnd, NULL);
+/*    gettimeofday(&tEnd, NULL);
 
     verifySec = (tVerify.tv_sec - tStart.tv_sec);
     verifyMicro = (tVerify.tv_usec - tStart.tv_usec);
@@ -752,8 +763,9 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
 
     printf("------ Transition verification time: %f, %d sec, %d micros\n", verifyTime, verifySec, verifyMicro);
     printf("------ Signature aggregation and verification: %f, %d sec, %d micros\n", aggTime, aggSec, aggMicro);
-
 */
+    printf("DONE with log epoch verification\n");
+
 
 cleanup:
     return rv;

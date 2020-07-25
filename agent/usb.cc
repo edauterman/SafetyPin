@@ -155,7 +155,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
 //    if (msgType == HSM_DECRYPT) respLen = reqLen;
     fd_set fds;
     struct timeval timeout;
-    timeout.tv_sec = 5;
+    timeout.tv_sec = 10;
     timeout.tv_usec = 0;
     FD_ZERO(&fds);
     FD_SET(dev->fd, &fds);

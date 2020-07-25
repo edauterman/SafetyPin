@@ -20,7 +20,7 @@ extern "C" {
 
 //#define HID
 
-#define NUM_HSMS 10
+#define NUM_HSMS 2 
 #define HSM_GROUP_SIZE 10
 //#define HSM_GROUP_SIZE 5
 #define HSM_THRESHOLD_SIZE 5
