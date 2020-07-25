@@ -241,15 +241,6 @@ int HSM_Setup(HSM *h) {
         printf("next level: %d\n", currLevel);
 
     }
-    /*printf("cts: ");
-    for (int i = 0; i < SUB_TREE_SIZE; i++) {
-        for (int j = 0; j < CT_LEN; j++) {
-            printf("%x ", h->cts[i][j]);
-        }
-    }
-    printf("\n");*/
-
-    printf("started setup\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("SETUP ERROR\n");
@@ -288,44 +279,8 @@ int HSM_Retrieve(HSM *h, uint32_t index) {
 #else
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_RETRIEVE, (uint8_t *)&req,
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
-    //CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_RETRIEVE, (uint8_t *)&req,
-    //            sizeof(req), (uint8_t *)&req2, sizeof(req2)));
 #endif
 
-    /*printf("sent: ");
-    for (int i = 0; i < sizeof(req); i++) {
-        printf("%x", ((uint8_t *)&req)[i]);
-    }
-    printf("\n");
-
-
-    printf("received: ");
-    for (int i = 0; i < sizeof(req2); i++) {
-        printf("%x", ((uint8_t *)&req2)[i]);
-    }
-    printf("\n");
-
-    printf("DIFF (out): ");
-    for (int i = 0; i < sizeof(req2); i++) {
-        if (((uint8_t *)&req)[i] != ((uint8_t *)&req2)[i]) printf("%x", ((uint8_t *)&req)[i]);
-    }
-    printf("\n");
-
-    printf("DIFF (in): ");
-    for (int i = 0; i < sizeof(req2); i++) {
-        if (((uint8_t *)&req)[i] != ((uint8_t *)&req2)[i]) printf("%x", ((uint8_t *)&req2)[i]);
-    }
-    printf("\n");
-
-    printf("Frame numbers OFF: ");
-    for (int i = 0; i < sizeof(req) / CDC_PAYLOAD_SZ; i++) {
-        if (memcmp((uint8_t *)&req + i * CDC_PAYLOAD_SZ, (uint8_t *)&req2 + i * CDC_PAYLOAD_SZ, CDC_PAYLOAD_SZ) != 0) printf("%d ", i);
-    }
-    printf("\n");
-
-
-    if (memcmp((uint8_t *)&req, (uint8_t *)&req2, sizeof(req)) != 0) printf("req doesn't match req2!!!\n");
-*/
     printf("leaf: ");
     for (int i = 0; i < LEAF_LEN; i++) {
         printf("%x ", resp.leaf[i]);
@@ -531,52 +486,6 @@ int HSM_LongMsg(HSM *h) {
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("LONG MSG ERROR\n");
-    return rv;
-}
-
-// CURRENTLY NOT THREAD-SAFE
-int HSM_Mac(HSM *h1, HSM *h2, uint8_t *nonce, uint8_t *mac) {
-    int rv = ERROR;
-    HSM_GET_NONCE_RESP nonceResp;
-    HSM_MAC_REQ macReq;
-    HSM_MAC_RESP macResp;
-    HSM_RET_MAC_REQ retMacReq;
-    string resp_str;
-
-#ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h1->hidDevice, 0, HSM_GET_NONCE, 0, 0,
-                   "", &resp_str));
-    memcpy(&nonceResp, resp_str.data(), resp_str.size());
-#else
-    CHECK_C (UsbDevice_exchange(h1->usbDevice, HSM_GET_NONCE, NULL,
-                0, (uint8_t *)&nonceResp, sizeof(nonceResp)));
-#endif
-
-    memcpy(nonce, nonceResp.nonce, NONCE_LEN);
-    memcpy(macReq.nonce, nonceResp.nonce, NONCE_LEN);
- 
-#ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h2->hidDevice, 0, HSM_MAC, 0, 0,
-                   string(reinterpret_cast<char*>(&macReq), sizeof(macReq)), &resp_str));
-    memcpy(&macResp, resp_str.data(), resp_str.size());
-#else
-    CHECK_C (UsbDevice_exchange(h2->usbDevice, HSM_MAC, (uint8_t *)&macReq,
-                sizeof(macReq), (uint8_t *)&macResp, sizeof(macResp)));
-#endif
-
-    memcpy(mac, macResp.mac, SHA256_DIGEST_LENGTH);
-    memcpy(retMacReq.mac, macResp.mac, SHA256_DIGEST_LENGTH);
- 
-#ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h1->hidDevice, 0, HSM_RET_MAC, 0, 0,
-                   string(reinterpret_cast<char*>(&retMacReq), sizeof(retMacReq)), &resp_str));
-#else
-    CHECK_C (UsbDevice_exchange(h1->usbDevice, HSM_RET_MAC, (uint8_t *)&retMacReq,
-                sizeof(retMacReq), NULL, 0));
-#endif
-
-cleanup:
-    if (rv == ERROR) printf("MAC MSG ERROR\n");
     return rv;
 }
 
@@ -877,6 +786,7 @@ cleanup:
     return rv;
 }
 
+>>>>>>> 759d238810a91e8ee84770de0b71b3b81831637c
 int HSM_SetParams(HSM *h, uint8_t *logPk) {
     int rv;
     HSM_SET_PARAMS_REQ req;
@@ -1118,17 +1028,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
         for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) printf("%02x", rootProofOld->leaf[j]);
         printf("\n");
         if (rootProofOld == NULL) printf("old proof is null\n");
-        if (rootProofNew == NULL) printf("new proof is null\n"); */
-        //printf("Generate root proofs, oldLen = %d, newLen = %d, max len = %d\n", rootProofOld->len, rootProofNew->len, MAX_PROOF_LEVELS);
-	if (!rootProofOld)
-		printf("NOT rootProofOld\n");
-	if (!rootProofNew)
-		printf("NOT rootProofNew\n");
-	if (rootProofOld->len > MAX_PROOF_LEVELS || rootProofNew->len > MAX_PROOF_LEVELS) {
-		printf("******* ERROR: BAD PROOF LEVELS, oldLen=%d, newLen=%d, maxLen=%d\n", rootProofOld->len, rootProofNew->len, MAX_PROOF_LEVELS); 
-		return ERROR;
-    	}
-        printf("about to get old root proof\n");
+        */
 	for (k = 0; k < rootProofOld->len; k++) {
             //printf("old proof item %d\n", k);
             memcpy(rootReq.rootProofOld[k], rootProofOld->hash[k], SHA256_DIGEST_LENGTH);
@@ -1170,11 +1070,9 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
         //for (j = 0; j < 10000; j++) {
         for (j = 0; j < CHUNK_SIZE; j++) {
             //printf("Auditing transition %d in round %d (chunk %d)\n", j, i, query);
-            printf("i = %d, j = %d\n", i, j);
-	    HSM_LOG_TRANS_PROOF_REQ proofReq;
+            HSM_LOG_TRANS_PROOF_REQ proofReq;
             HSM_LOG_TRANS_PROOF_RESP proofResp;
             int subquery = ((query - 1) * CHUNK_SIZE) + j;
-	    printf("subquery = %d\n", subquery);
 
             memcpy(proofReq.leafNew, state->tProofs[subquery].newProof->leaf, SHA256_DIGEST_LENGTH);
             memset(proofReq.leafNew, 0xff, SHA256_DIGEST_LENGTH);
@@ -1203,10 +1101,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
             CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_TRANS_PROOF, (uint8_t *)&proofReq,
                     sizeof(proofReq), (uint8_t *)&proofResp, sizeof(proofResp)));
 #endif
-	    //printf("HSM %d: got log_trans_proof\n", h->usbDevice->fd);
-            //printf("got response\n");
-		//COMMENT BACK IN!!!!
-	    CHECK_C (proofResp.result == 1);
+            CHECK_C (proofResp.result == 1);
             pthread_mutex_unlock(&h->m);
         }
     }

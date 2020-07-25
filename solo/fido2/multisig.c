@@ -59,9 +59,9 @@ uint8_t Multisig_Verify(uint8_t *msg, int msgLen, uint8_t *sig) {
     // e(pk, H(m))
     hashToLength(msg, msgLen, hashedMsg, 384);
     embedded_pairing_bls12_381_g1affine_from_hash(&base, hashedMsg);
-    embedded_pairing_bls12_381_g2_multiply_affine(&pk, embedded_pairing_bls12_381_g2affine_generator, &sk);
-    embedded_pairing_bls12_381_g2affine_from_projective(&pkAffine, &pk);
-    embedded_pairing_bls12_381_pairing(&res1, &base, &pkAffine);
+    //embedded_pairing_bls12_381_g2_multiply_affine(&pk, embedded_pairing_bls12_381_g2affine_generator, &sk);
+    //embedded_pairing_bls12_381_g2affine_from_projective(&aggPkAffine, &aggPk);
+    embedded_pairing_bls12_381_pairing(&res1, &base, &aggPkAffine);
 
     // e(g, sig)
     embedded_pairing_bls12_381_g1_unmarshal(&sigAffine, sig, true, true);

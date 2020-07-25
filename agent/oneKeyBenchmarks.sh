@@ -1,2 +1,0 @@
-./TreeBench
-./PuncEncBench

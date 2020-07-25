@@ -166,64 +166,13 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     while (bytesRead < respLen || respLen == 0) {
         CDCFrame frame;
         int framePointer = 0;
-	int ctr = 0;
-	while (framePointer < CDC_FRAME_SZ) {
+        while (framePointer < CDC_FRAME_SZ) {
             FD_ZERO(&fds);
             FD_SET(dev->fd, &fds);
     
             debug_print("bytesRead = %d, framePointer = %d\n", bytesRead, framePointer);
             int selectRes = select(dev->fd + 1, &fds, NULL, NULL, &timeout);
             if (selectRes <= 0) {
-		if (ctr == 0) {
-			printf("ERROR for fd %d, msg code %d, reqLen %d, framePtr = %d/64\n", dev->fd, msgType, reqLen, framePointer);
-			if (msgType != HSM_LOG_ROOTS_PROOF) {
-				printf("NOT TYPE LOG_ROOTS_PROOF\n");
-			} else {
-			HSM_LOG_ROOTS_PROOF_REQ *logReq = (HSM_LOG_ROOTS_PROOF_REQ *)req;
-			printf("headOld: ");
-			for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-				printf("%02x", logReq->headOld[i]);
-			}
-			printf("\n");
-			printf("headNew: ");
-			for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-				printf("%02x", logReq->headNew[i]);
-			}
-			printf("\n");
-			printf("rootProofOld: ");
-			for (int i = 0; i < MAX_PROOF_LEVELS; i++) {
-				for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) {
-					printf("%02x", logReq->rootProofOld[i][j]);
-				}
-				printf("    ");
-			}
-			printf("\n");
-			printf("rootProofNew: ");
-			for (int i = 0; i < MAX_PROOF_LEVELS; i++) {
-				for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) {
-					printf("%02x", logReq->rootProofNew[i][j]);
-				}
-				printf("    ");
-			}
-			printf("\n");
-			printf("idsOld: ");
-			for (int i = 0; i < MAX_PROOF_LEVELS; i++) {
-				printf("%02x", logReq->idsOld[i]);
-			}
-			printf("\n");
-			printf("idsNew: ");
-			for (int i = 0; i < MAX_PROOF_LEVELS; i++) {
-				printf("%02x", logReq->idsNew[i]);
-			}
-			printf("\n");
-			printf("idNew: %d\n", logReq->idNew);
-			printf("lenNew: %d\n", logReq->lenNew);
-			printf("idOld: %d\n", logReq->idOld);
-			printf("lenOld: %d\n", logReq->lenOld);
-			}
-
-		}
-		ctr++;
                 debug_print("*** SELECT ERR: %d\n", selectRes);
                 // NEXT TWO LINES WERE IN
                 //tcflush(dev->fd, TCIOFLUSH);

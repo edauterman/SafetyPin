@@ -61,7 +61,6 @@ int ElGamal_Encrypt(Params *params, BIGNUM *msg, EC_POINT *pk, BIGNUM *r, EC_POI
         CHECK_C (EC_POINT_mul(params->group, R, r, NULL, NULL, params->bn_ctx));
     }
 
-    //CHECK_A (r = BN_new());
     CHECK_A (tmp = EC_POINT_new(params->group));
     CHECK_A (hashedTmp = EC_POINT_new(params->group));
 
@@ -80,21 +79,9 @@ int ElGamal_Encrypt(Params *params, BIGNUM *msg, EC_POINT *pk, BIGNUM *r, EC_POI
     CHECK_C (EVP_DigestUpdate(mdctx, pointBuf, 33));
     CHECK_C (EVP_DigestFinal_ex(mdctx, hashedKeyBuf, NULL));
 
-    //Params_hashToPoint(params, hashedTmp, pointBuf, 33);
-    //printf("H(pk^r): %s\n", EC_POINT_point2hex(params->group, hashedTmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
-    // Then use to encrypt message
-    //Params_pointToBytes(params, keyBuf, hashedTmp);
-    //CHECK_C (hash_to_bytes(hashedKeyBuf, 32, keyBuf, 33));
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
     CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, hashedKeyBuf, NULL));
     CHECK_C (EVP_EncryptUpdate(ctx, c->C, &bytesFilled, msgBuf, FIELD_ELEM_LEN));
- 
-
-//    printf("R compressed: %s\n", EC_POINT_point2hex(params->group, c->R, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
-//    printf("C compressed: %s\n", EC_POINT_point2hex(params->group, c->C, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
-//    printf("R: %s\n", EC_POINT_point2hex(params->group, c->R, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-//    printf("C: %s\n", EC_POINT_point2hex(params->group, c->C, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
-//    printf("pk: %s\n", EC_POINT_point2hex(params->group, pk, POINT_CONVERSION_UNCOMPRESSED, params->bn_ctx));
 
 cleanup:
     return rv;
@@ -124,17 +111,11 @@ int ElGamal_Decrypt(Params *params, BIGNUM *msg, BIGNUM *sk, ElGamal_ciphertext 
     CHECK_C (EVP_DigestUpdate(mdctx, pointBuf, 33));
     CHECK_C (EVP_DigestFinal_ex(mdctx, hashedKeyBuf, NULL));
 
-    //Params_hashToPoint(params, hashedTmp, pointBuf, 33);
-    //printf("H(R^sk): %s\n", EC_POINT_point2hex(params->group, hashedTmp, POINT_CONVERSION_COMPRESSED, params->bn_ctx));
-    // Then use to decrypt message
-    //Params_pointToBytes(params, keyBuf, hashedTmp);
-    //CHECK_C (hash_to_bytes(hashedKeyBuf, 32, keyBuf, 33));
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
     CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, hashedKeyBuf, NULL));
     CHECK_C (EVP_DecryptUpdate(ctx, msgBuf, &bytesFilled, c->C, FIELD_ELEM_LEN));
 
     BN_bin2bn(msgBuf, FIELD_ELEM_LEN, msg);
-
 
 cleanup:
     if (tmp) EC_POINT_free(tmp);

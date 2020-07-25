@@ -267,19 +267,6 @@ cleanup:
     return rv; 
 }
 
-
-/* Requires 32 bytes. */
-/*void Shamir_Marshal(uint8_t *buf, ShamirShare *share) {
-    memset(buf, 0, 32);
-    BN_bn2bin(share->x, buf + 16 - BN_num_bytes(share->x));
-    BN_bn2bin(share->y, buf + 32 - BN_num_bytes(share->y));
-}
-
-void Shamir_Unmarshal(uint8_t *buf, ShamirShare *share) {
-    BN_bin2bn(buf, 16, share->x);
-    BN_bin2bn(buf + 16, 16, share->y);
-}*/
-
 void Shamir_MarshalCompressed(uint8_t *buf, ShamirShare *share) {
     memset(buf, 0, 32);
     BN_bn2bin(share->y, buf + 32 - BN_num_bytes(share->y));

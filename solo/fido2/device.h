@@ -32,6 +32,9 @@ void usbhid_close();
 
 void main_loop_delay();
 
+void device_flag();
+void device_unflag();
+
 void heartbeat();
 
 void device_reboot();
