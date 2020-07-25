@@ -12,6 +12,8 @@
 #include "cdc.h"
 #include "hsm.h"
 
+#define CDC_BUF_SZ 5000
+
 //uint8_t msgBuf[1024];
 //uint8_t msgBuf[1];
 //uint8_t msgBuf[3500];
@@ -46,6 +48,7 @@ static void cdc_write(uint8_t *data, int len, uint8_t msgType, uint8_t sessionNu
     int numRounds = len == 0 ? 1 : ceil((double)len / CDC_PAYLOAD_SZ);
     for (int i = 0; i < numRounds; i++) {
         struct CDCFrame frame;
+        memset((uint8_t *)&frame, 0, CDC_FRAME_SZ);
         frame.sessionNum = sessionNum;
         /* Don't need to set msg type for responses. */
         frame.seqNo = i;
@@ -62,14 +65,22 @@ static void cdc_write(uint8_t *data, int len, uint8_t msgType, uint8_t sessionNu
 void cdc_handle_packet(struct CDCFrame *frame, int remaining, int rhead, int whead)
 {
     if (frame->msgType == HSM_RESET) {
-        cdc_write(inOutBuf, 0, frame->msgType, currSessionNum);
+        cdc_write(inOutBuf, 0, frame->msgType, 0);
+        //cdc_write(inOutBuf, 0, frame->msgType, currSessionNum);
         currSessionNum = 0;
+//        device_flag();
         return;
     }
     if (frame->sessionNum != currSessionNum) {
         //if ((currSessionNum != 0xff) && (frame->sessionNum != 0)) return;
         return;
     }
+
+    if ((frame->seqNo + 1) * CDC_PAYLOAD_SZ > CDC_BUF_SZ) {
+        return;
+    }
+    //device_unflag();
+
     //currSessionNum = frame->sessionNum;
     memcpy(inOutBuf + frame->seqNo * CDC_PAYLOAD_SZ, frame->payload, CDC_PAYLOAD_SZ);
     int reqLen = HSM_GetReqLenFromMsgType(frame->msgType);

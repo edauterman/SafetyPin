@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://developers.google.com/open-source/licenses/bsd
 
-all: list CryptoTest TreeTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench TreeBuildBench UsbTest PingBench ElGamalTest SaveBench LogTest BaselineBench MultisigTest LogEpochTest ReencryptBench
+all: CryptoTest TreeTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench TreeBuildBench UsbTest ElGamalTest SaveBench LogTest BaselineBench MultisigTest LogEpochTest ReencryptBench
 
 #CC ?= gcc
 #CXX ?= g++
@@ -95,10 +95,6 @@ multisig.o: multisig.cc multisig.h
 merkle_tree.o: merkle_tree.cc merkle_tree.h
 	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) jedi-pairing/pairing.a -Wall -o merkle_tree.o merkle_tree.cc -lssl -lcrypto -lpthread
 
-# simple hidapi tool to list devices to see paths.
-list: list.c $(HIDAPI)
-	$(CC) $(CFLAGS) $(LDFLAGS) -Wall -o $@ $^ $(LDLIBS)
-
 TreeTest: TreeTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o elgamal.o elgamal_shamir.o mpc.o log.o multisig.o merkle_tree.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
 
@@ -121,9 +117,6 @@ UsbTest: UsbTest.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -I/usr/local/include -I/usr/local/Cellar/libusb/1.0.23/include/ -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lusb-1.0 -lpthread
 
 RecoveryBench: RecoveryBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o usb.o elgamal.o elgamal_shamir.o mpc.o log.o multisig.o merkle_tree.o $(HIDAPI)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
-
-PingBench: PingBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o usb.o elgamal.o elgamal_shamir.o mpc.o log.o multisig.o merkle_tree.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
 
 SaveBench: SaveBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o usb.o elgamal.o elgamal_shamir.o mpc.o log.o multisig.o merkle_tree.o $(HIDAPI)

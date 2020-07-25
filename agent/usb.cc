@@ -162,6 +162,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     while (bytesRead < respLen || respLen == 0) {
         CDCFrame frame;
         int framePointer = 0;
+        int ctr = 0;
         while (framePointer < CDC_FRAME_SZ) {
             FD_ZERO(&fds);
             FD_SET(dev->fd, &fds);
@@ -169,6 +170,7 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
             debug_print("bytesRead = %d, framePointer = %d\n", bytesRead, framePointer);
             int selectRes = select(dev->fd + 1, &fds, NULL, NULL, &timeout);
             if (selectRes <= 0) {
+                if (ctr == 0) printf("FAIL!!\n");
                 debug_print("*** SELECT ERR: %d\n", selectRes);
                 // NEXT TWO LINES WERE IN
                 //tcflush(dev->fd, TCIOFLUSH);

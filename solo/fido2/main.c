@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
     Multisig_Setup();
     ctap_generate_rng(pingKey, KEY_LEN);
 
+
     printf1(TAG_GREEN, "starting!\n");
 
     uint32_t t_old = millis();

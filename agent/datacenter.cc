@@ -138,7 +138,6 @@ RecoveryCiphertext *RecoveryCiphertext_new(Params *params) {
     for (int i = 0; i < HSM_GROUP_SIZE; i++)  {
         for (int j = 0; j < PUNC_ENC_REPL; j++) {
             CHECK_A (c->recoveryCts[i][j] = ElGamalCiphertext_new(params));
-//            CHECK_A (c->saltCts[i][j] = IBE_ciphertext_new(IBE_MSG_LEN));
         }
     }
     CHECK_A (c->locationHidingCt = LocationHidingCt_new(params, HSM_GROUP_SIZE));
@@ -242,35 +241,6 @@ cleanup:
   return rv;
 }
 
-int setMacKeys(Datacenter *d) {
-    int rv;
-    uint8_t ***macKeys = NULL;
-
-    CHECK_A (macKeys = (uint8_t ***)malloc(NUM_HSMS * sizeof(uint8_t **)));
-    for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_A (macKeys[i] = (uint8_t **)malloc(NUM_HSMS * sizeof(uint8_t *)));
-        for (int j = 0; j < NUM_HSMS; j++) {
-            CHECK_A (macKeys[i][j] = (uint8_t *)malloc(KEY_LEN));
-        }
-    }
-
-    for (int i = 0; i < NUM_HSMS; i++) {
-    //for (int i = 0; i < NUM_HSMS / 2; i++) {
-        for (int j = 0; j < NUM_HSMS; j++) {
-        //for (int j = NUM_HSMS / 2; j < NUM_HSMS; j++) {
-            CHECK_C (RAND_bytes(macKeys[i][j], KEY_LEN));
-            memcpy(macKeys[j][i], macKeys[i][j], KEY_LEN);
-        }
-    }
-
-    for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_SetMacKeys(d->hsms[i], macKeys[i]));
-    }
-cleanup:
-    if (rv == ERROR) printf("Error setting initial MAC keys\n");
-    return rv;
-}
-
 int Datacenter_Setup(Datacenter *d) {
     int rv;
     thread t[NUM_HSMS];
@@ -282,13 +252,11 @@ int Datacenter_Setup(Datacenter *d) {
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i] = thread(HSM_Setup, d->hsms[i]);
         printf("Started setup  %d/%d\n", i, NUM_HSMS);
-        //HSM_Setup(d->hsms[i]));
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
         printf("Done with setup  for %d/%d\n", i, NUM_HSMS);
     }
-    setMacKeys(d);
 cleanup:
     return rv;
 }
@@ -304,13 +272,11 @@ int Datacenter_SmallSetup(Datacenter *d) {
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i] = thread(HSM_SmallSetup, d->hsms[i]);
         printf("Started setup  %d/%d\n", i, NUM_HSMS);
-        //HSM_Setup(d->hsms[i]));
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
         printf("Done with setup  for %d/%d\n", i, NUM_HSMS);
     }
-    setMacKeys(d);
 cleanup:
     return rv;
 }
@@ -326,8 +292,6 @@ int Datacenter_TestSetup(Datacenter *d) {
 
     CHECK_A (cts = (uint8_t *)malloc(TREE_SIZE * CT_LEN));
     CHECK_A (mpk = (EC_POINT **)malloc(NUM_LEAVES * sizeof(EC_POINT *)));
-
-    //setMacKeys(d);
 
     printf("going to build tree\n");
     Log_GetPk(d->hsms[0]->params, logPk);
@@ -538,29 +502,6 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     CHECK_C (aesEncrypt(elGamalRand, innerCtBuf, HSM_GROUP_SIZE * PUNC_ENC_REPL * ELGAMAL_CT_LEN, c->iv, c->ct));
 
     printf("done with all the encryption\n");
-
-    /*  TODO: need to use elGamalRand to generate pad to XOR ciphertexts with */
-
-    /* Choose HSMs to hide salt  r. */
-    //chooseHsmsFromSalt(params, h2, c->s);
-
-    /* Split salt r into shares. */
-    //CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, r, params->prime, saltShares));
-
-    /* Encrypt [r]_i for each HSM. */
-    /*for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        uint8_t msg[IBE_MSG_LEN];
-        memset(msg, 0, IBE_MSG_LEN);
-        Shamir_Marshal(msg, saltShares[i]);
-        memset(msg + SHAMIR_MARSHALLED_SIZE, 0xff, SHA256_DIGEST_LENGTH);
-        printf("saltShares[%d]: ", i);
-        for (int j = 0; j < IBE_MSG_LEN; j++) {
-            printf("%x", msg[j]);
-        }
-        printf("\n");
- 
-        CHECK_C (HSM_Encrypt(d->hsms[h2[i]], userID  + 2, msg, IBE_MSG_LEN, c->saltCts[i]));
-    }*/
 
 cleanup:
     if (r) BN_free(r);

@@ -298,10 +298,11 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   //USB_TypeDef *usbx = hpcd.Instance;
   //int oldInterrupts = usbx->GINTMSK;
   //usbx->GINTMSK = 0U;
-  uint32_t oldIntr = __get_PRIMASK();
+  //uint32_t oldIntr = __get_PRIMASK();
   __disable_irq();
   int ret = fifo_cdcmsg_add(Buf); // assuming 64 bytes...
-  if (!oldIntr) __enable_irq();
+  __enable_irq();
+  //if (!oldIntr) __enable_irq();
   //usbx->GINTMSK = oldInterrupts;
   //return ret >= 0 ? USBD_OK : USBD_FAIL;
   return USBD_OK;

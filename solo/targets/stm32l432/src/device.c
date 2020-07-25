@@ -401,14 +401,18 @@ void usbcdc_send(uint8_t *msg, int len) {
 
 // packet size will be <= 64, later make this bigger
 int usbcdc_recv(uint8_t *msg, int *remaining, int *rhead, int *whead) {
+    if (fifo_cdcmsg_size() >= 100) {
+        device_flag();
+    }
     if (fifo_cdcmsg_size()) {
-        uint32_t oldIntr =  __get_PRIMASK();
+        //uint32_t oldIntr =  __get_PRIMASK();
         __disable_irq();
         fifo_cdcmsg_take(msg);
         *remaining = fifo_cdcmsg_size();
         *rhead = fifo_cdcmsg_rhead();
         *whead = fifo_cdcmsg_whead();
-        if (!oldIntr) __enable_irq();
+        __enable_irq();
+        //if (!oldIntr) __enable_irq();
         //return 1024;
         return 64;
     }
@@ -443,6 +447,16 @@ void device_wink(void)
     winkt1 = 0;
 }
 
+static uint8_t flag = 0;
+
+void device_flag(void) {
+    flag = 1;
+}
+
+void device_unflag(void) {
+    flag = 0;
+}
+
 void heartbeat(void)
 {
     static int state = 0;
@@ -450,6 +464,11 @@ void heartbeat(void)
     uint8_t r = (LED_INIT_VALUE >> 16) & 0xff;
     uint8_t g = (LED_INIT_VALUE >> 8) & 0xff;
     uint8_t b = (LED_INIT_VALUE >> 0) & 0xff;
+    if (flag == 1) {
+        r = (LED_INIT_VALUE >> 16) & 0xff;
+        g = (LED_INIT_VALUE >> 16) & 0xff;
+        b = (LED_INIT_VALUE >> 8) & 0xff;
+    }
     int but = IS_BUTTON_PRESSED();
 
     if (state)

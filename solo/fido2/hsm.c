@@ -457,12 +457,12 @@ int HSM_MicroBench(uint8_t *out, int *outLen) {
 int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen) {
 //    uint8_t buf[1024];
     uint8_t buf[CTAP_RESPONSE_BUFFER_SIZE - 16];
-    uint8_t key[16];    
+    /*uint8_t key[16];    
     memcpy(buf, req->buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
     crypto_aes256_init(key, NULL);
     crypto_aes256_decrypt(buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
     crypto_aes256_encrypt(buf, CTAP_RESPONSE_BUFFER_SIZE - 16);
-
+*/
     //memset(buf, 0xff, 1024);
     if (out) {
         //memcpy(out, buf, 1024);

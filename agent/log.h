@@ -32,31 +32,6 @@ typedef struct {
     TransitionProof tProofs[NUM_TRANSITIONS];
 } LogState;
 
-/*
-typedef struct {
-    uint8_t nodes[PROOF_LEVELS][PROOF_LEAVES][SHA256_DIGEST_LENGTH];
-} MerkleTree;
-
-typedef struct {
-    uint8_t nodes[ROOT_PROOF_LEVELS][ROOT_PROOF_LEAVES][SHA256_DIGEST_LENGTH];
-} RootMerkleTree;
-
-typedef struct {
-    uint8_t rootP[ROOT_PROOF_LEVELS][SHA256_DIGEST_LENGTH];
-} LogRootProof;
-
-typedef struct {
-    uint8_t oldRoot[SHA256_DIGEST_LENGTH];
-    uint8_t newRoot[SHA256_DIGEST_LENGTH];
-    uint8_t firstOldLeaf[SHA256_DIGEST_LENGTH];
-    uint8_t secondOldLeaf[SHA256_DIGEST_LENGTH];
-    uint8_t newLeaf[SHA256_DIGEST_LENGTH];
-    uint8_t firstOldP[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
-    uint8_t secondOldP[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
-    uint8_t newP[PROOF_LEVELS][SHA256_DIGEST_LENGTH];
-} LogTransProof;
-*/
-
 LogProof *LogProof_new();
 void LogProof_free(LogProof *p);
 
@@ -66,9 +41,4 @@ int Log_Prove(Params *params, LogProof *p, ElGamal_ciphertext *c, uint8_t *hsms)
 
 LogState *Log_RunSetup();
 
-/*int Log_CreateMerkleTree(MerkleTree *t);
-int Log_CreateRootMerkleTree(RootMerkleTree *t, uint8_t *leafValue);
-int Log_GenerateRootProof(LogRootProof *p, RootMerkleTree *tRoot, int index);
-int Log_GenerateSingleTransitionProof(LogTransProof *p, MerkleTree *tOld, MerkleTree *tNew, int index);
-*/
 #endif
