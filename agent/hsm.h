@@ -20,16 +20,18 @@ extern "C" {
 
 //#define HID
 
-#define NUM_HSMS 1
-#define HSM_GROUP_SIZE 1
-#define HSM_THRESHOLD_SIZE 1
-#define TOTAL_HSMS 500
+#define NUM_HSMS 10
+#define HSM_GROUP_SIZE 10
+//#define HSM_GROUP_SIZE 5
+#define HSM_THRESHOLD_SIZE 5
+#define TOTAL_HSMS 50000
 
 #define HSM_MAX_GROUP_SIZE 100
 #define HSM_MAX_THRESHOLD_SIZE  50
 
-#define NUM_CHUNKS 10   // log2(lambda * N)
-#define CHUNK_SIZE 100  // however many recoveries each HSM does in epoch
+#define NUM_CHUNKS 92   // log2(lambda * N)
+#define CHUNK_SIZE  17  // however many recoveries each HSM does in epoch
+//#define NUM_TRANSITIONS (TOTAL_HSMS * CHUNK_SIZE)
 
 #define KEY_LEN 32
 #define LEAF_LEN (2 * KEY_LEN)

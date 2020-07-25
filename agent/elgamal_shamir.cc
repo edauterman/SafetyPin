@@ -4,7 +4,7 @@
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <algorithm>
-#include <string>
+#include <string.h>
 
 #include "common.h"
 #include "hsm.h"

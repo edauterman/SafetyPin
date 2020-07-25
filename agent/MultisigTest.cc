@@ -9,6 +9,7 @@
 #include <string.h>
 #include <time.h>
 #include <map>
+#include <thread>
 
 #include "datacenter.h"
 #include "hsm.h"
@@ -27,6 +28,8 @@ int main(int argc, char *argv[]) {
 
   printf("did init\n");
 
+  embedded_pairing_bls12_381_g1_t sig[NUM_HSMS];
+  uint8_t msg[NUM_HSMS][SHA256_DIGEST_LENGTH];
   for (int i = 0; i < NUM_HSMS; i++) {
     //HSM_GetMpk(d->hsms[i]);
 

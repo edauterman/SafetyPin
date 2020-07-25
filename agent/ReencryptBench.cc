@@ -17,6 +17,7 @@
 #include "hsm.h"
 #include "ibe.h"
 #include "common.h"
+#include <thread>
 
 using namespace std;
 

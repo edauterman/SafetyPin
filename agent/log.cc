@@ -76,12 +76,12 @@ int Log_Prove(Params *params, LogProof *p, ElGamal_ciphertext *c, uint8_t *hsms)
     }
 
     CHECK_A (sig = ECDSA_do_sign(curr, SHA256_DIGEST_LENGTH, logKey));
-    //ECDSA_SIG_get0(sig, &r, &s);
+    ECDSA_SIG_get0(sig, &r, &s);
     memset(p->rootSig, 0, 2 * FIELD_ELEM_LEN);
-    //BN_bn2bin(r, p->rootSig + FIELD_ELEM_LEN - BN_num_bytes(r));
-    //BN_bn2bin(s, p->rootSig + 2 * FIELD_ELEM_LEN - BN_num_bytes(s));
-    BN_bn2bin(sig->r, p->rootSig + FIELD_ELEM_LEN - BN_num_bytes(sig->r));
-    BN_bn2bin(sig->s, p->rootSig + 2 * FIELD_ELEM_LEN - BN_num_bytes(sig->s));
+    BN_bn2bin(r, p->rootSig + FIELD_ELEM_LEN - BN_num_bytes(r));
+    BN_bn2bin(s, p->rootSig + 2 * FIELD_ELEM_LEN - BN_num_bytes(s));
+    //BN_bn2bin(sig->r, p->rootSig + FIELD_ELEM_LEN - BN_num_bytes(sig->r));
+    //BN_bn2bin(sig->s, p->rootSig + 2 * FIELD_ELEM_LEN - BN_num_bytes(sig->s));
 
 cleanup:
     if (mdctx) EVP_MD_CTX_destroy(mdctx);
@@ -102,21 +102,34 @@ LogState *Log_RunSetup() {
     }
     printf("Going to start creating Merkle tree\n");
     Node *head = MerkleTree_CreateTree(leafIds, leafValues, NUM_USERS);
+
+    printf("going to free\n");
+    for (int i = 0; i < NUM_USERS; i++) {
+	free(leafValues[i]);
+    }
+    free(leafValues);
+    free(leafIds);
+    printf("finished freeing\n");
+
     rootHashes[0] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
     memcpy(rootHashes[0], head->hash, SHA256_DIGEST_LENGTH);
     rootIds[0] = 0;
+    uint8_t buf[SHA256_DIGEST_LENGTH];
+    memset(buf, 0xff, SHA256_DIGEST_LENGTH);
 
     for (uint64_t i = 0; i < NUM_TRANSITIONS; i++) {
-        uint64_t id = i + NUM_USERS;
+    	uint64_t id = i + NUM_USERS;
         state->tProofs[i].id = id;
         state->tProofs[i].oldProof = MerkleTree_GetEmptyProof(head, id);
-        MerkleTree_InsertLeaf(head, id, leafValues[0]);
+        MerkleTree_InsertLeaf(head, id, buf);
         state->tProofs[i].newProof = MerkleTree_GetProof(head, id);
         rootHashes[i+1] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
         rootIds[i+1] = i+1;
         printf("root ids = %ld\n", rootIds[i]);
         memcpy(rootHashes[i+1], head->hash, SHA256_DIGEST_LENGTH);
     }
+
+    Node_free(head);
 
     state->rootsTree = MerkleTree_CreateTree(rootIds, rootHashes, NUM_TRANSITIONS + 1);
     printf("rootsTree ids = (%ld, %ld, %ld)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);

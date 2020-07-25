@@ -21,7 +21,7 @@ Node *Node_new() {
 void Node_free(Node *n) {
     if (n->rightChild != NULL) Node_free(n->rightChild);
     if (n->leftChild != NULL) Node_free(n->leftChild);
-    if (n->parent != NULL) Node_free(n->parent);
+//    if (n->parent != NULL) Node_free(n->parent);
     free(n);
 }
 
@@ -153,6 +153,7 @@ MerkleProof *MerkleTree_GetProof(Node *head, uint64_t id) {
     MerkleProof *proof = MerkleProof_new();
     Node *curr = head;
     int ctr = 0;
+    printf("looking for %ld\n", id);
     while (curr->id != id) {
         if (id <= curr->midID) {
             MerkleTree_CopyNodeHash(proof->hash[ctr], curr->rightChild);
@@ -164,13 +165,17 @@ MerkleProof *MerkleTree_GetProof(Node *head, uint64_t id) {
             curr = curr->rightChild;
         }
         ctr++;
-        if (curr == NULL) return NULL;  // ID not present.
+        if (curr == NULL) {
+		printf("%ld not present!\n", id);
+		return NULL;  // ID not present.
+	}
     }
     proof->len = ctr;
  
     memcpy(proof->head, head->hash, SHA256_DIGEST_LENGTH);
     memcpy(proof->leaf, curr->hash, SHA256_DIGEST_LENGTH);
     proof->id = id;
+    printf("Returning id %ld\n", id);
     return proof;
 }
 
@@ -266,7 +271,6 @@ Node *MerkleTree_CreateTree(uint64_t *ids, uint8_t **values, uint64_t len) {
         printf("Starting next level with %d nodes\n", currLen);
         parentNodes = (Node **)malloc(currLen * sizeof(Node *));
         for (uint64_t i = 0; i < currLen; i++) {
-            if (i % 1000 == 0) printf("Have processed %d/%d nodes in level\n", i, currLen);
             if (2 * i + 1 == currLen) {
                 parentNodes[i] = MerkleTree_CreateNewParent(currNodes[2 * i], NULL, maxDiff);
             } else {

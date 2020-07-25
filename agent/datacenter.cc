@@ -6,6 +6,7 @@
 #include <openssl/rand.h>
 #include <openssl/evp.h>
 #include <thread>
+#include <sys/time.h>
 
 #include "bls12_381/bls12_381.h"
 #include "common.h"
@@ -28,8 +29,9 @@
 using namespace std;
 
 //const char *HANDLES[] = {"/dev/cu.usbmodem2086366155482", "/dev/cu.usbmodem2052338246482"};
-const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
-/*const char *HANDLES[] = {"/dev/ttyACM0",
+//const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
+
+const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
 			"/dev/ttyACM2",
 			"/dev/ttyACM3",
@@ -130,7 +132,8 @@ const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
 			"/dev/ttyACM98",
 			"/dev/ttyACM99",
 };
-*/
+
+
 RecoveryCiphertext *RecoveryCiphertext_new(Params *params) {
     int rv = ERROR;
     RecoveryCiphertext *c = NULL;
@@ -551,6 +554,11 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     uint8_t saveKeyBuf[FIELD_ELEM_LEN];
     uint8_t saltHash[SHA256_DIGEST_LENGTH];
     int bytesFilled = 0;
+    struct timeval tStart, tLog, tElGamal, tEnd;
+    long logSec, logMicro, elGamalSec, elGamalMicro, puncEncSec, puncEncMicro, mpcSec, mpcMicro;
+    double logTime, elGamalTime, puncEncTime, mpcTime;
+
+    gettimeofday(&tStart, NULL);
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         CHECK_A (saveKeyShares[i] = ShamirShare_new());
@@ -578,6 +586,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         t0[i].join();
     }
  
+    gettimeofday(&tLog, NULL);
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         elGamalRandShares[i]->x = h1Bns[i];
@@ -588,6 +597,8 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     CHECK_C (ElGamalShamir_ReconstructShares(params, HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, c->locationHidingCt, elGamalRandShares, elGamalRand));
 
+    gettimeofday(&tElGamal, NULL);
+
     /* Decrypt ct to get inner ciphertexts using elGamalRand. */
     CHECK_C (aesDecrypt(elGamalRand, innerCtBuf, c->iv, c->ct, HSM_GROUP_SIZE * PUNC_ENC_REPL * ELGAMAL_CT_LEN));
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
@@ -595,7 +606,6 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
             ElGamal_Unmarshal(params, innerCtBuf + (i * PUNC_ENC_REPL + j) * ELGAMAL_CT_LEN, recoveryCts[i][j]);
         }
     }
-
 
     /* Run stage 1 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
@@ -605,14 +615,14 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     	//printf("pinShares[%d] = %s\n", i, BN_bn2hex(pinShares[i]->y));
 	    t2[i].join();
         Shamir_UnmarshalX(saveKeyShares[i], i + 1);
-        printf("saveKeyShares[%d] = %s\n", i, BN_bn2hex(saveKeyShares[i]->y));
+        //printf("saveKeyShares[%d] = %s\n", i, BN_bn2hex(saveKeyShares[i]->y));
     }
 
     /* Reassemble original saveKey. */
     CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, encryptedSaveKey));
 
     /* Salted hash of pin. */
-    printf("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
+    //printf("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
     CHECK_C (hashPinAndSalt(pin, c->s, saltHash));
     memset(encryptedSaveKeyBuf, 0, FIELD_ELEM_LEN);
     BN_bn2bin(encryptedSaveKey, encryptedSaveKeyBuf + FIELD_ELEM_LEN - BN_num_bytes(encryptedSaveKey));
@@ -621,6 +631,22 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     CHECK_C (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, saltHash, NULL));
     CHECK_C (EVP_DecryptUpdate(ctx, saveKeyBuf, &bytesFilled, encryptedSaveKeyBuf, SHA256_DIGEST_LENGTH));
     BN_bin2bn(saveKeyBuf, FIELD_ELEM_LEN, saveKey);
+
+    gettimeofday(&tEnd, NULL);
+
+    logSec = (tLog.tv_sec - tStart.tv_sec);
+    logMicro = (tLog.tv_usec - tStart.tv_usec);
+    logTime = logSec + (logMicro / 1000000.0);
+    elGamalSec = (tElGamal.tv_sec - tStart.tv_sec);
+    elGamalMicro = (tElGamal.tv_usec - tStart.tv_usec);
+    elGamalTime = elGamalSec + (elGamalMicro / 1000000.0);
+    puncEncSec = (tEnd.tv_sec - tStart.tv_sec);
+    puncEncMicro = (tEnd.tv_usec - tStart.tv_usec);
+    puncEncTime = puncEncSec + (puncEncMicro / 1000000.0);
+
+    printf("------ Log time: %f, %d sec, %d micros\n", logTime, logSec, logMicro);
+    printf("------ El Gamal time: %f, %d sec, %d micros\n", elGamalTime, elGamalSec, elGamalMicro);
+    printf("------ Punc Enc time: %f, %d sec, %d micros\n", puncEncTime, puncEncSec, puncEncMicro);
 
     //printf("done: %s\n", BN_bn2hex(saveKey));
 
@@ -633,21 +659,20 @@ cleanup:
 }
 
 // Assumes that aggPk already set
-int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, LogState *state) {
+int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, LogState *state, embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS]) {
     int rv;
-    embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS];
-    embedded_pairing_bls12_381_g1_t aggSig;
-    uint8_t head[SHA256_DIGEST_LENGTH];
     thread t[NUM_HSMS];
-
-    CHECK_C (RAND_bytes(head, SHA256_DIGEST_LENGTH));
-
+    
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i] = thread(HSM_LogEpochVerification, d->hsms[i], &sigs[i], state);
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
+	printf("HSM %d done.\n", i);
     }
+
+    printf("all state transition verification done\n");
+/*    gettimeofday(&tVerify, NULL);
  
     Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
     for (int i = 0; i < NUM_HSMS; i++) {
@@ -656,6 +681,20 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
     }
+
+    gettimeofday(&tEnd, NULL);
+
+    verifySec = (tVerify.tv_sec - tStart.tv_sec);
+    verifyMicro = (tVerify.tv_usec - tStart.tv_usec);
+    verifyTime = verifySec + (verifyMicro / 1000000.0);
+    aggSec = (tEnd.tv_sec - tStart.tv_sec);
+    aggMicro = (tEnd.tv_usec - tStart.tv_usec);
+    aggTime = aggSec + (aggMicro / 1000000.0);
+
+    printf("------ Transition verification time: %f, %d sec, %d micros\n", verifyTime, verifySec, verifyMicro);
+    printf("------ Signature aggregation and verification: %f, %d sec, %d micros\n", aggTime, aggSec, aggMicro);
+
+*/
 
 cleanup:
     return rv;
