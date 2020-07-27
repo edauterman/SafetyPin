@@ -18,47 +18,61 @@
 extern "C" {
 #endif
 
+/* UNCOMMENT TO USE HID CLASS INSTEAD OF CDC. */
 //#define HID
 
-#define NUM_HSMS 10
-#define HSM_GROUP_SIZE 10
-//#define HSM_GROUP_SIZE 5
-#define HSM_THRESHOLD_SIZE 5
-#define TOTAL_HSMS 50000
+// The corresponding constants in datacenter.h must also be updated.
+#define NUM_HSMS 1		// Number of physical HSMs
+#define HSM_GROUP_SIZE 10	// Number of HSMs to encrypt to
+#define HSM_THRESHOLD_SIZE 5	// Number of HSMs that cannot fail
+#define TOTAL_HSMS 50000	// Total number of HSMs theoretically in system
+				// (used to compute amount of log verification work).
 
-#define HSM_MAX_GROUP_SIZE 100
-#define HSM_MAX_THRESHOLD_SIZE  50
+#define HSM_MAX_GROUP_SIZE 100	// Maximum size of HSM_GROUP_SIZE
+#define HSM_MAX_THRESHOLD_SIZE  50	// Maximum size of HSM_THRESHOLD_SIZE
 
-#define NUM_CHUNKS 92   // log2(lambda * N)
-#define CHUNK_SIZE  17  // however many recoveries each HSM does in epoch
-//#define NUM_TRANSITIONS (TOTAL_HSMS * CHUNK_SIZE)
+// Log
+#define NUM_CHUNKS 92   // Number of chunks each HSM should audit for lambda = 128.
+#define CHUNK_SIZE  17  // Size of each chunk audited. 
 
-#define KEY_LEN 32
-#define LEAF_LEN (2 * KEY_LEN)
-#define CT_LEN (2 * KEY_LEN + 32)
+// Puncturable encryption
+#define KEY_LEN 32		// Length of key 
+#define LEAF_LEN (2 * KEY_LEN)	// Length of leaf in puncturable encryption tree
+#define CT_LEN (2 * KEY_LEN + 32)	// Size of ciphertext in puncturable encryption tree
+#define PUNC_ENC_REPL 5 	// Number of leaves each puncturable encryption ciphertext hashes to
+#define NUM_LEAVES 2097152	// Total number of leaves in puncturable encryption tree
+#define LEVELS 22 		// log2(NUM_LEAVES) + 1
+#define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES)
+#define SUB_TREE_LEVELS 5	// Number of levels in each subtree
 
+#define SUB_TREE_SIZE ((RESPONSE_BUFFER_SIZE / (4 * KEY_LEN)) - 1) // Number of nodes in each subtree
+#define TREE_SIZE (NUM_LEAVES * 2 - 1)	// Number of nodes in entire tree
+#define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)	// Number of leaves in subtree
+#define NUM_INTERMEDIATE_KEYS (NUM_SUB_LEAVES * 2)	// Number of keys stored in each subtree
+// Constants for different subtrees for puncturable encryption
+#define LEVEL_0 0
+#define LEVEL_1 1
+#define LEVEL_2 2
+#define LEVEL_3 3
+#define LEVEL_DONE -1
+// Offsets at different levels of puncturable encryption subtrees
+#define LEVEL_1_OFFSET ((524288 + 262144 + 131072 + 65536 + 32768) * CT_LEN)
+#define LEVEL_2_OFFSET (LEVEL_1_OFFSET + ((16384 + 8192 + 4096 + 2048 + 1024) * CT_LEN))
+#define LEVEL_3_OFFSET (LEVEL_1_OFFSET + LEVEL_2_OFFSET +  ((512 + 256 + 128 + 64 + 32) * CT_LEN))
+#define LEVEL_1_NUM_LEAVES 16384 
+#define LEVEL_2_NUM_LEAVES 512
+#define LEVEL_3_NUM_LEAVES 16
+
+// Crypto primitive sizes
 #define COMPRESSED_PT_SZ 33
 #define FIELD_ELEM_LEN 32
 #define ELGAMAL_CT_LEN (COMPRESSED_PT_SZ + FIELD_ELEM_LEN)
 #define ELGAMAL_PK_LEN COMPRESSED_PT_SZ
-
-#define PUNC_ENC_REPL 5 
-#define NUM_ATTEMPTS 1
-
 #define AES_CT_LEN FIELD_ELEM_LEN
 
-#define RESPONSE_BUFFER_SIZE 4096
+#define RESPONSE_BUFFER_SIZE 4096	// Confifgured on HSM
 
-#define NUM_LEAVES 2097152
-#define LEVELS 22 // log2(NUM_LEAVES) + 1
-#define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES) + 1
-#define SUB_TREE_LEVELS 5
-
-#define SUB_TREE_SIZE ((RESPONSE_BUFFER_SIZE / (4 * KEY_LEN)) - 1)
-#define TREE_SIZE (NUM_LEAVES * 2 - 1)
-#define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)
-#define NUM_INTERMEDIATE_KEYS (NUM_SUB_LEAVES * 2)
-
+// Message opcodes
 #define HSM_SETUP           0x70
 #define HSM_RETRIEVE        0x71
 #define HSM_PUNCTURE        0x72
@@ -86,21 +100,6 @@ extern "C" {
 #define HSM_LOG_TRANS_PROOF             0x8d
 #define HSM_LOG_ROOTS                   0x8e
 #define HSM_LOG_ROOTS_PROOF             0x8f
-
-#define LEVEL_0 0
-#define LEVEL_1 1
-#define LEVEL_2 2
-#define LEVEL_3 3
-#define LEVEL_DONE -1
-
-#define LEVEL_1_OFFSET ((524288 + 262144 + 131072 + 65536 + 32768) * CT_LEN)
-#define LEVEL_2_OFFSET (LEVEL_1_OFFSET + ((16384 + 8192 + 4096 + 2048 + 1024) * CT_LEN))
-#define LEVEL_3_OFFSET (LEVEL_1_OFFSET + LEVEL_2_OFFSET +  ((512 + 256 + 128 + 64 + 32) * CT_LEN))
-#define LEVEL_1_NUM_LEAVES 16384 
-#define LEVEL_2_NUM_LEAVES 512
-#define LEVEL_3_NUM_LEAVES 16
-
-#define NONCE_LEN 16 
 
 using namespace std;
 
@@ -169,22 +168,6 @@ typedef struct {
     //uint8_t buf[1024];
     uint8_t buf[RESPONSE_BUFFER_SIZE - 16];
 } HSM_LONG_RESP;
-
-typedef struct {
-    uint8_t nonce[NONCE_LEN];
-} HSM_MAC_REQ;
-
-typedef struct {
-    uint8_t mac[SHA256_DIGEST_LENGTH];
-} HSM_MAC_RESP;
-
-typedef struct {
-    uint8_t nonce[NONCE_LEN];
-} HSM_GET_NONCE_RESP;
-
-typedef struct {
-    uint8_t mac[SHA256_DIGEST_LENGTH];
-} HSM_RET_MAC_REQ;
 
 typedef struct {
     uint8_t pk[ELGAMAL_PK_LEN];

@@ -61,13 +61,12 @@ void HSM_free(HSM *h) {
     free(h);
 }
 
+/* Get puncturable encryption public key. */
 int HSM_GetMpk(HSM *h) {
     int rv =  ERROR;
     HSM_MPK_RESP resp;
     string resp_str;
-    printf("going to lock\n");
     pthread_mutex_lock(&h->m);
-    printf("locked\n");
 
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MPK, 0, 0,
@@ -78,16 +77,13 @@ int HSM_GetMpk(HSM *h) {
                 sizeof(resp)));
 #endif
 
-    // TODO: need to redo this!!
-    //IBE_UnmarshalMpk(resp.mpk, &h->mpk);
-
-    printf("Got mpk\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("MPK ERROR\n");
     return rv;
 }
 
+/* Helper function for puncturable encryption setup. */
 void copySubTree(uint8_t *out, uint8_t *in, int numLeaves, int numSubLeaves, int ctr) {
     int offsetOut = 0;
     int offsetIn = 0;
@@ -102,6 +98,8 @@ void copySubTree(uint8_t *out, uint8_t *in, int numLeaves, int numSubLeaves, int
     }
 }
 
+/* Run puncturable encryption setup where create puncturable encryption tree
+ * on host first (ONLY FOR TESTING, NOT SECURE). */
 int HSM_TestSetup(HSM *h) {
     int rv = ERROR;
     HSM_TEST_SETUP_REQ req;
@@ -111,9 +109,7 @@ int HSM_TestSetup(HSM *h) {
 
     pthread_mutex_lock(&h->m);
 
-    printf("going to run test setup\n");
     PuncEnc_BuildTree(h->params, (uint8_t *)h->cts, req.msk, req.hmacKey, h->mpk);
-    //PuncEnc_BuildTree((uint8_t *)h->cts, req.msk, req.hmacKey, &h->mpk);
 
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_TEST_SETUP, 0, 0,
@@ -123,13 +119,14 @@ int HSM_TestSetup(HSM *h) {
                 sizeof(req), NULL, 0));
 #endif
 
-    printf("done with test setup\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("TEST SETUP ERROR\n");
     return rv;
 }
 
+/* Run puncturable encryption setup where puncturable encryption tree is
+ * passed in as input (ONLY FOR TESTING, NOT SECURE). */
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], EC_POINT **mpk) {
     int rv = ERROR;
     HSM_TEST_SETUP_REQ req;
@@ -139,12 +136,10 @@ int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmac
 
     pthread_mutex_lock(&h->m);
 
-    printf("going to run test setup\n");
     memcpy(h->cts, cts, TREE_SIZE * CT_LEN);
     memcpy(req.msk, msk, KEY_LEN);
     memcpy(req.hmacKey, hmacKey, KEY_LEN);
     h->mpk = mpk;
-    //memcpy(&h->mpk, mpk, sizeof(embedded_pairing_bls12_381_g2_t));
 
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_TEST_SETUP, 0, 0,
@@ -154,13 +149,13 @@ int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmac
                 sizeof(req), NULL, 0));
 #endif
 
-    printf("done with test setup\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("TEST SETUP ERROR\n");
     return rv;
 }
 
+/* Create small puncturable encryption tree on HSM. */
 int HSM_SmallSetup(HSM *h) {
     int rv = ERROR;
     HSM_SETUP_RESP resp;
@@ -180,14 +175,14 @@ int HSM_SmallSetup(HSM *h) {
 #endif
 
     memcpy(h->cts, resp.cts, SUB_TREE_SIZE * CT_LEN);
-
-    printf("done with small setup\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("SMALL SETUP ERROR\n");
     return rv;
 }
 
+/* Run puncturable encryption setup on HSM. Secure, but takes a very
+ * long time (order of days). */
 int HSM_Setup(HSM *h) {
     int rv =  ERROR;
     HSM_SETUP_RESP resp;
@@ -200,7 +195,7 @@ int HSM_Setup(HSM *h) {
     pthread_mutex_lock(&h->m);
 
     while (currLevel != LEVEL_DONE) {
-        printf("currLevel = %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d, ctr[3] = %d\n", currLevel, ctr[0], ctr[1], ctr[2], ctr[3]);
+        debug_print("currLevel = %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d, ctr[3] = %d\n", currLevel, ctr[0], ctr[1], ctr[2], ctr[3]);
 
 #ifdef HID 
         CHECK_C(EXPECTED_RET_VAL ==  U2Fob_apdu(h->hidDevice, 0, HSM_SETUP, 0, 0,
@@ -238,7 +233,7 @@ int HSM_Setup(HSM *h) {
             currLevel = LEVEL_DONE;
         }
         
-        printf("next level: %d\n", currLevel);
+        debug_print("next level: %d\n", currLevel);
 
     }
 cleanup:
@@ -247,6 +242,7 @@ cleanup:
     return rv;
 }
 
+/* Retrieve a leaf indexed by index from puncturable encryption tree. */
 int HSM_Retrieve(HSM *h, uint32_t index) {
     int rv = ERROR;
     int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
@@ -262,7 +258,7 @@ int HSM_Retrieve(HSM *h, uint32_t index) {
     pthread_mutex_lock(&h->m);
 
     for (int i = 0; i < levels; i++) {
-        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
+        debug_print("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
         
         memcpy(req.cts[levels - i - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
         totalTraveled += currInterval;
@@ -281,18 +277,14 @@ int HSM_Retrieve(HSM *h, uint32_t index) {
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
 
-    printf("leaf: ");
-    for (int i = 0; i < LEAF_LEN; i++) {
-        printf("%x ", resp.leaf[i]);
-    }
-    printf("\n");
-    printf("finished retrieving leaf\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
 
+/* Puncture a leaf in puncturable encryption tree. Should only be called if
+ * lock is held for corresponding HSM. */
 int puncture_noLock(HSM *h, uint32_t index) {
     int rv = ERROR;
     HSM_PUNCTURE_REQ req;
@@ -306,8 +298,6 @@ int puncture_noLock(HSM *h, uint32_t index) {
     size_t indexes[keyLevels];
 
     for (int i = 0; i < keyLevels; i++) {
-//        printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
-        
         memcpy(req.cts[keyLevels - i - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
         indexes[i] = totalTraveled + currIndex;
         totalTraveled += currInterval;
@@ -327,18 +317,17 @@ int puncture_noLock(HSM *h, uint32_t index) {
 #endif
 
     for (int i = 0; i < keyLevels; i++) {
-//        printf("setting index %d for ct[%d]: ", indexes[i], i);
         memcpy(h->cts + indexes[i] * CT_LEN, resp.cts[i], CT_LEN);
     }
 
     h->isPunctured[index] = true;
 
-//    printf("finished puncturing leaf\n");
 cleanup:
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
 
+/* Puncture leaf in puncturable encryption tree (called without lock held). */
 int HSM_Puncture(HSM *h, uint32_t index) {
     int rv = ERROR;
 
@@ -351,6 +340,8 @@ cleanup:
     return rv;
 }
 
+/* Encrypt to HSM using puncturable encryption scheme (ElGamal encrypt to PUNC_ENC_REPL
+ * of the leaves). */
 int HSM_Encrypt(HSM *h, uint32_t tag, BIGNUM *msg, ElGamal_ciphertext *c[PUNC_ENC_REPL]) {
     int rv;
     uint32_t indexes[PUNC_ENC_REPL];
@@ -360,7 +351,6 @@ int HSM_Encrypt(HSM *h, uint32_t tag, BIGNUM *msg, ElGamal_ciphertext *c[PUNC_EN
     CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
 
     for (int i = 0; i < PUNC_ENC_REPL; i++)  {
-        printf("encrypt to %d\n", indexes[i]);
         ElGamal_Encrypt(h->params, msg, h->mpk[indexes[i]], NULL, NULL, c[i]);
     }
     pthread_mutex_unlock(&h->m);
@@ -368,6 +358,8 @@ cleanup:
     return rv;
 }
 
+/* Decrypt on HS using puncturable encryption scheme. Only decrypt using one of the
+ * leaves, but puncture all the leaves that can decrypt. */
 int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], BIGNUM *msg) {
     int rv = ERROR;
     HSM_AUTH_DECRYPT_REQ req;
@@ -400,8 +392,6 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], 
         size_t ctIndexes[levels];
     
         for (int j = 0; j < levels; j++) {
-//            printf("currIndex = %d, totalTraveled = %d, currInterval = %d, will get %d/%d\n", currIndex, totalTraveled, currInterval, totalTraveled + currIndex, TREE_SIZE);
-        
             memcpy(req.treeCts[levels - j - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
  
             ctIndexes[j] = totalTraveled + currIndex;
@@ -412,7 +402,6 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], 
 
         ElGamal_Marshal(h->params, req.elGamalCt, c[i]);
         req.index = indexes[i];
-//        printf("retrieving from %d\n", indexes[i]);
 
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_DECRYPT, 0, 0,
@@ -430,16 +419,15 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], 
         for (int j = 0; j < levels - 1; j++) {
             memcpy(h->cts + (ctIndexes[j] * CT_LEN), resp.newCts[j], CT_LEN);
         }
-//        printf("finished ciphertexts %d/%d\n", i, PUNC_ENC_REPL);
     }
 
-//    printf("finished retrieving auth decryption\n");
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
     return rv;
 }
 
+/* Run microbenchmarks on HSM (only for testing). */
 int HSM_MicroBench(HSM *h) {
     int rv =  ERROR;
     string resp_str;
@@ -458,6 +446,7 @@ cleanup:
     return rv;
 }
 
+/* Send and receive long message from HSM (only for testing). */
 int HSM_LongMsg(HSM *h) {
     int rv =  ERROR;
     HSM_LONG_REQ req;
@@ -465,7 +454,6 @@ int HSM_LongMsg(HSM *h) {
     string resp_str;
     pthread_mutex_lock(&h->m);
 
-    //memset(req.buf, 0xff, 1024);
     memset(req.buf, 0xff, RESPONSE_BUFFER_SIZE - 16);
 
 #ifdef HID
@@ -476,19 +464,13 @@ int HSM_LongMsg(HSM *h) {
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
 
-//    printf("received: ");
-//    for (int i = 0; i < 1024; i++) {
-//    for (int i = 0; i < RESPONSE_BUFFER_SIZE  - 16; i++) {
-//        printf("%x", req.buf[i]);
-//    }
-//    printf("\n");
-
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("LONG MSG ERROR\n");
     return rv;
 }
 
+/* Get the ElGamal public key for a HSM. */
 int HSM_ElGamalGetPk(HSM *h) {
     int rv;
     HSM_ELGAMAL_PK_RESP resp;
@@ -506,14 +488,13 @@ int HSM_ElGamalGetPk(HSM *h) {
 #endif
     Params_bytesToPoint(h->params, resp.pk, h->elGamalPk);
 
-    printf("got el gamal public key\n");
-
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("ERROR GETTING ELGAMAL PK\n");
     return rv;
 }
 
+/* ElGamal encrypt to a HSM. */
 int HSM_ElGamalEncrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     int rv;
     CHECK_C (ElGamal_Encrypt(h->params, msg, h->elGamalPk, NULL, NULL, c));
@@ -523,6 +504,7 @@ cleanup:
     return rv;
 }
 
+/* Ask HSM to ElGamal decrypt a ciphertext. */
 int HSM_ElGamalDecrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     int rv;
     HSM_ELGAMAL_DECRYPT_REQ req;
@@ -548,245 +530,7 @@ cleanup:
     return rv;
 }
 
-/*
-int HSM_AuthMPCDecrypt1Commit(HSM *h, uint8_t *dCommit, uint8_t *eCommit, uint32_t tag, IBE_ciphertext *c[PUNC_ENC_REPL], uint8_t *aesCt, uint8_t *aesCtTag, ShamirShare *pinShare) {
-    int rv = ERROR;
-    HSM_AUTH_MPC_DECRYPT_1_COMMIT_REQ req;
-    HSM_AUTH_MPC_DECRYPT_1_COMMIT_RESP resp;
-    string resp_str;
-    int numLeaves;
-    int levels;
-    uint32_t currIndex;
-    uint32_t totalTraveled;
-    uint32_t currInterval;
-    uint32_t indexes[PUNC_ENC_REPL];
-    bool gotPlaintext = false;
-
-    pthread_mutex_lock(&h->m);
-
-    CHECK_C (PuncEnc_GetIndexesForTag(h->params, tag, indexes));
-
-    for (int i = 0; i < PUNC_ENC_REPL; i++) {
-
-        if (gotPlaintext || h->isPunctured[indexes[i]]) {
-            CHECK_C (puncture_noLock(h, indexes[i]));
-            continue;
-        }
-
-        numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
-        levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
-        currIndex = indexes[i];
-        totalTraveled = 0;
-        currInterval = numLeaves;
-        size_t ctIndexes[levels];
-    
-        for (int j = 0; j < levels; j++) {
-            memcpy(req.treeCts[levels - j - 1], h->cts + (totalTraveled + currIndex) * CT_LEN, CT_LEN);
-            ctIndexes[j] = totalTraveled + currIndex;
-            totalTraveled += currInterval;
-            currInterval /= 2;
-            currIndex /= 2;
-        }
-
-        IBE_MarshalCt(req.ibeCt, IBE_MSG_LEN, c[i]);
-        req.index = indexes[i];
-   
-        Shamir_MarshalCompressed(req.pinShare, pinShare); 
-
-        memcpy(req.aesCt, aesCt, AES_CT_LEN);
-        memcpy(req.aesCtTag, aesCtTag, SHA256_DIGEST_LENGTH);
-
-#ifdef HID
-        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_1_COMMIT, 0, 0,
-                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-        memcpy(&resp, resp_str.data(), resp_str.size());
-#else
-        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_1_COMMIT, (uint8_t *)&req,
-                    sizeof(req), (uint8_t *)&resp, sizeof(resp)));
-#endif
-        memcpy(dCommit, resp.dCommit, SHA256_DIGEST_LENGTH);
-        memcpy(eCommit, resp.eCommit, SHA256_DIGEST_LENGTH);
-
-        gotPlaintext =  true;
-        h->isPunctured[indexes[i]] = true;
-
-        for (int j = 0; j < levels - 1; j++) {
-            memcpy(h->cts + (ctIndexes[j] * CT_LEN), resp.newCts[j], CT_LEN);
-        }
-        //printf("finished ciphertexts %d/%d\n", i, PUNC_ENC_REPL);
-    }
-
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
-    return rv;
-}
-
-int HSM_AuthMPCDecrypt1Open(HSM *h, ShamirShare *dShare, ShamirShare *eShare, uint8_t *dOpening, uint8_t *eOpening, uint8_t **dMacs, uint8_t **eMacs, uint8_t **dCommits, uint8_t **eCommits, uint8_t *hsms, uint8_t reconstructIndex) {
-    int rv;
-    HSM_AUTH_MPC_DECRYPT_1_OPEN_REQ req;
-    HSM_AUTH_MPC_DECRYPT_1_OPEN_RESP resp;
-    string resp_str;
-
-    pthread_mutex_lock(&h->m);
-
-    for (int i = 0; i < HSM_THRESHOLD_SIZE; i++) {
-        memcpy(req.dCommits[i], dCommits[i], SHA256_DIGEST_LENGTH);
-        memcpy(req.eCommits[i], eCommits[i], SHA256_DIGEST_LENGTH);
-    }
-    memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
-
-#ifdef HID
-        CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_1_OPEN, 0, 0,
-                    string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-        memcpy(&resp, resp_str.data(), resp_str.size());
-#else
-        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_1_OPEN, (uint8_t *)&req,
-                    sizeof(req), (uint8_t *)&resp, sizeof(resp)));
-#endif
- 
-    Shamir_UnmarshalCompressed(resp.dShare, reconstructIndex, dShare);
-    Shamir_UnmarshalCompressed(resp.eShare, reconstructIndex, eShare);
-    for (int j = 0; j < HSM_GROUP_SIZE; j++) {
-        memcpy(dMacs[j], resp.dMacs[j], SHA256_DIGEST_LENGTH);
-        memcpy(eMacs[j], resp.eMacs[j], SHA256_DIGEST_LENGTH);
-    }
-    memcpy(dOpening, resp.dOpening, FIELD_ELEM_LEN);
-    memcpy(eOpening, resp.eOpening, FIELD_ELEM_LEN);
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    if (rv != OKAY) printf("ERROR IN SENDING MSG\n");
-    return rv;
-}
-
-
-int HSM_AuthMPCDecrypt2Commit(HSM *h, uint8_t *resultCommit, BIGNUM *d, BIGNUM *e, ShamirShare **dShares, ShamirShare **eShares, uint8_t **dOpenings, uint8_t **eOpenings, uint8_t **dMacs, uint8_t **eMacs, uint8_t *hsms) {
-    int rv;
-    HSM_AUTH_MPC_DECRYPT_2_COMMIT_REQ req;
-    HSM_AUTH_MPC_DECRYPT_2_COMMIT_RESP resp;
-    string resp_str;
-
-    pthread_mutex_lock(&h->m);
-    
-    memset(req.d, 0, FIELD_ELEM_LEN);
-    BN_bn2bin(d, req.d + FIELD_ELEM_LEN  - BN_num_bytes(d));
-    memset(req.e, 0, FIELD_ELEM_LEN);
-    BN_bn2bin(e, req.e + FIELD_ELEM_LEN  - BN_num_bytes(e));
-    for (int i = 0; i < HSM_THRESHOLD_SIZE; i++)  {
-        Shamir_MarshalCompressed(req.dShares[i], dShares[i]);
-        Shamir_MarshalCompressed(req.eShares[i], eShares[i]);
-        memcpy(req.dOpenings[i], dOpenings[i], FIELD_ELEM_LEN);
-        memcpy(req.eOpenings[i], eOpenings[i], FIELD_ELEM_LEN);
-        memcpy(req.dMacs[i], dMacs[i], SHA256_DIGEST_LENGTH);
-        memcpy(req.eMacs[i], eMacs[i], SHA256_DIGEST_LENGTH);
-    }
-    memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
-#ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_2_COMMIT, 0, 0,
-                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-    memcpy(&resp, resp_str.data(), resp_str.size());
-#else
-    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_2_COMMIT, (uint8_t *)&req,
-                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
-#endif
-    
-    memcpy(resultCommit, resp.resultCommit, SHA256_DIGEST_LENGTH);
-
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
-    return rv;
-}
-
-int HSM_AuthMPCDecrypt2Open(HSM *h, ShamirShare *resultShare, uint8_t *resultOpening, uint8_t **resultMacs, uint8_t **resultCommits, uint8_t *hsms, uint8_t reconstructIndex) {
-    int rv;
-    HSM_AUTH_MPC_DECRYPT_2_OPEN_REQ req;
-    HSM_AUTH_MPC_DECRYPT_2_OPEN_RESP resp;
-    string resp_str;
-
-    pthread_mutex_lock(&h->m);
-    
-    for (int i = 0; i < HSM_THRESHOLD_SIZE; i++)  {
-        memcpy(req.resultCommits[i], resultCommits[i], SHA256_DIGEST_LENGTH);
-    }
-    memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
-#ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_2_OPEN, 0, 0,
-                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-    memcpy(&resp, resp_str.data(), resp_str.size());
-#else
-    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_2_OPEN, (uint8_t *)&req,
-                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
-#endif
-    
-    memcpy(resultOpening, resp.resultOpening, FIELD_ELEM_LEN);
-    Shamir_UnmarshalCompressed(resp.resultShare, reconstructIndex, resultShare);
-    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        memcpy(resultMacs[i], resp.resultMacs[i], SHA256_DIGEST_LENGTH);
-    }
-
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
-    return rv;
-}
-
-int HSM_AuthMPCDecrypt3(HSM *h, ShamirShare *msg, BIGNUM *result, ShamirShare **resultShares, uint8_t **resultOpenings, uint8_t **resultMacs, uint8_t *hsms, uint8_t reconstructIndex) {
-    int rv;
-    HSM_AUTH_MPC_DECRYPT_3_REQ req;
-    HSM_AUTH_MPC_DECRYPT_3_RESP resp;
-    string resp_str;
-
-    pthread_mutex_lock(&h->m);
-    
-    memset(req.result, 0, FIELD_ELEM_LEN);
-    BN_bn2bin(result, req.result + FIELD_ELEM_LEN - BN_num_bytes(result));
-    for (int i = 0; i < HSM_THRESHOLD_SIZE; i++)  {
-        Shamir_MarshalCompressed(req.resultShares[i], resultShares[i]);
-        memcpy(req.resultMacs[i], resultMacs[i], SHA256_DIGEST_LENGTH);
-        memcpy(req.resultOpenings[i], resultOpenings[i], FIELD_ELEM_LEN);
-    }
-    memcpy(req.hsms, hsms, HSM_GROUP_SIZE);
-#ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_AUTH_MPC_DECRYPT_3, 0, 0,
-                   string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-    memcpy(&resp, resp_str.data(), resp_str.size());
-#else
-    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_AUTH_MPC_DECRYPT_3, (uint8_t *)&req,
-                sizeof(req), (uint8_t *)&resp, sizeof(resp)));
-#endif
-    
-    Shamir_UnmarshalCompressed(resp.msg, reconstructIndex, msg);
-
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    if (rv == ERROR) printf("ERROR IN DECRYPTION\n");
-    return rv;
-}
-*/
-int HSM_SetMacKeys(HSM *h, uint8_t **macKeys) {
-    int rv;
-    HSM_SET_MAC_KEYS_REQ req;
-    string resp_str;
-
-    pthread_mutex_lock(&h->m);
-
-    for (int i = 0; i < NUM_HSMS; i++) {
-        memcpy(req.macKeys[i], macKeys[i], KEY_LEN);
-    }
-#ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_SET_MAC_KEYS, 0, 0,
-                string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
-#else
-    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SET_MAC_KEYS, (uint8_t *)&req,
-                sizeof(req), NULL, 0));
-#endif
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    return rv;
-}
-
->>>>>>> 759d238810a91e8ee84770de0b71b3b81831637c
+/* Set system parameters on a HSM: group size, threshold size, and chunk size.. */
 int HSM_SetParams(HSM *h, uint8_t *logPk) {
     int rv;
     HSM_SET_PARAMS_REQ req;
@@ -812,6 +556,7 @@ cleanup:
     return rv;
 }
 
+/* Check a proof that a recovery attempt is logged correctly. */
 int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
     int rv;
     HSM_LOG_PROOF_REQ req;
@@ -836,16 +581,17 @@ int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_PROOF, (uint8_t *)&req,
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
-
-/*    if (resp.result == 0) {
-        printf("LOG PROOF FAIL: %d\n", resp.result);
-    }*/
+    CHECK_C (resp.result != 0);
 
 cleanup:
+    if (rv == ERROR) {
+	printf("ERROR with log proof\n");
+    }
     pthread_mutex_unlock(&h->m);
     return rv;
 }
 
+/* Run the baseline scheme for recovering. */
 int HSM_Baseline(HSM *h, uint8_t *key, ElGamal_ciphertext *c, uint8_t *aesCt, uint8_t *pinHash) {
     int rv;
     HSM_BASELINE_REQ req;
@@ -874,6 +620,7 @@ cleanup:
     return rv; 
 }
 
+/* Get the public key on the HSM for aggregate signatures. */
 int HSM_MultisigGetPk(HSM *h) {
     int rv;
     HSM_MULTISIG_PK_RESP resp;
@@ -892,14 +639,13 @@ int HSM_MultisigGetPk(HSM *h) {
     embedded_pairing_bls12_381_g2_unmarshal(&h->multisigPkAffine, &resp.pk, true, true);
     embedded_pairing_bls12_381_g2_from_affine(&h->multisigPk, &h->multisigPkAffine);
 
-    printf("got multisig public key\n");
-
 cleanup:
     pthread_mutex_unlock(&h->m);
     if (rv == ERROR) printf("ERROR GETTING MULTISIG PK\n");
     return rv;
 }
 
+/* Ask the HSM to sign a digest using an aggregate signature scheme. */
 int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest) {
     int rv;
     HSM_MULTISIG_SIGN_REQ req;
@@ -927,6 +673,7 @@ cleanup:
     return rv;
 }
 
+/* Verify aggregate signature on HSM. */
 int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest) {
     int rv;
     HSM_MULTISIG_VERIFY_REQ req;
@@ -958,6 +705,7 @@ cleanup:
     return rv;
 }
 
+/* Set the aggregate public key used for aggregate signature verification. */
 int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk) {
     int rv;
     HSM_MULTISIG_AGG_PK_REQ req;
@@ -979,6 +727,10 @@ cleanup:
     return rv;
 }
 
+/* Run log verification procedure to ensure that log was updated correctly. Run every
+ * epoch. Each HSM chooses a number of chunks to verify the transitions for. If all
+ * transitions are correct, it signs the log head. The datacenter aggregates signatures
+ * and then the HSMs verify the aggregate signatures. */
 int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogState *state) {
     int rv;
     int i, j, k;
@@ -999,57 +751,28 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
 #endif
 
     pthread_mutex_unlock(&h->m);
-/*    printf("queries for: ");
-    for (int i = 0; i < NUM_CHUNKS; i++) printf("%d ", resp.queries[i]);
-    printf("\n");
-*/
-    /* Audit proofs for log (lambda * N) chunks */
-    //for (i = 0; i < 10000; i++) {
-//    for (i = 0; i < 1000; i++) {
     for (i = 0; i < NUM_CHUNKS; i++) {
-	//if (i % 10 == 0) printf("chunk %d/%d\n", i, NUM_CHUNKS);
-	uint64_t query = ((uint64_t)resp.queries[i] * CHUNK_SIZE) % NUM_TRANSITIONS;
-	printf("query = %ld\n", query);
-//        printf("Starting auditing round %d for chunk %d\n", i, query);
+	uint64_t query = ((uint64_t)resp.queries[i]) % NUM_TRANSITIONS;
         HSM_LOG_ROOTS_PROOF_REQ rootReq;
         HSM_LOG_ROOTS_PROOF_RESP rootResp;
 
-//	printf("HSM %d: query = %d, i = %d\n", h->usbDevice->fd, query, i);
-
-        //printf("rootsTree ids = (%ld, %ld, %ld)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
-        MerkleProof *rootProofOld = MerkleTree_GetProof(state->rootsTree, (query - 1)); 
-        MerkleProof *rootProofNew = MerkleTree_GetProof(state->rootsTree, query);
-	printf("got proofs for query %d\n", query);
-	/*      
- *      printf("root tree head: ");
-        for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) printf("%02x", state->rootsTree->hash[j]);
-        printf("\n");
-        printf("old chunk head: ");
-        for (int j = 0; j < SHA256_DIGEST_LENGTH; j++) printf("%02x", rootProofOld->leaf[j]);
-        printf("\n");
-        if (rootProofOld == NULL) printf("old proof is null\n");
-        */
+        MerkleProof *rootProofOld = MerkleTree_GetProof(state->rootsTree, (query - 1) * CHUNK_SIZE); 
+        MerkleProof *rootProofNew = MerkleTree_GetProof(state->rootsTree, query * CHUNK_SIZE);
 	for (k = 0; k < rootProofOld->len; k++) {
-            //printf("old proof item %d\n", k);
             memcpy(rootReq.rootProofOld[k], rootProofOld->hash[k], SHA256_DIGEST_LENGTH);
             rootReq.idsOld[k] = rootProofOld->ids[k];
         }
         for (k = 0; k < rootProofNew->len; k++) {
-            //printf("new proof item %d\n", k);
             memcpy(rootReq.rootProofNew[k], rootProofNew->hash[k], SHA256_DIGEST_LENGTH);
             rootReq.idsNew[k] = rootProofNew->ids[k];
         }
-	printf("did id copy for query %d\n", query);
 	rootReq.idNew = rootProofNew->id;
         rootReq.lenNew = rootProofNew->len;
         rootReq.idOld = rootProofOld->id;
         rootReq.lenOld = rootProofOld->len;
         memcpy(rootReq.headOld, rootProofOld->leaf, SHA256_DIGEST_LENGTH);
         memcpy(rootReq.headNew, rootProofNew->leaf, SHA256_DIGEST_LENGTH);
-        printf("Going to send request\n");
-//	printf("Lengths %d (old) and %d (new)\n", rootReq.lenOld, rootReq.lenNew);
 	pthread_mutex_lock(&h->m);
-	//printf("HSM %d: sending log_roots_proof\n", h->usbDevice->fd);
 
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_ROOTS_PROOF, 0, 0,
@@ -1059,24 +782,16 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
         CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_ROOTS_PROOF, (uint8_t *)&rootReq,
                     sizeof(rootReq), (uint8_t *)&rootResp, sizeof(rootResp)));
 #endif
-	printf("Got response...\n");
-	//printf("HSM %d: got log_roots_proof\n", h->usbDevice->fd);
         pthread_mutex_unlock(&h->m);
-        //printf("Ran root proofs\n");
-        // COMMENT BACK IN
-	// CHECK_C(rootResp.result == 1);
+	CHECK_C(rootResp.result == 1);
 
-//        for (j = 0; j < 0; j++) {
-        //for (j = 0; j < 10000; j++) {
+	// Auditing transition j in round i for queried chunk
         for (j = 0; j < CHUNK_SIZE; j++) {
-            //printf("Auditing transition %d in round %d (chunk %d)\n", j, i, query);
             HSM_LOG_TRANS_PROOF_REQ proofReq;
             HSM_LOG_TRANS_PROOF_RESP proofResp;
             int subquery = ((query - 1) * CHUNK_SIZE) + j;
 
-            //memcpy(proofReq.leafOld, state->tProofs[subquery].oldProof->leaf, SHA256_DIGEST_LENGTH);
             memcpy(proofReq.leafNew, state->tProofs[subquery].newProof->leaf, SHA256_DIGEST_LENGTH);
-	    printf("here\n");
             memset(proofReq.leafNew, 0xff, SHA256_DIGEST_LENGTH);
             for (k = 0; k < state->tProofs[subquery].oldProof->len; k++) {
                 memcpy(proofReq.proofOld[k], state->tProofs[subquery].oldProof->hash[k], SHA256_DIGEST_LENGTH);
@@ -1092,9 +807,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
             proofReq.id = state->tProofs[subquery].oldProof->id;
             memcpy(proofReq.headOld, state->tProofs[subquery].oldProof->head, SHA256_DIGEST_LENGTH);
             memcpy(proofReq.headNew, state->tProofs[subquery].newProof->head, SHA256_DIGEST_LENGTH);
-            //printf("Going to send request, size = %d\n", sizeof(proofReq));
             pthread_mutex_lock(&h->m);
-	    //printf("HSM %d: sending log_trans_proof\n", h->usbDevice->fd);
 #ifdef HID
             CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_TRANS_PROOF, 0, 0,
                     string(reinterpret_cast<char*>(&proofReq), sizeof(proofReq)), &resp_str));
@@ -1109,8 +822,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
     }
 
     /* Sign log head. */
-//    CHECK_C (HSM_MultisigSign(h, sig, state->rootsTree->hash));
-    printf("*** finished signing\n");
+    CHECK_C (HSM_MultisigSign(h, sig, state->rootsTree->hash));
 
 cleanup:
     if (rv == ERROR) printf("Exiting due to ERROR\n");

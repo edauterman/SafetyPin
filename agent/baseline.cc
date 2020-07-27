@@ -9,6 +9,9 @@
 #include "hsm.h"
 #include "params.h"
 
+/* Baseline scheme ElGamal encrypts the key to a HSM and then encrypts the result with
+ * the user's PIN. */
+
 int Baseline_Init(HSM *h) {
     int rv;
 

@@ -31,7 +31,6 @@ int main(int argc, char *argv[]) {
 
   struct timeval t1, t2;
 
-//  HSM_Retrieve(d->hsms[0], 0);
   gettimeofday(&t1, NULL);
 
   for (int i = 0; i < 16448; i++) {
@@ -43,8 +42,6 @@ int main(int argc, char *argv[]) {
   long seconds = (t2.tv_sec - t1.tv_sec);
   long micros = (t2.tv_usec - t1.tv_usec);
   double time = seconds + (micros / 1000000.0);
-  //double saveTime = ((double) (t2 - t1)) / CLOCKS_PER_SEC;
-  //double recoverTime = ((double) (t3 - t2)) / CLOCKS_PER_SEC;
   printf("**** Reencrypt time: %f, %ld seconds, %ld microseconds\n", time, seconds, micros);
 
   Datacenter_free(d);

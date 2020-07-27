@@ -8,6 +8,8 @@
 #include "ibe.h"
 #include "params.h"
 
+/* Identity-based encryption scheme. */
+
 IBE_ciphertext *IBE_ciphertext_new(int msgLen) {
     IBE_ciphertext *c = (IBE_ciphertext *)malloc(sizeof(IBE_ciphertext));
     c->V = (uint8_t *)malloc(msgLen);

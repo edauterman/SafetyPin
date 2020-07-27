@@ -1,9 +1,3 @@
-// Copyright 2018 Google Inc. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file or at
-// https://developers.google.com/open-source/licenses/bsd
-
 #include <iostream>
 #include <string>
 #include <stdlib.h>
@@ -17,6 +11,8 @@
 #include "ibe.h"
 #include "common.h"
 
+/* Benchmark entire recovery process. */
+
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -26,9 +22,6 @@ int main(int argc, char *argv[]) {
     printf("No device found. Exiting.\n");
     return 0;
   }
-
-  //Datacenter_SmallSetup(d);
-  //Datacenter_TestSetup(d);
 
   Params *params = Params_new(); 
 
@@ -50,18 +43,13 @@ int main(int argc, char *argv[]) {
   Datacenter_TestSetup(d);
 
   struct timeval t1, t2, t3, t4;
-  //clock_t t1 = clock();
   gettimeofday(&t1, NULL);
   Datacenter_Save(d, params, saveKey, 0, pin, c);
   gettimeofday(&t2, NULL);
-  //clock_t t2 = clock();
-  //
   Datacenter_GenerateLogProofs(d, params, logProofs, pin, c);
-
   gettimeofday(&t3, NULL);
   Datacenter_Recover(d, params, saveKeyTest, 0, pin, c, logProofs);
   gettimeofday(&t4, NULL);
-  //clock_t t3 = clock();
 
   if (BN_cmp(saveKey, saveKeyTest) != 0) {
     printf("FAIL: expected to recover:\n %s\n but recovered:\n %s\n", BN_bn2hex(saveKey), BN_bn2hex(saveKeyTest));
@@ -75,8 +63,6 @@ int main(int argc, char *argv[]) {
   long recoverMicros = (t4.tv_usec - t3.tv_usec);
   double saveTime = saveSeconds + (saveMicros / 1000000.0);
   double recoverTime = recoverSeconds + (recoverMicros / 1000000.0);
-  //double saveTime = ((double) (t2 - t1)) / CLOCKS_PER_SEC;
-  //double recoverTime = ((double) (t3 - t2)) / CLOCKS_PER_SEC;
   printf("**** Save time: %f, %d seconds, %d microseconds\n", saveTime, saveSeconds, saveMicros);
   printf("**** Recover time: %f, %d seconds, %d microseconds\n", recoverTime, recoverSeconds, recoverMicros);
 

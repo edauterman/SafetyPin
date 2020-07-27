@@ -45,6 +45,7 @@ cleanup:
     return rv;
 }
 
+/* Generate proof that recovery attempt was logged. Log_Init must be called first. */
 int Log_Prove(Params *params, LogProof *p, ElGamal_ciphertext *c, uint8_t *hsms) {
     int rv;
     uint8_t curr[SHA256_DIGEST_LENGTH];
@@ -88,6 +89,8 @@ cleanup:
     return rv;
 }
 
+/* Run the setup procedure for the log. Must be called before doing the verification
+ * routine for every epoch. */
 LogState *Log_RunSetup() {
     LogState *state = (LogState *)malloc(sizeof(LogState));
 
@@ -100,16 +103,15 @@ LogState *Log_RunSetup() {
         memset(leafValues[i], 0xff, SHA256_DIGEST_LENGTH);
         leafIds[i] = i;
     }
-    printf("Going to start creating Merkle tree\n");
+    printf("Going to start creating Merkle tree for log.\n");
     Node *head = MerkleTree_CreateTree(leafIds, leafValues, NUM_USERS);
 
-    printf("going to free\n");
     for (int i = 0; i < NUM_USERS; i++) {
 	free(leafValues[i]);
     }
     free(leafValues);
     free(leafIds);
-    printf("finished freeing\n");
+    printf("Finished creating log Merkle tree.\n");
 
     rootHashes[0] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
     memcpy(rootHashes[0], head->hash, SHA256_DIGEST_LENGTH);
@@ -125,19 +127,11 @@ LogState *Log_RunSetup() {
         state->tProofs[i].newProof = MerkleTree_GetProof(head, id);
         rootHashes[i+1] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
         rootIds[i+1] = i+1;
-        printf("root ids = %ld\n", rootIds[i]);
         memcpy(rootHashes[i+1], head->hash, SHA256_DIGEST_LENGTH);
     }
 
     Node_free(head);
 
     state->rootsTree = MerkleTree_CreateTree(rootIds, rootHashes, NUM_TRANSITIONS + 1);
-    printf("rootsTree ids = (%ld, %ld, %ld)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
-    printf("rootHashes[0] = ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", rootHashes[0][i]);
-    printf("\n");
-    printf("head for proof 0 = ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", state->tProofs[0].oldProof->head[i]);
-    printf("\n");
     return state;
 }

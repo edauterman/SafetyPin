@@ -8,6 +8,8 @@
 #include "common.h"
 #include "shamir.h"
 
+/* Shamir secret sharing. */
+
 using namespace std;
 
 ShamirShare *ShamirShare_new() {
@@ -237,9 +239,8 @@ cleanup:
     return rv; 
 }
 
-/* sharesIn of length n, sharesOut of length 2t, ordering is combination of indexes of sharesIn
- * that are in shareOut */
-/* ordering is 1-indexed! */
+/* sharesIn of length n, sharesOut of length 2t, ordering is combination of indexes
+ * of sharesIn that are in sharesOut (ordering is 1-indexed). */
 int Shamir_FindValidShares(int t, int n, ShamirShare **sharesIn, ShamirShare **sharesOut, uint8_t *ordering, BIGNUM *prime, BIGNUM *secret) {
     int rv; 
     string bitmask(2 * t, 1); 

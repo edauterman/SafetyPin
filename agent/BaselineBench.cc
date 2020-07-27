@@ -1,9 +1,3 @@
-// Copyright 2018 Google Inc. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file or at
-// https://developers.google.com/open-source/licenses/bsd
-
 #include <iostream>
 #include <string>
 #include <stdlib.h>
@@ -19,6 +13,8 @@
 #include "ibe.h"
 #include "common.h"
 
+/* Benchmark save/recover for baseline (ElGamal encrypt to HSM). */
+
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -28,7 +24,6 @@ int main(int argc, char *argv[]) {
     printf("No device found. Exiting.\n");
     return 0;
   }
-
 
   Params *params = Params_new(); 
 
@@ -44,15 +39,11 @@ int main(int argc, char *argv[]) {
   Baseline_Init(d->hsms[0]);
 
   struct timeval t1, t2, t3;
-  //clock_t t1 = clock();
   gettimeofday(&t1, NULL);
   Baseline_Save(d->hsms[0], elGamalCt, aesCt, pinHash, key);
   gettimeofday(&t2, NULL);
-  //clock_t t2 = clock();
-  //
   Baseline_Recover(d->hsms[0], keyOut, elGamalCt, aesCt, pinHash);
   gettimeofday(&t3, NULL);
-  //clock_t t3 = clock();
 
   if (memcmp(key, keyOut, KEY_LEN) != 0) {
     printf("FAIL: recovered incorrect key.\n");
@@ -78,8 +69,6 @@ int main(int argc, char *argv[]) {
   long recoverMicros = (t3.tv_usec - t2.tv_usec);
   double saveTime = saveSeconds + (saveMicros / 1000000.0);
   double recoverTime = recoverSeconds + (recoverMicros / 1000000.0);
-  //double saveTime = ((double) (t2 - t1)) / CLOCKS_PER_SEC;
-  //double recoverTime = ((double) (t3 - t2)) / CLOCKS_PER_SEC;
   printf("**** Save time: %f, %d seconds, %d microseconds\n", saveTime, saveSeconds, saveMicros);
   printf("**** Recover time: %f, %d seconds, %d microseconds\n", recoverTime, recoverSeconds, recoverMicros);
 
