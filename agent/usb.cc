@@ -11,6 +11,8 @@
 #include "hsm.h"
 #include "usb.h"
 
+/* Communication with HSM via USB CDC interface. */
+
 using namespace std;
 
 UsbDevice *UsbDevice_new(const char *handle) {

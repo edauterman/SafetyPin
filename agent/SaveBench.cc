@@ -18,14 +18,13 @@
 #include "ibe.h"
 #include "common.h"
 
+/* Measure time to generate a recovery ciphertext (does not interact with HSMs.) */
+
 using namespace std;
 
 int main(int argc, char *argv[]) {
 
   Datacenter *d = Datacenter_new();
-
-  //Datacenter_SmallSetup(d);
-  //Datacenter_TestSetup(d);
 
   Params *params = Params_new(); 
 

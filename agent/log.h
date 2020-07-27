@@ -4,7 +4,6 @@
 #include <openssl/sha.h>
 #include "elgamal.h"
 #include "merkle_tree.h"
-//#include "hsm.h"
 
 #define PROOF_LEVELS 30
 #define PROOF_LEAVES  536870912
@@ -23,10 +22,7 @@
 #define ROOT_PROOF_LEVELS 16
 #define ROOT_PROOF_LEAVES 65536
 #define SIG_LEN 64
-//#define NUM_TRANSITIONS 50000   // should be TOTAL_HSMS * CHUNK_SIZE
-//#define NUM_TRANSITIONS 2047   // should be TOTAL_HSMS * CHUNK_SIZE
 #define NUM_TRANSITIONS 1048575   // should be TOTAL_HSMS * CHUNK_SIZE
-//#define NUM_TRANSITIONS 4194303   // should be TOTAL_HSMS * CHUNK_SIZE
 
 typedef struct {
     uint8_t merkleProof[PROOF_LEVELS][SHA256_DIGEST_LENGTH];

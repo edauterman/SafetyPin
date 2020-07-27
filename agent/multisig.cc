@@ -6,6 +6,8 @@
 #include "params.h"
 #include "multisig.h"
 
+/* Aggregate signature scheme. */
+
 void Multisig_Setup(embedded_pairing_core_bigint_256_t *sk, embedded_pairing_bls12_381_g2_t *pk) {
     uint8_t hash[32];
     memset(hash, 0xff, 32);
@@ -16,10 +18,9 @@ void Multisig_Setup(embedded_pairing_core_bigint_256_t *sk, embedded_pairing_bls
 
 void Multisig_Sign(embedded_pairing_core_bigint_256_t *sk, uint8_t *msg, int msgLen, embedded_pairing_bls12_381_g1_t *sig) {
     embedded_pairing_bls12_381_g1affine_t base;
-    //uint8_t hashedMsg[2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
     uint8_t hashedMsg[384];
 
-    //hash_to_bytes(hashedMsg, 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size, msg, msgLen);
+    // H(m)^sk
     hash_to_bytes(hashedMsg, 384, msg, msgLen);
     embedded_pairing_bls12_381_g1affine_from_hash(&base, hashedMsg);
     embedded_pairing_bls12_381_g1_multiply_affine(sig, &base, sk);
@@ -28,8 +29,6 @@ void Multisig_Sign(embedded_pairing_core_bigint_256_t *sk, uint8_t *msg, int msg
 
 bool Multisig_Verify(embedded_pairing_bls12_381_g2_t *pk, uint8_t *msg, int msgLen, embedded_pairing_bls12_381_g1_t *sig) {
     uint8_t hashedMsg[384];
-    //uint8_t hashedMsg[sizeof(embedded_pairing_bls12_381_fq_t)];
-    //uint8_t hashedMsg[2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
     embedded_pairing_bls12_381_g1affine_t base;
     embedded_pairing_bls12_381_g2affine_t pkAffine;
     embedded_pairing_bls12_381_g1affine_t sigAffine;

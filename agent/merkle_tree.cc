@@ -6,6 +6,10 @@
 #include "common.h"
 #include "merkle_tree.h"
 
+/* Functions for creating, inserting into, and generating proofs for Merkle trees.
+ * To avoid the need to rebalance for proofs of inclusion and exclusion, each
+ * tree has MAX_TREE_DEPTH levels (regardless of the number of leaves). */
+
 int inline max(int a, int b) {
     return a > b ? a : b;
 }

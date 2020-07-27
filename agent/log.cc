@@ -45,6 +45,7 @@ cleanup:
     return rv;
 }
 
+/* Generate proof that recovery attempt was logged. Log_Init must be called first. */
 int Log_Prove(Params *params, LogProof *p, ElGamal_ciphertext *c, uint8_t *hsms) {
     int rv;
     uint8_t curr[SHA256_DIGEST_LENGTH];
@@ -88,6 +89,8 @@ cleanup:
     return rv;
 }
 
+/* Run the setup procedure for the log. Must be called before doing the verification
+ * routine for every epoch. */
 LogState *Log_RunSetup() {
     LogState *state = (LogState *)malloc(sizeof(LogState));
 

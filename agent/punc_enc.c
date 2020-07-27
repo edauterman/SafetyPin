@@ -13,46 +13,19 @@
 #include "params.h"
 #include "punc_enc.h"
 
+/* Support for puncturable encryption scheme. */
+
+/* Helper for creating puncturable encryption tree at host. */
 void encryptKeysAndCreateTag(uint8_t *encKey, uint8_t *hmacKey, uint8_t *key1, uint8_t *key2, uint8_t *ct) {
     EVP_CIPHER_CTX *enc_ctx;
     int bytesFilled;
     
     enc_ctx = EVP_CIPHER_CTX_new();
     EVP_EncryptInit_ex(enc_ctx, EVP_aes_256_cbc(), NULL, encKey, NULL);
-    //EVP_EncryptInit_ex(enc_ctx, EVP_aes_128_ecb(), NULL, encKey, NULL);
     EVP_EncryptUpdate(enc_ctx, ct, &bytesFilled, key1, KEY_LEN);
     EVP_EncryptUpdate(enc_ctx, ct + KEY_LEN, &bytesFilled, key2, KEY_LEN);
 
     hmac(hmacKey, ct + 2 * KEY_LEN, ct, 2 * KEY_LEN);
-}
-
-/* Set the values of the leaves in a subtree, where the leaves in the subtree
- * begin at value start. */
-void setIBELeaves(embedded_pairing_core_bigint_256_t *ibeMsk, uint8_t *leaves) {
-    for (int i = 0; i < NUM_LEAVES; i++) {
-        //memset(leaves[i], 0xff, LEAF_LEN);
-
-        memset(leaves + i * LEAF_LEN, 0, LEAF_LEN);
-        //memset(leaves[i], 0, LEAF_LEN);
-        uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
-        embedded_pairing_bls12_381_g1_t sk;
-        embedded_pairing_bls12_381_g1affine_t sk_affine;
-        IBE_Extract(ibeMsk, i, &sk);
-        embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
-        embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
-        memcpy(leaves + (i * LEAF_LEN), buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
-        /* DELETE THIS NEXT LINE */
-        //memset(leaves + i * LEAF_LEN, 0xff, LEAF_LEN);
-
-	if (i % 10000 == 0) {
-        printf("leaf %d: ", i);
-        for (int j = 0; j < 48; j++) {
-            printf("%x ", (leaves + i * LEAF_LEN)[j]);
-        }
-        printf("\n");
-	}
-        //memset(leaves[i], 0xff, CT_LEN);
-    }
 }
 
 // cts of size TREE_SIZE * CT_LEN
@@ -61,12 +34,10 @@ void PuncEnc_BuildTree(Params *params, uint8_t *cts, uint8_t msk[KEY_LEN],  uint
     printf("building tree at host\n");
 
     uint8_t *leaves;
-    //uint8_t leaves[NUM_LEAVES][LEAF_LEN];
     int index = 0;
     int currNumLeaves = NUM_LEAVES;
     uint8_t *keys;
     BIGNUM *x;
-    //uint8_t keys[TREE_SIZE][KEY_LEN];
     embedded_pairing_core_bigint_256_t ibeMsk;
 
     leaves = (uint8_t *)malloc(NUM_LEAVES * LEAF_LEN);
@@ -75,6 +46,7 @@ void PuncEnc_BuildTree(Params *params, uint8_t *cts, uint8_t msk[KEY_LEN],  uint
     int currPtr =  TREE_SIZE;
     x = BN_new();
 
+    // Generate all keys.
     for (int i = 0; i < NUM_LEAVES; i++) {
         BN_rand_range(x, params->order);
         mpk[i] = EC_POINT_new(params->group);
@@ -82,8 +54,6 @@ void PuncEnc_BuildTree(Params *params, uint8_t *cts, uint8_t msk[KEY_LEN],  uint
         memset(leaves + i * LEAF_LEN, 0, LEAF_LEN);
         BN_bn2bin(x, leaves + i * LEAF_LEN + KEY_LEN - BN_num_bytes(x));
     }
-
-//    printf("set ibe leaves\n");
 
     RAND_bytes(hmacKey, KEY_LEN);
 
@@ -94,52 +64,27 @@ void PuncEnc_BuildTree(Params *params, uint8_t *cts, uint8_t msk[KEY_LEN],  uint
         for (int i = 0; i < currNumLeaves; i++) {
             /* Choose random key. */
             RAND_bytes(keys + (index * KEY_LEN), KEY_LEN);
-            /*if (i == 0) {
-                printf("key 0 for level with %d leaves, index %d, addr %x: ", currNumLeaves, index, keys + (index * KEY_LEN));
-                for (int j = 0; j < KEY_LEN; j++) {
-                    printf("%02x", (keys + index * KEY_LEN)[j]);
-                }
-                printf("\n");
-                printf("encrypting left key: ");
-                for (int j = 0; j < KEY_LEN; j++) {
-                    printf("%02x", (currLeaves)[j]);
-                }
-                printf("\n");
-                printf("encrypting right key: ");
-                for (int j = 0; j < KEY_LEN; j++) {
-                    printf("%02x", (currLeaves + KEY_LEN)[j]);
-                }
-                printf("\n");
-                
-
-            }*/
-            //RAND_bytes(keys[index], KEY_LEN);
             /* Encrypt leaf. */
             encryptKeysAndCreateTag(keys + index * KEY_LEN, hmacKey, currLeaves, currLeaves + KEY_LEN, cts + index * CT_LEN);
-            //encryptKeysAndCreateTag(keys + index * KEY_LEN, hmacKey, currLeaves, currLeaves + KEY_LEN, cts[index]);
             currLeaves += LEAF_LEN;
             /* Next index. */
-            //printf("index = %d/%d\n", index, TREE_SIZE);
             index++;
         }
         currLeaves = (uint8_t *)keys + (initialIndex * KEY_LEN);
         printf("initial index = %d, currLeaves addr = %x\n", initialIndex, currLeaves);
-        //currLeaves = (uint8_t *)keys + (initialIndex * KEY_LEN);
-//        printf("old currNumLeaves = %d\n", currNumLeaves);
         currPtr -= currNumLeaves;
         currNumLeaves /= 2.0;
-//        printf("new currNumLeaves = %d\n", currNumLeaves);
     }
 
     /* Set key for root. */
     memcpy(msk, keys + (TREE_SIZE - 1) * KEY_LEN, KEY_LEN);
-    //memcpy(msk, keys[TREE_SIZE - 1], KEY_LEN);
 
     printf("done building tree\n");
     free(leaves);
     free(keys);
 }
 
+/* Get the puncturable encryption indexes corresponding to a given tag. */
 int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC_ENC_REPL]) {
     int rv;
     uint8_t bufIn[8];
@@ -174,9 +119,6 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
         } else {
             BN_bn2bin(modIndexBn, (uint8_t *)&indexes[i]);
         }
-
-        //printf("numLeaves: %s, tag: %s, num bytes: %d\n", BN_bn2hex(params->numLeaves), BN_bn2hex(modIndexBn), BN_num_bytes(modIndexBn));
-        //printf("%d -> %d (%d/%d)\n", tag, indexes[i], i, PUNC_ENC_REPL);
     }
 cleanup:
     if (rawIndexBn) BN_free(rawIndexBn);

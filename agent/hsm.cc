@@ -61,6 +61,7 @@ void HSM_free(HSM *h) {
     free(h);
 }
 
+/* Get puncturable encryption public key. */
 int HSM_GetMpk(HSM *h) {
     int rv =  ERROR;
     HSM_MPK_RESP resp;
@@ -82,6 +83,7 @@ cleanup:
     return rv;
 }
 
+/* Helper function for puncturable encryption setup. */
 void copySubTree(uint8_t *out, uint8_t *in, int numLeaves, int numSubLeaves, int ctr) {
     int offsetOut = 0;
     int offsetIn = 0;
@@ -96,6 +98,8 @@ void copySubTree(uint8_t *out, uint8_t *in, int numLeaves, int numSubLeaves, int
     }
 }
 
+/* Run puncturable encryption setup where create puncturable encryption tree
+ * on host first (ONLY FOR TESTING, NOT SECURE). */
 int HSM_TestSetup(HSM *h) {
     int rv = ERROR;
     HSM_TEST_SETUP_REQ req;
@@ -121,6 +125,8 @@ cleanup:
     return rv;
 }
 
+/* Run puncturable encryption setup where puncturable encryption tree is
+ * passed in as input (ONLY FOR TESTING, NOT SECURE). */
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], EC_POINT **mpk) {
     int rv = ERROR;
     HSM_TEST_SETUP_REQ req;
@@ -149,6 +155,7 @@ cleanup:
     return rv;
 }
 
+/* Create small puncturable encryption tree on HSM. */
 int HSM_SmallSetup(HSM *h) {
     int rv = ERROR;
     HSM_SETUP_RESP resp;
@@ -174,6 +181,8 @@ cleanup:
     return rv;
 }
 
+/* Run puncturable encryption setup on HSM. Secure, but takes a very
+ * long time (order of days). */
 int HSM_Setup(HSM *h) {
     int rv =  ERROR;
     HSM_SETUP_RESP resp;
@@ -233,6 +242,7 @@ cleanup:
     return rv;
 }
 
+/* Retrieve a leaf indexed by index from puncturable encryption tree. */
 int HSM_Retrieve(HSM *h, uint32_t index) {
     int rv = ERROR;
     int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
@@ -273,6 +283,8 @@ cleanup:
     return rv;
 }
 
+/* Puncture a leaf in puncturable encryption tree. Should only be called if
+ * lock is held for corresponding HSM. */
 int puncture_noLock(HSM *h, uint32_t index) {
     int rv = ERROR;
     HSM_PUNCTURE_REQ req;
@@ -315,6 +327,7 @@ cleanup:
     return rv;
 }
 
+/* Puncture leaf in puncturable encryption tree (called without lock held). */
 int HSM_Puncture(HSM *h, uint32_t index) {
     int rv = ERROR;
 
@@ -327,6 +340,8 @@ cleanup:
     return rv;
 }
 
+/* Encrypt to HSM using puncturable encryption scheme (ElGamal encrypt to PUNC_ENC_REPL
+ * of the leaves). */
 int HSM_Encrypt(HSM *h, uint32_t tag, BIGNUM *msg, ElGamal_ciphertext *c[PUNC_ENC_REPL]) {
     int rv;
     uint32_t indexes[PUNC_ENC_REPL];
@@ -343,6 +358,8 @@ cleanup:
     return rv;
 }
 
+/* Decrypt on HS using puncturable encryption scheme. Only decrypt using one of the
+ * leaves, but puncture all the leaves that can decrypt. */
 int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], BIGNUM *msg) {
     int rv = ERROR;
     HSM_AUTH_DECRYPT_REQ req;
@@ -410,6 +427,7 @@ cleanup:
     return rv;
 }
 
+/* Run microbenchmarks on HSM (only for testing). */
 int HSM_MicroBench(HSM *h) {
     int rv =  ERROR;
     string resp_str;
@@ -428,6 +446,7 @@ cleanup:
     return rv;
 }
 
+/* Send and receive long message from HSM (only for testing). */
 int HSM_LongMsg(HSM *h) {
     int rv =  ERROR;
     HSM_LONG_REQ req;
@@ -451,6 +470,7 @@ cleanup:
     return rv;
 }
 
+/* Get the ElGamal public key for a HSM. */
 int HSM_ElGamalGetPk(HSM *h) {
     int rv;
     HSM_ELGAMAL_PK_RESP resp;
@@ -474,6 +494,7 @@ cleanup:
     return rv;
 }
 
+/* ElGamal encrypt to a HSM. */
 int HSM_ElGamalEncrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     int rv;
     CHECK_C (ElGamal_Encrypt(h->params, msg, h->elGamalPk, NULL, NULL, c));
@@ -483,6 +504,7 @@ cleanup:
     return rv;
 }
 
+/* Ask HSM to ElGamal decrypt a ciphertext. */
 int HSM_ElGamalDecrypt(HSM *h, BIGNUM *msg, ElGamal_ciphertext *c) {
     int rv;
     HSM_ELGAMAL_DECRYPT_REQ req;
@@ -508,6 +530,7 @@ cleanup:
     return rv;
 }
 
+/* Set system parameters on a HSM: group size, threshold size, and chunk size.. */
 int HSM_SetParams(HSM *h, uint8_t *logPk) {
     int rv;
     HSM_SET_PARAMS_REQ req;
@@ -533,6 +556,7 @@ cleanup:
     return rv;
 }
 
+/* Check a proof that a recovery attempt is logged correctly. */
 int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
     int rv;
     HSM_LOG_PROOF_REQ req;
@@ -557,12 +581,17 @@ int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
     CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_LOG_PROOF, (uint8_t *)&req,
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
+    CHECK_C (resp.result != 0);
 
 cleanup:
+    if (rv == ERROR) {
+	printf("ERROR with log proof\n");
+    }
     pthread_mutex_unlock(&h->m);
     return rv;
 }
 
+/* Run the baseline scheme for recovering. */
 int HSM_Baseline(HSM *h, uint8_t *key, ElGamal_ciphertext *c, uint8_t *aesCt, uint8_t *pinHash) {
     int rv;
     HSM_BASELINE_REQ req;
@@ -591,6 +620,7 @@ cleanup:
     return rv; 
 }
 
+/* Get the public key on the HSM for aggregate signatures. */
 int HSM_MultisigGetPk(HSM *h) {
     int rv;
     HSM_MULTISIG_PK_RESP resp;
@@ -615,6 +645,7 @@ cleanup:
     return rv;
 }
 
+/* Ask the HSM to sign a digest using an aggregate signature scheme. */
 int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest) {
     int rv;
     HSM_MULTISIG_SIGN_REQ req;
@@ -642,6 +673,7 @@ cleanup:
     return rv;
 }
 
+/* Verify aggregate signature on HSM. */
 int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest) {
     int rv;
     HSM_MULTISIG_VERIFY_REQ req;
@@ -673,6 +705,7 @@ cleanup:
     return rv;
 }
 
+/* Set the aggregate public key used for aggregate signature verification. */
 int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk) {
     int rv;
     HSM_MULTISIG_AGG_PK_REQ req;
@@ -694,6 +727,10 @@ cleanup:
     return rv;
 }
 
+/* Run log verification procedure to ensure that log was updated correctly. Run every
+ * epoch. Each HSM chooses a number of chunks to verify the transitions for. If all
+ * transitions are correct, it signs the log head. The datacenter aggregates signatures
+ * and then the HSMs verify the aggregate signatures. */
 int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogState *state) {
     int rv;
     int i, j, k;
