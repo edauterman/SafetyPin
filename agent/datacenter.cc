@@ -196,11 +196,8 @@ int create_hsm(HSM *h, char *deviceName, int i) {
 
   CHECK_A (h->hidDevice = U2Fob_create());
 
-  printf("going to create\n");
   CHECK_C (!U2Fob_open(h->hidDevice, deviceName));
-  printf("opened\n");
   CHECK_C (!U2Fob_init(h->hidDevice));
-  printf("finished creating\n");
 
 cleanup:
   if (rv == ERROR) {
@@ -217,19 +214,13 @@ int Datacenter_init(Datacenter *d) {
 
 #ifdef HID
   hid_init();
-  //devs = hid_enumerate(0x0, 0x0);
   devs = hid_enumerate(VENDOR_ID, PRODUCT_ID);
   cur_dev = devs;
   while (cur_dev) {
-
-    //if ((cur_dev->vendor_id == VENDOR_ID) &&
-    //    (cur_dev->product_id == PRODUCT_ID)) {
-      printf("serial no: %s\n", cur_dev->serial_number);
       CHECK_C(create_hsm(d->hsms[i], cur_dev->path, i));
       printf("created hsm %d/%d\n", i, NUM_HSMS);
       i++;
       if (i == NUM_HSMS) break;
-    //}
     cur_dev = cur_dev->next;
   }
 #else
@@ -250,11 +241,9 @@ int Datacenter_Setup(Datacenter *d) {
     for (int i = 0; i < NUM_HSMS; i++) {
         CHECK_C (HSM_GetMpk(d->hsms[i]));
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
-        printf("Got mpk %d/%d\n", i, NUM_HSMS);
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i] = thread(HSM_Setup, d->hsms[i]);
-        printf("Started setup  %d/%d\n", i, NUM_HSMS);
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
@@ -270,11 +259,9 @@ int Datacenter_SmallSetup(Datacenter *d) {
     for (int i = 0; i < NUM_HSMS; i++) {
         CHECK_C (HSM_GetMpk(d->hsms[i]));
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
-        printf("Got mpk and el gamal pk %d/%d\n", i, NUM_HSMS);
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i] = thread(HSM_SmallSetup, d->hsms[i]);
-        printf("Started setup  %d/%d\n", i, NUM_HSMS);
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
@@ -296,9 +283,10 @@ int Datacenter_TestSetup(Datacenter *d) {
     CHECK_A (cts = (uint8_t *)malloc(TREE_SIZE * CT_LEN));
     CHECK_A (mpk = (EC_POINT **)malloc(NUM_LEAVES * sizeof(EC_POINT *)));
 
-    printf("going to build tree\n");
+    printf("Starting to build puncturable encryption tree...\n");
     Log_GetPk(d->hsms[0]->params, logPk);
     PuncEnc_BuildTree(d->hsms[0]->params, cts, msk, hmacKey, mpk);
+    printf("Finished building puncturable encryption tree.\n");
     for (int i = 0; i < NUM_HSMS; i++) {
         CHECK_C (HSM_GetMpk(d->hsms[i]));
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
@@ -333,36 +321,6 @@ cleanup:
     return rv;
 }
 
-
-/*int chooseHsmsFromSalt(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *salt) {
-    int rv = ERROR;
-    BIGNUM *hsm;
-    uint8_t out[SHA256_DIGEST_LENGTH];
-    BIGNUM *saltHashes[HSM_GROUP_SIZE];
-
-    CHECK_A (hsm = BN_new());
-
-  */  /* Hash salt and pin to choose recovery HSMs. */
-    /*printf("num hsms: %s\n", BN_bn2hex(params->numHsms));
-    for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-        uint8_t *in = NULL;
-        int len = BN_num_bytes(salt) + 1;
-        CHECK_A (in = (uint8_t *)malloc(len));
-        in[0] = i;
-        BN_bn2bin(salt, in + 1);
-        hash_to_bytes(out, SHA256_DIGEST_LENGTH, in, len);
-        CHECK_A (saltHashes[i] = BN_bin2bn(out, SHA256_DIGEST_LENGTH, NULL));
-        CHECK_C (BN_mod(hsm, saltHashes[i], params->numHsms, params->bn_ctx));
-        // NOTE: ASSUMING NUM_HSMS NEVER GREATER THAN 256
-        h[i] = 0;
-        BN_bn2bin(hsm, &h[i]);
-        printf("h[%d] = %d\n", i, h[i]);
-    }
-cleanup:
-    if (hsm) BN_free(hsm);
-    return rv;
-}*/
-
 int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *saltHashes[HSM_GROUP_SIZE], BIGNUM *salt, BIGNUM *pin) {
     int rv = ERROR;
     BIGNUM *hsm;
@@ -371,7 +329,6 @@ int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *
     CHECK_A (hsm = BN_new());
 
     /* Hash salt and pin to choose recovery HSMs. */
-    printf("num hsms: %s\n", BN_bn2hex(params->numHsms));
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         uint8_t *in = NULL;
         int len = BN_num_bytes(salt) + BN_num_bytes(pin) + 1;
@@ -385,7 +342,8 @@ int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *
         // NOTE: ASSUMING NUM_HSMS NEVER GREATER THAN 256
         h[i] = 0;
         BN_bn2bin(hsm, &h[i]);
-        h[i] = i % NUM_HSMS; // JUST FOR TESTING!!!
+	// Assign HSMs in order for testing slice of data center.
+        h[i] = i % NUM_HSMS;
         debug_print("h[%d] = %d\n", i, h[i]);
     }
 cleanup:
@@ -406,10 +364,6 @@ cleanup:
     if (in) free(in);
     return rv;
 }
-
-/* bns: prime, numHsms
- * bn_ctx 
- * make IBE_MSG_LEN = 32 + 16 = 48*/
 
 int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c) {
     int rv = ERROR;
@@ -454,7 +408,6 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     /* Hash salt and pin to choose recovery HSMs. */
     chooseHsmsFromSaltAndPin(params, h1, saltHashes, c->r, pin);
     CHECK_C (intsToBignums(h1Bns, list, HSM_GROUP_SIZE));
-    //CHECK_C (intsToBignums(h1Bns, h1, HSM_GROUP_SIZE));
 
     debug_print("hashed salt and pin to find HSMs\n");
 
@@ -470,7 +423,6 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     printf("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
 
     /* Split saveKey into shares */
-    //CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKey, params->order, saveKeyShares, h1Bns));
     CHECK_C (Shamir_CreateShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, encryptedSaveKey, params->order, saveKeyShares, h1Bns));
 
     debug_print("created shares of save key\n");
@@ -481,7 +433,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         debug_print("starting ct %d\n", i);
 
-        printf("saveKeyShare[%d]: %s, %s\n", i, BN_bn2hex(saveKeyShares[i]->x), BN_bn2hex(saveKeyShares[i]->y));
+        debug_print("saveKeyShare[%d]: %s, %s\n", i, BN_bn2hex(saveKeyShares[i]->x), BN_bn2hex(saveKeyShares[i]->y));
        
         CHECK_C (HSM_Encrypt(d->hsms[h1[i]], userID + i, saveKeyShares[i]->y, recoveryCts[i]));
 
@@ -504,7 +456,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
 
     CHECK_C (aesEncrypt(elGamalRand, innerCtBuf, HSM_GROUP_SIZE * PUNC_ENC_REPL * ELGAMAL_CT_LEN, c->iv, c->ct));
 
-    printf("done with all the encryption\n");
+    printf("Finished saving secret.\n");
 
 cleanup:
     if (r) BN_free(r);
@@ -573,11 +525,6 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     /* Hash salt and pin to find recovery HSMs. */
     chooseHsmsFromSaltAndPin(params, h1, saltHashes, c->r, pin);
     CHECK_C (intsToBignums(h1Bns, list, HSM_GROUP_SIZE));
-    //CHECK_C (intsToBignums(h1Bns, h1, HSM_GROUP_SIZE));
-    /*printf("bns[0] = %s\n", BN_bn2hex(h1Bns[0]));
-    printf("bns[1] = %s\n", BN_bn2hex(h1Bns[1]));
-    printf("bns[2] = %s\n", BN_bn2hex(h1Bns[2]));
-*/
 
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t0[i] = thread(HSM_LogProof, d->hsms[h1[i]], c->locationHidingCt->shares[i]->ct, h1, logProofs[i]);
@@ -607,22 +554,18 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
         }
     }
 
-    /* Run stage 1 of MPC with HSMs. */
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
         t2[i] = thread(HSM_AuthDecrypt, d->hsms[h1[i]], userID + i, recoveryCts[i], saveKeyShares[i]->y);
     }
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
-    	//printf("pinShares[%d] = %s\n", i, BN_bn2hex(pinShares[i]->y));
-	    t2[i].join();
+	t2[i].join();
         Shamir_UnmarshalX(saveKeyShares[i], i + 1);
-        //printf("saveKeyShares[%d] = %s\n", i, BN_bn2hex(saveKeyShares[i]->y));
     }
 
     /* Reassemble original saveKey. */
     CHECK_C (Shamir_ReconstructShares(HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE, saveKeyShares, params->order, encryptedSaveKey));
 
     /* Salted hash of pin. */
-    //printf("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
     CHECK_C (hashPinAndSalt(pin, c->s, saltHash));
     memset(encryptedSaveKeyBuf, 0, FIELD_ELEM_LEN);
     BN_bn2bin(encryptedSaveKey, encryptedSaveKeyBuf + FIELD_ELEM_LEN - BN_num_bytes(encryptedSaveKey));
@@ -648,8 +591,6 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     printf("------ El Gamal time: %f, %d sec, %d micros\n", elGamalTime, elGamalSec, elGamalMicro);
     printf("------ Punc Enc time: %f, %d sec, %d micros\n", puncEncTime, puncEncSec, puncEncMicro);
 
-    //printf("done: %s\n", BN_bn2hex(saveKey));
-
 cleanup:
     if (rv == ERROR) printf("ERROR in recovery\n");
     for (int i = 0; i < HSM_GROUP_SIZE; i++) {
@@ -659,17 +600,22 @@ cleanup:
 }
 
 // Assumes that aggPk already set
-int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, LogState *state, embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS]) {
+int Datacenter_LogEpochVerification(Datacenter *d, LogState *state) {
     int rv;
     thread t[NUM_HSMS];
     embedded_pairing_bls12_381_g1_t aggSig;
+    embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS];
+    struct timeval tStart, tVerify, tEnd;
+    long verifySec, verifyMicro, aggSec, aggMicro;
+    double verifyTime, aggTime;
+
+    gettimeofday(&tStart, NULL);
 
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i] = thread(HSM_LogEpochVerification, d->hsms[i], &sigs[i], state);
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
-	printf("HSM %d done.\n", i);
     }
 
     for (int i = 0; i < NUM_HSMS; i++) {
@@ -679,21 +625,17 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
         t[i].join();
     }
 
+    gettimeofday(&tVerify, NULL);
 
-
-    printf("all state transition verification done\n");
-//    gettimeofday(&tVerify, NULL);
- 
     Multisig_AggSigs(sigs, NUM_HSMS, &aggSig);
     for (int i = 0; i < NUM_HSMS; i++) {
-//        t[i] = thread(HSM_MultisigVerify, d->hsms[i], &sigs[i], state->rootsTree->hash);
         t[i] = thread(HSM_MultisigVerify, d->hsms[i], &aggSig, state->rootsTree->hash);
     }
     for (int i = 0; i < NUM_HSMS; i++) {
         t[i].join();
     }
 
-/*    gettimeofday(&tEnd, NULL);
+    gettimeofday(&tEnd, NULL);
 
     verifySec = (tVerify.tv_sec - tStart.tv_sec);
     verifyMicro = (tVerify.tv_usec - tStart.tv_usec);
@@ -704,9 +646,6 @@ int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2
 
     printf("------ Transition verification time: %f, %d sec, %d micros\n", verifyTime, verifySec, verifyMicro);
     printf("------ Signature aggregation and verification: %f, %d sec, %d micros\n", aggTime, aggSec, aggMicro);
-*/
-    printf("DONE with log epoch verification\n");
-
 
 cleanup:
     return rv;

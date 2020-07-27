@@ -100,16 +100,15 @@ LogState *Log_RunSetup() {
         memset(leafValues[i], 0xff, SHA256_DIGEST_LENGTH);
         leafIds[i] = i;
     }
-    printf("Going to start creating Merkle tree\n");
+    printf("Going to start creating Merkle tree for log.\n");
     Node *head = MerkleTree_CreateTree(leafIds, leafValues, NUM_USERS);
 
-    printf("going to free\n");
     for (int i = 0; i < NUM_USERS; i++) {
 	free(leafValues[i]);
     }
     free(leafValues);
     free(leafIds);
-    printf("finished freeing\n");
+    printf("Finished creating log Merkle tree.\n");
 
     rootHashes[0] = (uint8_t *)malloc(SHA256_DIGEST_LENGTH);
     memcpy(rootHashes[0], head->hash, SHA256_DIGEST_LENGTH);
@@ -131,12 +130,5 @@ LogState *Log_RunSetup() {
     Node_free(head);
 
     state->rootsTree = MerkleTree_CreateTree(rootIds, rootHashes, NUM_TRANSITIONS + 1);
-    printf("rootsTree ids = (%ld, %ld, %ld)\n", state->rootsTree->leftID, state->rootsTree->midID, state->rootsTree->rightID);
-    printf("rootHashes[0] = ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", rootHashes[0][i]);
-    printf("\n");
-    printf("head for proof 0 = ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", state->tProofs[0].oldProof->head[i]);
-    printf("\n");
     return state;
 }

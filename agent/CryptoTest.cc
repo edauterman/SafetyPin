@@ -126,31 +126,6 @@ cleanup:
     }
 }
 
-void AESGCMTest() {
-    printf("----- AES GCM TEST -----\n");
-    int rv;
-    uint8_t pt[128];
-    uint8_t ptTest[128];
-    uint8_t ct[128];
-    uint8_t key[AES128_KEY_LEN];
-    uint8_t tag[TAG_LEN];
-    uint8_t iv[IV_LEN];
-
-    CHECK_C (RAND_bytes(iv, IV_LEN));
-    CHECK_C (RAND_bytes(key, AES128_KEY_LEN));
-    CHECK_C (RAND_bytes(pt, 128));
-
-    CHECK_C (aesGcmEncrypt(key, pt, 128, iv, tag, ct));
-    CHECK_C (aesGcmDecrypt(key, ptTest, iv, tag, ct, 128));
-
-cleanup:
-    if (memcmp(pt, ptTest, 128) != 0) {
-        printf("AES GCM FAILED\n");
-    } else  {
-        printf("AES GCM successful.\n");
-    }
-}
-
 void scratch() {
     int rv;
     Params *params =  Params_new();
@@ -531,7 +506,6 @@ void MerkleTreeTest() {
 int main(int argc, char *argv[]) {
   IBETest();
   ShamirTest();
-  AESGCMTest();
   ElGamalTest();
   ElGamalShamirTest();
   MultisigTest();

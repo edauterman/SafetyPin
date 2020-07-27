@@ -21,7 +21,6 @@ Node *Node_new() {
 void Node_free(Node *n) {
     if (n->rightChild != NULL) Node_free(n->rightChild);
     if (n->leftChild != NULL) Node_free(n->leftChild);
-//    if (n->parent != NULL) Node_free(n->parent);
     free(n);
 }
 
@@ -53,12 +52,8 @@ Node *MerkleTree_CreateNewParent(Node *leftChild, Node *rightChild, uint64_t max
     parent->leftChild = leftChild;
     parent->leftID = leftChild != NULL ? leftChild->leftID : rightChild->rightID - maxDiff + 1;
     parent->rightID = rightChild != NULL ? rightChild->rightID : leftChild->leftID + maxDiff - 1;
-    //parent->midID = leftChild != NULL ? leftChild->rightID : rightChild->leftID - 1;
     parent->midID = parent->leftID + maxDiff / 2 - 1;
-    //parent->midID = parent->leftID + maxDiff / 2;
     parent->id = -1;
-
-    //printf("node ids = (%ld, %ld, %ld)\n", parent->leftID, parent->midID, parent->rightID);
 
     uint8_t buf[SHA256_DIGEST_LENGTH * 2];
     MerkleTree_CopyNodeHash(buf, leftChild);
@@ -84,7 +79,6 @@ Node *MerkleTree_CreateNewLeaf(uint64_t id, uint8_t *value) {
     leaf->leftID = id;
     leaf->midID = id;
     leaf->rightID = id;
-    //printf("leaf ids = (%d, %d, %d)\n", leaf->leftID, leaf->midID, leaf->rightID);
     return leaf;
 }
 
@@ -94,8 +88,6 @@ int MerkleTree_UpdateRightChild(Node *parent, Node *rightChild) {
     
     mdctx = EVP_MD_CTX_create();
     parent->rightChild = rightChild;
-    //parent->rightID = rightChild->rightID;
-    //parent->midID = rightChild->leftID - 1;
     rightChild->parent = parent;
 
     uint8_t buf[SHA256_DIGEST_LENGTH * 2];
@@ -118,8 +110,6 @@ int MerkleTree_UpdateLeftChild(Node *parent, Node *leftChild) {
     
     mdctx = EVP_MD_CTX_create();
     parent->leftChild = leftChild;
-    //parent->leftID = leftChild->leftID;
-    //parent->midID = leftChild->rightID;
     leftChild->parent = parent;
 
     uint8_t buf[SHA256_DIGEST_LENGTH * 2];
@@ -266,7 +256,7 @@ Node *MerkleTree_CreateTree(uint64_t *ids, uint8_t **values, uint64_t len) {
     uint64_t currLen = max(ceil(len / 2.0), 1);
     uint64_t maxDiff = 2;
     for (int l = 0; l < MAX_TREE_DEPTH; l++) {
-        printf("Starting next level with %d nodes\n", currLen);
+        printf("Creating level with %d nodes\n", currLen);
         parentNodes = (Node **)malloc(currLen * sizeof(Node *));
         for (uint64_t i = 0; i < currLen; i++) {
             if (2 * i + 1 == currLen) {

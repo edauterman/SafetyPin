@@ -6,7 +6,7 @@
 #include "params.h"
 #include "punc_enc.h"
 
-#define NUM_HSMS 2 
+#define NUM_HSMS 10 
 #define HSM_GROUP_SIZE 10
 //#define HSM_GROUP_SIZE 5
 #define HSM_THRESHOLD_SIZE 5
@@ -45,5 +45,5 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
 int Datacenter_GenerateLogProofs(Datacenter *d, Params *params, LogProof **logProofs, BIGNUM *pin, RecoveryCiphertext *c);
 int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c, LogProof **logProofs);
 
-int Datacenter_LogEpochVerification(Datacenter *d, embedded_pairing_bls12_381_g2_t *aggPk, LogState *state, embedded_pairing_bls12_381_g1_t sigs[NUM_HSMS]);
+int Datacenter_LogEpochVerification(Datacenter *d, LogState *state);
 #endif

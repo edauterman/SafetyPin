@@ -36,22 +36,10 @@ UsbDevice *UsbDevice_new(const char *handle) {
     tty.c_oflag &= ~OPOST;
     tty.c_oflag &= ~ONLCR;
 
-    //tty.c_cc[VMIN] = 1;
-
     CHECK_C (tcsetattr(dev->fd, TCSANOW, &tty) == 0);
-/*    tcflush(dev->fd, TCOFLUSH);
-    tcflush(dev->fd, TCIFLUSH);
-
-    cfsetispeed(&tty, B115200);
-    //cfsetispeed(&tty, B9600);
-    cfsetospeed(&tty, B115200);
-    //cfsetospeed(&tty, B9600);
-*/
+    
     dev->sessionCtr = 0;
-    printf("going to exchange with %s\n", handle);
-    printf("fd = %d\n", dev->fd);
     if (dev->fd) UsbDevice_exchange(dev, HSM_RESET, NULL, 0, NULL, 0);
-    printf("reset\n");
 
     dev->sessionCtr = 0;
 cleanup:
@@ -108,36 +96,17 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
             timeout.tv_usec = 0;
            
             debug_print("waiting to write seqno = %d\n", frame.seqNo); 
-//            int selectRes = select(dev->fd + 1, NULL, &fds, NULL, &timeout);
-    //        if (selectRes > 0) {
-                numSent += write(dev->fd, (uint8_t *)&frame + numSent, CDC_FRAME_SZ - numSent);
-                //tcdrain(dev->fd);
-//                printf("numSent =  %d\n", numSent);
-         //   }
- //           if (selectRes <= 0) {
-      //          printf("going to flush\n");
-     //           tcflush(dev->fd, TCIOFLUSH);
-        //        printf("flushed\n");
-   //         }
-
-            // this doesn't seem to actually  make a difference... 
+            numSent += write(dev->fd, (uint8_t *)&frame + numSent, CDC_FRAME_SZ - numSent);
             if (!isInitial) continue;
             FD_ZERO(&fds);
             FD_SET(dev->fd, &fds);
             timeout.tv_sec = 0;
             timeout.tv_usec = 0;
             uint8_t buf[CDC_FRAME_SZ];
-            /*while (select(dev->fd + 1, &fds, NULL, NULL, &timeout) > 0) {
-                read(dev->fd, buf, CDC_FRAME_SZ);
-            }*/
-            //tcdrain(dev->fd);
-            // WAS COMMENTED IN (BELOW)
-	    //tcflush(dev->fd, TCIFLUSH);
         }
         bytesWritten += CDC_PAYLOAD_SZ;
         i++;
     }
-    //tcdrain(dev->fd);
 cleanup:
     return rv;
 
@@ -146,13 +115,10 @@ cleanup:
 int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, uint8_t *resp, int respLen) {
     int rv = OKAY;
 
-    // WAS COMMENTED IN (BELOW)
-//    tcflush(dev->fd, TCIOFLUSH);
     /* Send. */
     send(dev, msgType, req, reqLen, true);
 
     /* Receive. */
-//    if (msgType == HSM_DECRYPT) respLen = reqLen;
     fd_set fds;
     struct timeval timeout;
     timeout.tv_sec = 10;
@@ -173,16 +139,9 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
             debug_print("bytesRead = %d, framePointer = %d\n", bytesRead, framePointer);
             int selectRes = select(dev->fd + 1, &fds, NULL, NULL, &timeout);
             if (selectRes <= 0) {
-                debug_print("*** SELECT ERR: %d\n", selectRes);
-                // NEXT TWO LINES WERE IN
-                //tcflush(dev->fd, TCIOFLUSH);
-                //send(dev, msgType, req, reqLen, false);
+                debug_print("SELECT ERR: %d\n", selectRes);
                 continue;
             }
-            //if (selectRes <= 0) send(dev, msgType, req, reqLen, false);
-            //if (selectRes <= 0) printf("*** just resent\n");
-            //CHECK_C (selectRes > 0);
-            debug_print("will read\n");
             int numBytes = read(dev->fd, (uint8_t *)&frame + framePointer, CDC_FRAME_SZ);
             debug_print("num bytes read: %d\n", numBytes);
             debug_print("current frame after receiving %d bytes: ", numBytes);
@@ -203,12 +162,8 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
         if (respLen > 0) {
             int bytesToCopy = respLen - (frame.seqNo * CDC_PAYLOAD_SZ) < CDC_PAYLOAD_SZ ? respLen - (frame.seqNo * CDC_PAYLOAD_SZ) : CDC_PAYLOAD_SZ;
             memcpy(resp + frame.seqNo * CDC_PAYLOAD_SZ, frame.payload, bytesToCopy);
-            //if (msgType != HSM_DECRYPT) memcpy(resp + frame.seqNo * CDC_PAYLOAD_SZ, frame.payload, bytesToCopy);
-//            printf("copied %d bytes to %d seqno\n", bytesToCopy, frame.seqNo);
         }
         bytesRead = (frame.seqNo + 1) * CDC_PAYLOAD_SZ;
-//        printf("new bytes read = %d from seqno %d\n", bytesRead, frame.seqNo);
-        //printf("finished frame %d, read %d bytes\n", frame.seqNo, bytesRead);
         if (respLen == 0) break;
     }
     dev->sessionCtr++;
@@ -219,8 +174,6 @@ int UsbDevice_exchange(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen
     while (select(dev->fd + 1, &fds, NULL, NULL, &timeout) > 0) {
         read(dev->fd, buf, CDC_FRAME_SZ);
     }
-    //tcdrain(dev->fd);
-    //tcflush(dev->fd, TCIOFLUSH);
 
 cleanup:
     if (rv == ERROR) printf("Error in message exchange.\n");

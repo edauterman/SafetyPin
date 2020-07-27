@@ -33,7 +33,6 @@ extern "C"{
 //#define FIELD_ELEM_LEN 32
 
 typedef struct {
-    BIGNUM *prime;
     BIGNUM *base_prime;
     BIGNUM *numHsms;
     BIGNUM *numLeaves;
@@ -50,8 +49,6 @@ void Params_pointToBytes(Params *params, uint8_t *bytes, const EC_POINT *pt);
 
 int hash_to_bytes (uint8_t *bytes_out, int outlen,
     const uint8_t *bytes_in, int inlen);
-int aesGcmEncrypt(const void *key, const uint8_t *pt, int ptLen, uint8_t *iv, uint8_t *tag, uint8_t *ct);
-int aesGcmDecrypt(const void *key, uint8_t *pt, const uint8_t *iv, const uint8_t *tag, const uint8_t *ct, int ctLen);
 
 int aesEncrypt(const void *key, const uint8_t *pt, int ptLen, uint8_t *iv, uint8_t *ct);
 int aesDecrypt(const void *key, uint8_t *pt, const uint8_t *iv, const uint8_t *ct, int ctLen);
@@ -60,7 +57,6 @@ int intsToBignums(BIGNUM **bns, uint8_t *ints, int len);
 
 void hmac(uint8_t *key,  uint8_t *out, uint8_t *in, int inLen);
 
-int Params_hashToPoint (Params *p, EC_POINT *point, const uint8_t *str, int strlen);
 #ifdef __cplusplus
 }
 #endif
