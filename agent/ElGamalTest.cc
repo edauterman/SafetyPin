@@ -25,11 +25,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  printf("did init\n");
-
   for (int i = 0; i < NUM_HSMS; i++) {
-    //HSM_GetMpk(d->hsms[i]);
-
     BIGNUM *msg = BN_new();
     BIGNUM *msgTest = BN_new();
     ElGamal_ciphertext *c = ElGamalCiphertext_new(d->hsms[i]->params);

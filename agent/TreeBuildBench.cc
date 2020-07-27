@@ -36,8 +36,6 @@ int main(int argc, char *argv[]) {
   long setupSeconds = (t2.tv_sec - t1.tv_sec);
   long setupMicros = (t2.tv_usec - t1.tv_usec);
   double setupTime = setupSeconds + (setupMicros / 1000000.0);
-  //double saveTime = ((double) (t2 - t1)) / CLOCKS_PER_SEC;
-  //double recoverTime = ((double) (t3 - t2)) / CLOCKS_PER_SEC;
   printf("**** Setup time: %f, %ld seconds, %ld microseconds\n", setupTime, setupSeconds, setupMicros);
 
   string filename = "../out/tree_build";

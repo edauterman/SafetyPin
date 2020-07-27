@@ -43,11 +43,9 @@ int main(int argc, char *argv[]) {
   Datacenter_VirtualSetup(d);
 
   struct timeval t1, t2, t3, t4;
-  //clock_t t1 = clock();
   gettimeofday(&t1, NULL);
   Datacenter_Save(d, params, saveKey, 0, pin, c);
   gettimeofday(&t2, NULL);
-  //clock_t t2 = clock();
 
   uint8_t key[32];
   RAND_bytes(key, 32);
@@ -67,8 +65,6 @@ int main(int argc, char *argv[]) {
   long shortSeconds = (t4.tv_sec - t3.tv_sec);
   long shortMicros = (t4.tv_usec - t3.tv_usec);
   double shortTime = shortSeconds + (shortMicros / 1000000.0);
-  //double saveTime = ((double) (t2 - t1)) / CLOCKS_PER_SEC;
-  //double recoverTime = ((double) (t3 - t2)) / CLOCKS_PER_SEC;
   printf("**** Save time: %f, %d seconds, %d microseconds\n", saveTime, saveSeconds, saveMicros);
   printf("**** Google/Apple save time: %f, %d seconds, %d microseconds\n", shortTime, shortSeconds, shortMicros);
 

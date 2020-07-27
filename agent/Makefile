@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://developers.google.com/open-source/licenses/bsd
 
-all: CryptoTest TreeTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench TreeBuildBench UsbTest ElGamalTest SaveBench LogTest BaselineBench MultisigTest LogEpochTest ReencryptBench
+all: CryptoTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench TreeBuildBench ElGamalTest SaveBench LogTest BaselineBench MultisigTest LogEpochTest ReencryptBench
 
 #CC ?= gcc
 #CXX ?= g++
