@@ -14,7 +14,6 @@
 #include "hidapi.h"
 #include "hsm.h"
 #include "log.h"
-#include "mpc.h"
 #include "multisig.h"
 #include "params.h"
 #include "punc_enc.h"
@@ -28,9 +27,7 @@
 
 using namespace std;
 
-//const char *HANDLES[] = {"/dev/cu.usbmodem2086366155482", "/dev/cu.usbmodem2052338246482"};
-//const char *HANDLES[] = {"/dev/cu.usbmodem2052338246482"};
-
+/* UPDATE AS NEEDED */
 const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
 			"/dev/ttyACM2",
@@ -235,6 +232,9 @@ cleanup:
   return rv;
 }
 
+/* Run setup for datacenter, performing full puncturable encryption setup on HSMs
+ * (necessary for security, but don't use for benchmarking/testing because
+ * takes days). */
 int Datacenter_Setup(Datacenter *d) {
     int rv;
     thread t[NUM_HSMS];
@@ -253,6 +253,8 @@ cleanup:
     return rv;
 }
 
+/* Run setup for datacenter, performing mini puncturable encryption setup
+ * on HSMs. */
 int Datacenter_SmallSetup(Datacenter *d) {
     int rv;
     thread t[NUM_HSMS];
@@ -271,6 +273,8 @@ cleanup:
     return rv;
 }
 
+/* Run setup for datacenter, performing expensive puncturable encryption
+ * setup at the host. */
 int Datacenter_TestSetup(Datacenter *d) {
     int rv;
     uint8_t *cts;
@@ -298,7 +302,8 @@ cleanup:
     return rv;
 }
 
-
+/* Run setup for datacenter WITHOUT interacting with HSMs. ONLY use for
+ * benchmarking save operations. */
 int Datacenter_VirtualSetup(Datacenter *d) {
     int rv;
     uint8_t msk[KEY_LEN];
@@ -321,6 +326,9 @@ cleanup:
     return rv;
 }
 
+/* Choose the set of HSMs using the salt and the PIN. For testing,
+ * instrumented to take a group of HSMs in order, but for security should
+ * hash the salt and  PIN. */
 int chooseHsmsFromSaltAndPin(Params *params, uint8_t h[HSM_GROUP_SIZE], BIGNUM *saltHashes[HSM_GROUP_SIZE], BIGNUM *salt, BIGNUM *pin) {
     int rv = ERROR;
     BIGNUM *hsm;
@@ -351,6 +359,7 @@ cleanup:
     return rv;
 }
 
+/* Hash the PIN and salt (used to choose group of HSMs). */
 int hashPinAndSalt(BIGNUM *pin, BIGNUM *salt, uint8_t *out) {
     int rv;
     /* Salted hash of pin. */
@@ -365,6 +374,14 @@ cleanup:
     return rv;
 }
 
+/* Encrypt saveKey to set of HSMs for the user userID using the PIN:
+ * - Select salts (s, r).
+ * - Hash(r, pin) to choose the set of recovery HSMs H. 
+ * - c = Enc(Hash(pin), saveKey)
+ * - (HSM_THRESHOLD_SIZE, HSM_GROUP_SIZE) share c. 
+ * - Encrypt c_i to H_i with puncturable encryption. [puncturable property]
+ * - Encrypt c_1, ..., c_HSM_GROUP_SIZE under transport key.
+ * - Encrypt shares of transport key to each HSM in H. [location-hiding property] */
 int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c) {
     int rv = ERROR;
     uint8_t h1[HSM_GROUP_SIZE];
@@ -472,6 +489,7 @@ cleanup:
     return rv;
 }
 
+/* Generate a proof that a recovery attempt was logged. */
 int Datacenter_GenerateLogProofs(Datacenter *d, Params *params, LogProof **logProofs, BIGNUM *pin, RecoveryCiphertext *c) {
     int rv;
     uint8_t h[HSM_GROUP_SIZE];
@@ -484,6 +502,15 @@ cleanup:
     return rv;
 }
 
+/* Recover the original save key: 
+ * - Hash(salt, PIN) to identify original HSM group H.
+ * - Send proof that recovery attempt is logged to each HSM in H. 
+ * - Ask each HSM in H to decrypt its share of the transport key.
+ * - Reassemble transport key. 
+ * - Decrypt puncturable encryption ciphertexts c_1, ..., c_HSM_GROUP_SIZE.
+ * - Ask HSM H_i to decrypt c_i. 
+ * - Reassemble ciphertext of form Enc(Hash(PIN), saveKey).
+ * - Compute Hash(PIN) and decrypt to get saveKey. */
 int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c, LogProof **logProofs) {
     int rv = ERROR;
     uint8_t h1[HSM_GROUP_SIZE];
@@ -599,7 +626,14 @@ cleanup:
     return rv;
 }
 
-// Assumes that aggPk already set
+/* Run every epoch to verify that the log was correctly updated. Each HSM
+ * randomly chooses NUM_CHUNKS number of chunks to audit, each with
+ * CHUNK_SIZE transitions. If each transition in each chunk is performed
+ * correctly, each HSM signs the log head. The host aggregates the signatures
+ * and sends them back to the HSMs for verification. 
+ *
+ * This function assumes that the aggregate public key is already set
+ * correctly on all HSMs. */
 int Datacenter_LogEpochVerification(Datacenter *d, LogState *state) {
     int rv;
     thread t[NUM_HSMS];

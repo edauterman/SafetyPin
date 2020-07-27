@@ -13,6 +13,12 @@
 #include "elgamal.h"
 #include "elgamal_shamir.h"
 
+/* Location-hiding encryption scheme using hashed ElGamal. 
+ * Encrypt a message under a key k, then ElGamal encrypt shares of k
+ * under different public keys.
+ * To decrypt, need decryptions of each share of k to reassemble k
+ * and recover the original message. */
+
 using namespace std;
 
 LocationHidingCt *LocationHidingCt_new(Params *params, int n) {
@@ -64,6 +70,10 @@ void ElGamalCtShare_free(ElGamalCtShare *share) {
     if (share) free(share);
 }
 
+/* Create shares by choosing a transport key k, splitting it into (t,n)-shares,
+ * encrypting share k_i to pk_i, and then encrypting msg with k. opt_x is used
+ * to optionally set the x-value of the Shamir shares of k (otherwise, a simple
+ * counter will be used). */
 int ElGamalShamir_CreateShares(Params *params, int t, int n, uint8_t *msg, EC_POINT **pks, LocationHidingCt *ct, BIGNUM **opt_x) {
     int rv;
     ShamirShare **shamirShares = NULL;
@@ -108,6 +118,8 @@ cleanup:
     return rv;
 }
 
+/* Given all the shares of transport key k and a location-hiding ciphertext, reassemble
+ * k and use k to decrypt the original message. */
 int ElGamalShamir_ReconstructShares(Params *params, int t, int n, LocationHidingCt *ct, ShamirShare **shares, uint8_t *msg) {
     int rv;
     BIGNUM *k = NULL;

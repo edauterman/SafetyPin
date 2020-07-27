@@ -9,6 +9,8 @@
 #include "hsm.h"
 #include "params.h"
 
+/* Hashed-ElGamal encryption scheme. */
+
 ElGamal_ciphertext *ElGamalCiphertext_new(Params *params) {
     int rv;
     ElGamal_ciphertext *c;

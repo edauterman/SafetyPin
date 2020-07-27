@@ -1,9 +1,3 @@
-// Copyright 2018 Google Inc. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file or at
-// https://developers.google.com/open-source/licenses/bsd
-
 #include <iostream>
 #include <string>
 #include <stdlib.h>
@@ -19,6 +13,8 @@
 #include "ibe.h"
 #include "common.h"
 
+/* Benchmark save/recover for baseline (ElGamal encrypt to HSM). */
+
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -28,7 +24,6 @@ int main(int argc, char *argv[]) {
     printf("No device found. Exiting.\n");
     return 0;
   }
-
 
   Params *params = Params_new(); 
 
