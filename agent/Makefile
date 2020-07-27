@@ -1,10 +1,4 @@
-# Copyright 2014 Google Inc. All rights reserved.
-#
-# Use of this source code is governed by a BSD-style
-# license that can be found in the LICENSE file or at
-# https://developers.google.com/open-source/licenses/bsd
-
-all: CryptoTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench TreeBuildBench ElGamalTest SaveBench LogTest BaselineBench MultisigTest LogEpochTest ReencryptBench
+all: CryptoTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench TreeBuildBench ElGamalTest SaveBench LogTest BaselineBench MultisigTest LogEpochBench ReencryptBench
 
 #CC ?= gcc
 #CXX ?= g++
@@ -131,7 +125,7 @@ BaselineBench: BaselineBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.
 MultisigTest: MultisigTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o elgamal.o elgamal_shamir.o log.o baseline.o multisig.o merkle_tree.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
 
-LogEpochTest: LogEpochTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o elgamal.o elgamal_shamir.o log.o baseline.o multisig.o merkle_tree.o $(HIDAPI)
+LogEpochBench: LogEpochBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o elgamal.o elgamal_shamir.o log.o baseline.o multisig.o merkle_tree.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
 
 ReencryptBench: ReencryptBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o elgamal.o elgamal_shamir.o log.o baseline.o multisig.o merkle_tree.o $(HIDAPI)
