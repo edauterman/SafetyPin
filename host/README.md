@@ -33,9 +33,6 @@ Benchmarks puncturable encryption scheme.
 `./TreeBench`
 Benchmarks accessing and deleting leaf in puncturable encryption tree.
 
-`./TreeBuildBench`
-Benchmarks time to build puncturable encryption tree.
-
 `./SaveBench`
 Benchmarks time to generate a recovery ciphertext.
 
