@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 /* UNCOMMENT TO USE HID CLASS INSTEAD OF CDC. */
-//#define HID
+#define HID
 
 // The corresponding constants in datacenter.h must also be updated.
 #define NUM_HSMS 1		// Number of physical HSMs
