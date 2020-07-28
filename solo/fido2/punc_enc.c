@@ -11,21 +11,10 @@
 #include "hsm.h"
 #include "punc_enc.h"
 
-//#define NUM_LEAVES 256
-//#define LEVELS 8 // log2(NUM_LEAVES)
+/* Puncturable encryption scheme. */
 
 static uint8_t msk[KEY_LEN];
 static uint8_t hmacKey[KEY_LEN];
-static bool isSmall;
-
-//static uint8_t oldCachedLeaves[NUM_LEAVES / NUM_SUB_LEAVES][KEY_LEN];
-//static uint8_t newCachedLeaves[NUM_LEAVES / NUM_SUB_LEAVES][KEY_LEN];
-static uint8_t levelOneLeaves[NUM_INTERMEDIATE_KEYS][KEY_LEN];
-static uint8_t levelTwoLeaves[NUM_INTERMEDIATE_KEYS][KEY_LEN];
-static uint8_t levelThreeLeaves[NUM_INTERMEDIATE_KEYS][KEY_LEN];
-static int ctr[4] = {0, 0, 0, 0};
-static int ibeLeafCtr = 0;
-static int currLevel = LEVEL_0;
 
 /* Encrypt with separate input and output buffers. */
 void crypto_aes256_encrypt_sep(uint8_t *out, uint8_t *in, int length) {
@@ -47,7 +36,7 @@ void crypto_aes256_decrypt_sep(uint8_t *out, uint8_t *in, int length) {
     }   
 }
 
-// outLen = 32
+/* Compute HMAC. */
 void crypto_hmac(uint8_t *key, uint8_t *out, uint8_t *in, int inLen) {
     uint8_t keyBuf[64];
     uint8_t keyPadBuf[64];
@@ -92,199 +81,14 @@ int decryptKeysAndCheckTag(uint8_t *encKey, uint8_t *hmacKey, uint8_t *key1, uin
     }
 }
 
+/* Run initialization for puncturable encryption. */
 void PuncEnc_Init() {
     ctap_generate_rng(hmacKey, KEY_LEN);
-}
-
-/* Set the values of the leaves in a subtree, where the leaves in the subtree
- * begin at value start. */
-void setIBELeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], int start) {
-    for (int i = 0; i < NUM_SUB_LEAVES; i++) {
-        //memset(leaves[i], 0xff, LEAF_LEN);
-
-        printf("start %d\n", i);
-        memset(leaves[i], 0, LEAF_LEN);
-        uint8_t buf[embedded_pairing_bls12_381_g1_marshalled_compressed_size];
-        embedded_pairing_bls12_381_g1_t sk;
-        embedded_pairing_bls12_381_g1affine_t sk_affine;
-        uint32_t index = i + start;
-        IBE_Extract(index, &sk);
-        embedded_pairing_bls12_381_g1affine_from_projective(&sk_affine, &sk);
-        embedded_pairing_bls12_381_g1_marshal(buf, &sk_affine, true);
-        memcpy(leaves[i], buf, embedded_pairing_bls12_381_g1_marshalled_compressed_size);
-        printf("leaves[%d] = ", i);
-        for (int j = 0; j < embedded_pairing_bls12_381_g1_marshalled_compressed_size;  j++)  {
-            printf("%02x", leaves[i][j]);
-        }
-        printf("\n");
-        //memset(leaves[i], 0xff, CT_LEN);
-    }
-}
-
-void increment() {
-    if (currLevel == LEVEL_0) {
-        if (ctr[0] == NUM_INTERMEDIATE_KEYS - 1) {
-            currLevel = LEVEL_1;
-            ctr[0] = 0;
-        } else {
-            ctr[0]++;
-        }
-        ibeLeafCtr++;
-    } else if (currLevel == LEVEL_1) {
-        if (ctr[1] == NUM_INTERMEDIATE_KEYS - 1) {
-            currLevel = LEVEL_2;
-            ctr[1] = 0;
-        } else {
-            currLevel = LEVEL_0;
-            ctr[1]++;
-        }
-    } else if (currLevel == LEVEL_2) {
-        if (ctr[2] == NUM_INTERMEDIATE_KEYS - 1) {
-            currLevel = LEVEL_3;
-            ctr[2] = 0;
-        } else {
-            currLevel = LEVEL_0;
-            ctr[2]++;
-        }
-    }
-    /* When LEVEL_3, no rounds left. */
-}
-
-void PuncEnc_FillLeaves(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN]) {
-    if (currLevel == LEVEL_0) {
-        setIBELeaves(leaves, ibeLeafCtr * NUM_SUB_LEAVES);
-    } else if (currLevel == LEVEL_1) {
-        memcpy(leaves, levelOneLeaves, NUM_INTERMEDIATE_KEYS * KEY_LEN);
-    } else if (currLevel == LEVEL_2) {
-        memcpy(leaves, levelTwoLeaves, NUM_INTERMEDIATE_KEYS * KEY_LEN);
-    } else if (currLevel == LEVEL_3) {
-        memcpy(leaves, levelThreeLeaves, NUM_INTERMEDIATE_KEYS * KEY_LEN);
-    }
-
-}
-
-void processSubTreeRoot(uint8_t root[KEY_LEN]) {
-    if (currLevel == LEVEL_0) {
-        memcpy(levelOneLeaves[ctr[0]], root, KEY_LEN);
-    } else if (currLevel == LEVEL_1) {
-        memcpy(levelTwoLeaves[ctr[1]], root, KEY_LEN);
-    } else if (currLevel == LEVEL_2) {
-        memcpy(levelThreeLeaves[ctr[2]], root, KEY_LEN);
-    } else {
-        setMsk(root);
-    }
-}
-
-/* Build the subtree from a set of leaves, outputting a tree of ciphertexts. 
- * First NUM_SUB_LEAVES ciphertexts correspond to the leaves, next NUM_SUB_LEAVES / 2
- * are their parents, and so on, and the last ciphertext is the root. Sets finalKey
- * to be the key encrypting the root. */
-void PuncEnc_BuildSubTree(uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN], uint8_t cts[SUB_TREE_SIZE][CT_LEN]) {
-    /* For each level in subtree, choose random key, encrypt two children keys or leaf */
-    isSmall = false;
-//    printf1(TAG_GREEN, "in build subtree\n");
-
-//    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d ctr[3] = %d\n", currLevel, ctr[0], ctr[1], ctr[2], ctr[3]);
-
-    int index = 0;
-    int currNumLeaves = NUM_SUB_LEAVES;
-    uint8_t *currLeaves = leaves;
-    uint8_t keys[SUB_TREE_SIZE][KEY_LEN];
-
-//    printf1(TAG_GREEN, "NUM_SUB_LEAVES = %d, SUB_TREE_SIZE = %d\n", NUM_SUB_LEAVES, SUB_TREE_SIZE);
-
-    /* Repeat for each level in tree. */
-    while (currNumLeaves >= 1) {
-        int initialIndex = index;
-        /* For each child, generate parent. */
-        for (int i = 0; i < currNumLeaves; i++) {
-            /* Choose random key. */
-            ctap_generate_rng(keys[index], KEY_LEN);
-            /* Encrypt leaf. */
-            encryptKeysAndCreateTag(keys[index], hmacKey, currLeaves, currLeaves + KEY_LEN, cts[index]);
-            //crypto_aes256_init(keys[index], NULL);
-            //crypto_aes256_encrypt_sep(cts[index], currLeaves, KEY_LEN);
-            //currLeaves += KEY_LEN;
-            //crypto_aes256_encrypt_sep((uint8_t *)cts[index] + KEY_LEN, currLeaves, KEY_LEN);
-            //currLeaves += KEY_LEN;
-            currLeaves += LEAF_LEN;
-            /* Next index. */
-//            printf1(TAG_GREEN, "index = %d/%d\n", index, SUB_TREE_SIZE);
-            index++;
-        }
-        currLeaves = (uint8_t *)keys + (initialIndex * KEY_LEN);
-//        printf1(TAG_GREEN, "old currNumLeaves = %d\n", currNumLeaves);
-        currNumLeaves /= 2.0;
-//        printf1(TAG_GREEN, "new currNumLeaves = %d\n", currNumLeaves);
-    }
-
-//    printf("going to process and increment\n");
-
-//    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
-    /* Set key for root. */
-    processSubTreeRoot(keys[SUB_TREE_SIZE - 1]);
-//    printf("processed root, going to increment\n");
-    increment();
-    //memcpy(finalKey, keys[SUB_TREE_SIZE - 1], KEY_LEN);
-//    printf("currLevel: %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d\n", currLevel, ctr[0], ctr[1], ctr[2]);
-
-//    printf1(TAG_GREEN, "done building subtree\n");
-}
-
-void PuncEnc_BuildSmallTree(uint8_t cts[SUB_TREE_SIZE][CT_LEN]) {
-    isSmall = true;
-    
-    /* For each level in subtree, choose random key, encrypt two children keys or leaf */
-    printf1(TAG_GREEN, "in build subtree\n");
-
-    uint8_t leaves[NUM_SUB_LEAVES][LEAF_LEN];
-    int index = 0;
-    int currNumLeaves = NUM_SUB_LEAVES;
-    uint8_t *currLeaves = leaves;
-    uint8_t keys[SUB_TREE_SIZE][KEY_LEN];
-
-    setIBELeaves(leaves, 0);
-
-    printf1(TAG_GREEN, "NUM_SUB_LEAVES = %d, SUB_TREE_SIZE = %d\n", NUM_SUB_LEAVES, SUB_TREE_SIZE);
-
-    /* Repeat for each level in tree. */
-    while (currNumLeaves >= 1) {
-        int initialIndex = index;
-        /* For each child, generate parent. */
-        for (int i = 0; i < currNumLeaves; i++) {
-            /* Choose random key. */
-            ctap_generate_rng(keys[index], KEY_LEN);
-            /* Encrypt leaf. */
-            encryptKeysAndCreateTag(keys[index], hmacKey, currLeaves, currLeaves + KEY_LEN, cts[index]);
-            //crypto_aes256_init(keys[index], NULL);
-            //crypto_aes256_encrypt_sep(cts[index], currLeaves, KEY_LEN);
-            //currLeaves += KEY_LEN;
-            //crypto_aes256_encrypt_sep((uint8_t *)cts[index] + KEY_LEN, currLeaves, KEY_LEN);
-            //currLeaves += KEY_LEN;
-            currLeaves += LEAF_LEN;
-            /* Next index. */
-            printf1(TAG_GREEN, "index = %d/%d\n", index, SUB_TREE_SIZE);
-            index++;
-        }
-        currLeaves = (uint8_t *)keys + (initialIndex * KEY_LEN);
-        printf1(TAG_GREEN, "old currNumLeaves = %d\n", currNumLeaves);
-        currNumLeaves /= 2.0;
-        printf1(TAG_GREEN, "new currNumLeaves = %d\n", currNumLeaves);
-    }
-
-    printf("going to process and increment\n");
-
-    /* Set key for root. */
-    setMsk(keys[SUB_TREE_SIZE - 1]);
-    //memcpy(finalKey, keys[SUB_TREE_SIZE - 1], KEY_LEN);
-
-    printf1(TAG_GREEN, "done building small tree\n");
 }
 
 void PuncEnc_TestSetup(uint8_t newMsk[KEY_LEN], uint8_t newHmacKey[KEY_LEN]) {
     setMsk(newMsk);
     memcpy(hmacKey, newHmacKey, KEY_LEN);
-    isSmall = false;
 }
 
 /* Set msk value. Should be called for final_key value for top subtree. */
@@ -294,8 +98,8 @@ void setMsk(uint8_t newMsk[KEY_LEN]) {
 
 /* Look up leaf in the tree given ciphertexts along the path to that leaf. */
 int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t leaf[CT_LEN]) {
-    int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
-    int levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
+    int numLeaves = NUM_LEAVES;
+    int levels = LEVELS;
     uint8_t currKey[KEY_LEN];
     uint8_t leftKey[KEY_LEN];
     uint8_t rightKey[KEY_LEN];
@@ -366,8 +170,8 @@ int PuncEnc_RetrieveLeaf(uint8_t cts[LEVELS][CT_LEN], uint32_t index, uint8_t le
 /* Puncture a leaf. Given ciphertexts along the path to the leaf corresponding
  * to index, output a new set of ciphertexts. Also updates msk. */
 void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, uint8_t newCts[KEY_LEVELS][CT_LEN]) {
-    int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
-    int keyLevels = isSmall ? SUB_TREE_LEVELS - 1 : KEY_LEVELS;
+    int numLeaves = NUM_LEAVES;
+    int keyLevels = KEY_LEVELS;
     uint8_t currKey[KEY_LEN];
     uint8_t leftKeys[keyLevels][KEY_LEN];
     uint8_t rightKeys[keyLevels][KEY_LEN];

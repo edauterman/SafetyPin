@@ -232,49 +232,8 @@ cleanup:
   return rv;
 }
 
-/* Run setup for datacenter, performing full puncturable encryption setup on HSMs
- * (necessary for security, but don't use for benchmarking/testing because
- * takes days). */
-int Datacenter_Setup(Datacenter *d) {
-    int rv;
-    thread t[NUM_HSMS];
-    for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_GetMpk(d->hsms[i]));
-        CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
-    }
-    for (int i = 0; i < NUM_HSMS; i++) {
-        t[i] = thread(HSM_Setup, d->hsms[i]);
-    }
-    for (int i = 0; i < NUM_HSMS; i++) {
-        t[i].join();
-        printf("Done with setup  for %d/%d\n", i, NUM_HSMS);
-    }
-cleanup:
-    return rv;
-}
-
-/* Run setup for datacenter, performing mini puncturable encryption setup
- * on HSMs. */
-int Datacenter_SmallSetup(Datacenter *d) {
-    int rv;
-    thread t[NUM_HSMS];
-    for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_GetMpk(d->hsms[i]));
-        CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
-    }
-    for (int i = 0; i < NUM_HSMS; i++) {
-        t[i] = thread(HSM_SmallSetup, d->hsms[i]);
-    }
-    for (int i = 0; i < NUM_HSMS; i++) {
-        t[i].join();
-        printf("Done with setup  for %d/%d\n", i, NUM_HSMS);
-    }
-cleanup:
-    return rv;
-}
-
 /* Run setup for datacenter, performing expensive puncturable encryption
- * setup at the host. */
+ * setup at the host (only for testing, not secure). */
 int Datacenter_TestSetup(Datacenter *d) {
     int rv;
     uint8_t *cts;
@@ -292,7 +251,6 @@ int Datacenter_TestSetup(Datacenter *d) {
     PuncEnc_BuildTree(d->hsms[0]->params, cts, msk, hmacKey, mpk);
     printf("Finished building puncturable encryption tree.\n");
     for (int i = 0; i < NUM_HSMS; i++) {
-        CHECK_C (HSM_GetMpk(d->hsms[i]));
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
         CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, mpk));
         printf("Done with setup for %d/%d\n", i, NUM_HSMS);

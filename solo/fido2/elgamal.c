@@ -5,6 +5,8 @@
 #include "punc_enc.h"
 #include "crypto.h"
 
+/* Hashed ElGamal encryption scheme. */
+
 fieldElem sk;
 
 void ElGamal_Init() {

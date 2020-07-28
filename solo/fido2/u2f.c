@@ -54,24 +54,6 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
         switch(req->ins)
         {
 
-            case HSM_MPK:
-                printf1(TAG_GREEN, "starting get mpk\n");
-                rcode = HSM_GetMpk(NULL, NULL);
-                printf1(TAG_GREEN, "finished get mpk\n");
-                break;
-
-            case HSM_SETUP:
-                printf1(TAG_GREEN, "starting setup\n");
-                rcode = HSM_Setup(NULL, NULL);
-                printf1(TAG_GREEN, "finished setup\n");
-                break;
-
-           case HSM_SMALL_SETUP:
-                printf1(TAG_GREEN, "starting small setup\n");
-                rcode = HSM_SmallSetup(NULL, NULL);
-                printf1(TAG_GREEN, "finished small setup\n");
-                break;
-
            case HSM_TEST_SETUP:
                 printf1(TAG_GREEN, "starting test setup\n");
                 rcode = HSM_TestSetup((struct hsm_test_setup_request *)payload, NULL, NULL);

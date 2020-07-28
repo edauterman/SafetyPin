@@ -13,7 +13,6 @@
 #define CDC_MAX_PACKET_SZ  64
 #define CDC_FRAME_SZ 64
 #define CDC_PAYLOAD_SZ 59
-//#define CDC_BUFFER_LEN 64
 
 struct CDCFrame {
     uint16_t discard;

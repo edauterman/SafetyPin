@@ -35,23 +35,11 @@
 #define NUM_LEAVES 2097152      // Number of leaves in puncturable encryption tree
 #define LEVELS 22               // Number of levels in tree, log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // Number of levels containing intermediate keys
-#define SUB_TREE_LEVELS 5       // Number of levels in puncturable encryption subtree
-#define SUB_TREE_SIZE ((CTAP_RESPONSE_BUFFER_SIZE / (4 * KEY_LEN)) - 1) // Number of nodes in puncturable encryption subtree
-#define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)    // Number of leaves in puncturable encryption subtree
-#define NUM_INTERMEDIATE_KEYS (NUM_SUB_LEAVES * 2)  // Number of intermediate keys in puncturable encryption subtree
-// Levels of puncturable encryption subtrees
-#define LEVEL_0 0
-#define LEVEL_1 1
-#define LEVEL_2 2
-#define LEVEL_3 3
 
 // Message opcodes
-#define HSM_SETUP           0x70
 #define HSM_RETRIEVE        0x71
 #define HSM_PUNCTURE        0x72
 #define HSM_DECRYPT         0x73
-#define HSM_MPK             0x74
-#define HSM_SMALL_SETUP     0x75
 #define HSM_AUTH_DECRYPT    0x76
 #define HSM_TEST_SETUP      0x77
 #define HSM_MICROBENCH      0x78
@@ -70,14 +58,6 @@
 #define HSM_LOG_ROOTS                   0x8e
 #define HSM_LOG_ROOTS_PROOF             0x8f
 
-
-struct hsm_mpk {
-    uint8_t mpk[BASEFIELD_SZ_G2];
-};
-
-struct hsm_setup {
-    uint8_t cts[SUB_TREE_SIZE][CT_LEN];
-};
 
 struct hsm_retrieve_request {
     uint32_t index;
@@ -205,8 +185,6 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen);
 int HSM_GetReqLenFromMsgType(uint8_t msgType);
 
 int HSM_GetMpk(uint8_t *out, int *outLen);
-int HSM_Setup(uint8_t *out, int *outLen);
-int HSM_SmallSetup(uint8_t *out, int *outLen);
 int HSM_TestSetup(struct hsm_test_setup_request *req, uint8_t *out, int *outLen);
 int HSM_Retrieve(struct hsm_retrieve_request *req, uint8_t *out, int *outLen);
 int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen);

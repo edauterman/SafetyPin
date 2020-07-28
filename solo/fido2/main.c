@@ -35,8 +35,6 @@ int main(int argc, char *argv[])
     uint8_t msg[64];
     uint32_t t1 = 0;
     uint8_t cdc_msg[CDC_FRAME_SZ];
-    //uint8_t cdc_msg[CDC_MAX_PACKET_SZ];
-    //uint8_t output_msg[1024];
 
     set_logging_mask(
 		/*0*/
@@ -85,16 +83,6 @@ int main(int argc, char *argv[])
     printf("is bootloader\n");
 #endif
 
-    printf("after\n");
-
-    /*for (int i = 0; i < sizeof(cdc_msg); i++) {
-        if (i % 4 == 0) output_msg[i] = 0x11;
-        else if (i % 4 == 1) output_msg[i] = 0x22;
-        else if (i % 4 == 2) output_msg[i] = 0x33;
-        else output_msg[i] = 0x44;
-    }*/
-    //memset(output_msg, 0x11, sizeof(output_msg));
-
     while(1)
     {
         t_old = t_new;
@@ -103,76 +91,6 @@ int main(int argc, char *argv[])
         {
             heartbeat();
             t1 = millis();
-/*            fieldElem x1;
-            fieldElem x2;
-            ecPoint gx1;
-            ecPoint gx2;
-            ecPoint gx3;
-            uint8_t x1Buf[32];
-            uint8_t x2Buf[32];
-            uint8_t gx1Buf[64];
-            uint8_t gx2Buf[64];
-            uint8_t gx3Buf[64];
-            
-            //uECC_bytesToNative(x, input, 32);
-            //printf("did bytes to native\n");
-            uECC_randInt(x1);
-            printf("did rand int\n");
-            uECC_fieldElemToBytes(x1Buf, x1);
-            uECC_basePointMult(gx1, x1);
-            printf("did base point mul\n");
-            uECC_pointToBytes(gx1Buf, gx1);
-            printf("did native to bytes\n");
-            printf("x1: ");
-            for (int i = 0; i < 32; i++) {
-                printf("%02x", x1Buf[i]);
-            }
-            printf("\n");
-            printf("g^x1: ");
-            for (int i = 0; i < 64; i++) {
-                printf("%02x", gx1Buf[i]);
-                if (i == 31) printf(" ");
-            }
-            printf("\n");
-            
-            //printf("did bytes to native\n");
-            uECC_randInt(x2);
-            printf("did rand int\n");
-            uECC_fieldElemToBytes(x2Buf, x2);
-            uECC_basePointMult(gx2, x2);
-            printf("did base point mul\n");
-            uECC_pointToBytes(gx2Buf, gx2);
-            printf("did native to bytes\n");
-            printf("x2: ");
-            for (int i = 0; i < 32; i++) {
-                printf("%02x", x2Buf[i]);
-            }
-            printf("\n");
-            printf("g^x2: ");
-            for (int i = 0; i < 64; i++) {
-                printf("%02x", gx2Buf[i]);
-                if (i == 31) printf(" ");
-            }
-            printf("\n");
-
-            uECC_pointAdd(gx3, gx1, gx2);
-            uECC_pointToBytes(gx3Buf, gx3);
-            printf("g^x3: ");
-            for (int i = 0; i < 64; i++) {
-                printf("%02x", gx3Buf[i]);
-                if (i == 31) printf(" ");
-            }
-            printf("\n");
-
-*/
-            /*uECC_compute_public_key(input, output, uECC_secp256k1());
-            printf("g^x1 other way: ");
-            for (int i = 0; i < 64; i++) {
-                printf("%02x", output[i]);
-                if (i == 31) printf(" ");
-            }
-            printf("\n");
-            */
         }
 
         device_manage();
@@ -184,7 +102,6 @@ int main(int argc, char *argv[])
             ctaphid_handle_packet(msg);
             uint32_t t2 = millis();
             memset(msg, 0, sizeof(msg));
-                //}
         }
         int remaining, rhead, whead;
         if (usbcdc_recv(cdc_msg, &remaining, &rhead, &whead) > 0) {

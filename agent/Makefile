@@ -1,4 +1,4 @@
-all: CryptoTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench TreeBuildBench ElGamalTest SaveBench LogTest BaselineBench MultisigTest LogEpochBench ReencryptBench
+all: CryptoTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench ElGamalTest SaveBench LogTest BaselineBench MultisigTest LogEpochBench ReencryptBench
 
 #CC ?= gcc
 #CXX ?= g++
@@ -90,9 +90,6 @@ TreeTest: TreeTest.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o sh
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
 
 TreeBench: TreeBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o elgamal.o elgamal_shamir.o log.o multisig.o merkle_tree.o $(HIDAPI)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
-
-TreeBuildBench: TreeBuildBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o elgamal.o elgamal_shamir.o log.o multisig.o merkle_tree.o $(HIDAPI)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -Wall -o $@ $^ jedi-pairing/pairing.a $(LDLIBS) -lssl -lcrypto -lpthread
 
 PuncEncBench: PuncEncBench.cc hsm.o datacenter.o u2f_util.o params.o punc_enc.o ibe.o shamir.o punc_enc.o usb.o elgamal.o elgamal_shamir.o log.o multisig.o merkle_tree.o $(HIDAPI)

@@ -43,25 +43,7 @@ extern "C" {
 #define NUM_LEAVES 2097152	// Total number of leaves in puncturable encryption tree
 #define LEVELS 22 		// log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES)
-#define SUB_TREE_LEVELS 5	// Number of levels in each subtree
-
-#define SUB_TREE_SIZE ((RESPONSE_BUFFER_SIZE / (4 * KEY_LEN)) - 1) // Number of nodes in each subtree
 #define TREE_SIZE (NUM_LEAVES * 2 - 1)	// Number of nodes in entire tree
-#define NUM_SUB_LEAVES ((SUB_TREE_SIZE + 1) / 2)	// Number of leaves in subtree
-#define NUM_INTERMEDIATE_KEYS (NUM_SUB_LEAVES * 2)	// Number of keys stored in each subtree
-// Constants for different subtrees for puncturable encryption
-#define LEVEL_0 0
-#define LEVEL_1 1
-#define LEVEL_2 2
-#define LEVEL_3 3
-#define LEVEL_DONE -1
-// Offsets at different levels of puncturable encryption subtrees
-#define LEVEL_1_OFFSET ((524288 + 262144 + 131072 + 65536 + 32768) * CT_LEN)
-#define LEVEL_2_OFFSET (LEVEL_1_OFFSET + ((16384 + 8192 + 4096 + 2048 + 1024) * CT_LEN))
-#define LEVEL_3_OFFSET (LEVEL_1_OFFSET + LEVEL_2_OFFSET +  ((512 + 256 + 128 + 64 + 32) * CT_LEN))
-#define LEVEL_1_NUM_LEAVES 16384 
-#define LEVEL_2_NUM_LEAVES 512
-#define LEVEL_3_NUM_LEAVES 16
 
 // Crypto primitive sizes
 #define COMPRESSED_PT_SZ 33
@@ -73,12 +55,9 @@ extern "C" {
 #define RESPONSE_BUFFER_SIZE 4096	// Confifgured on HSM
 
 // Message opcodes
-#define HSM_SETUP           0x70
 #define HSM_RETRIEVE        0x71
 #define HSM_PUNCTURE        0x72
 #define HSM_DECRYPT         0x73
-#define HSM_MPK             0x74
-#define HSM_SMALL_SETUP     0x75
 #define HSM_AUTH_DECRYPT    0x76
 #define HSM_TEST_SETUP      0x77
 #define HSM_MICROBENCH      0x78
@@ -98,14 +77,6 @@ extern "C" {
 #define HSM_LOG_ROOTS_PROOF             0x8f
 
 using namespace std;
-
-typedef struct{
-    uint8_t mpk[BASEFIELD_SZ_G2];
-} HSM_MPK_RESP;
-
-typedef struct{
-    uint8_t cts[SUB_TREE_SIZE][CT_LEN];
-} HSM_SETUP_RESP;
 
 typedef struct{
     uint32_t index;
@@ -293,9 +264,6 @@ HSM *HSM_new();
 void HSM_free(HSM *h);
 
 /* Setup */
-int HSM_GetMpk(HSM *h);
-int HSM_Setup(HSM *h);
-int HSM_SmallSetup(HSM *h);
 int HSM_TestSetup(HSM *h);
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], EC_POINT **mpk);
 int HSM_SetParams(HSM *h, uint8_t *logPk);

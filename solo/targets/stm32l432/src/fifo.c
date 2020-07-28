@@ -12,26 +12,19 @@
 
 
 FIFO_CREATE(debug,256,1)
-//FIFO_CREATE(debug,1,1)
 
-//FIFO_CREATE(hidmsg,50,64)
-//FIFO_CREATE(hidmsg,80,64)
+#ifndef HID
 FIFO_CREATE(hidmsg,5,64)
+#else
+FIFO_CREATE(hidmsg,80,64)
+#endif
 
-//FIFO_CREATE(cdcmsg,3,1024)
-//FIFO_CREATE(cdcmsg,100,64)
-//FIFO_CREATE(cdcmsg,86,64)
-
-
+#ifndef HID
 FIFO_CREATE(cdcmsg,100,64)
-//FIFO_CREATE(cdcmsg,1,64)
-
+#else
+FIFO_CREATE(cdcmsg,1,64)
+#endif
     
-//FIFO_CREATE(cdcmsg,150,64)
-//FIFO_CREATE(cdcmsg,200,64)
-//FIFO_CREATE(cdcmsg,220,64)
-//FIFO_CREATE(cdcmsg,100,64)
-
 #if TEST_FIFO
 FIFO_CREATE(test,10,100)
 void fifo_test()

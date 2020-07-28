@@ -8,18 +8,17 @@
 #include "ibe.h"
 #include "bls12_381/bls12_381.h"
 
+/* Identity-based encryption scheme. */
+
 embedded_pairing_core_bigint_256_t msk;
 embedded_pairing_bls12_381_g2_t mpk;
 
 void IBE_Setup() {
     uint8_t hash[32];
+    /* For testing, use a dummy secret key. */
     memset(hash, 0xff, 32);
     embedded_pairing_bls12_381_zp_from_hash(&msk, hash);
     embedded_pairing_bls12_381_g2_multiply_affine(&mpk, embedded_pairing_bls12_381_g2affine_generator, &msk);
-    /* Choose msk in Z_q^* */
-    //embedded_pairing_bls12_381_zp_random(&msk, ctap_generate_rng);
-    /* Set mpk */
-    //embedded_pairing_bls12_381_g2_multiply_affine(&mpk, embedded_pairing_bls12_381_g2affine_generator, &msk);
 
 }
 
@@ -47,42 +46,20 @@ void IBE_Extract(uint16_t index, embedded_pairing_bls12_381_g1_t *sk) {
     /* Map index to a point pt. */
     memcpy(indexBuf, &index, sizeof(index));
     hashToLength(indexBuf, sizeof(index), indexHash, 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size);
-    printf("hash: ");
-    for (int i = 0; i < 2 * embedded_pairing_bls12_381_g1_marshalled_uncompressed_size; i++) {
-        printf("%02x", indexHash[i]);
-    }
-    printf("\n");
-    //hashToBaseField(index, indexHash);
     embedded_pairing_bls12_381_g1affine_from_hash(&pt_affine, indexHash);
     uint8_t affineBuf[embedded_pairing_bls12_381_g1_marshalled_uncompressed_size];
     embedded_pairing_bls12_381_g1_marshal(affineBuf, &pt_affine, false);
-    printf("affine pt: ");
-    for (int i = 0; i < embedded_pairing_bls12_381_g1_marshalled_uncompressed_size; i++) {
-        printf("%02x", affineBuf[i]);
-    }
-    printf("\n");
     
     /* Set sk = pt^msk. */
     embedded_pairing_bls12_381_g1_multiply_affine(sk, &pt_affine, &msk);
-    printf("indexBuf = %02x%02x\n", indexBuf[0], indexBuf[1]);
-    printf("sk: ");
-    for (int i = 0; i < sizeof(*sk); i++) {
-        printf("%02x", ((uint8_t *)sk)[i]);
-    }
-    printf("\n");
 }
 
 void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381_g2_t *U, uint8_t *V, uint8_t *W, uint8_t *msg, int msgLen) {
-    uint32_t t1 = millis();
     embedded_pairing_bls12_381_g1affine_t sk_affine;
     embedded_pairing_bls12_381_g2affine_t U_affine;
     embedded_pairing_bls12_381_fq12_t U_sk;
     uint8_t U_sk_buf[embedded_pairing_bls12_381_gt_marshalled_size];
-    //uint8_t U_sk_buf_msg_len[msgLen];
-    //uint8_t sigma[msgLen];
     uint8_t tmp[msgLen];
-    //uint8_t M[msgLen];
-    //uint8_t sigma_hash[msgLen];
     uint8_t sigma_M[2 * msgLen];
     uint8_t sigma_M_hash[SHA256_DIGEST_LEN];
     embedded_pairing_core_bigint_256_t r;
@@ -96,7 +73,6 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
     uint32_t t4 = millis();
     embedded_pairing_bls12_381_gt_marshal(U_sk_buf, &U_sk);
     hashToLength(U_sk_buf, embedded_pairing_bls12_381_gt_marshalled_size, tmp, msgLen);
-    //hashToLength(U_sk_buf, embedded_pairing_bls12_381_gt_marshalled_size, U_sk_buf_msg_len, msgLen);
     for (int i = 0; i < msgLen; i++) {
         sigma_M[i] = tmp[i] ^ V[i];
     }
@@ -107,24 +83,7 @@ void IBE_Decrypt(embedded_pairing_bls12_381_g1_t *sk, embedded_pairing_bls12_381
         sigma_M[i + msgLen] =  W[i] ^  tmp[i];
     }
 
-    /* r = H(\sigma, M) */
-    //memcpy(sigma_M, sigma, msgLen);
-    //memcpy(sigma_M + msgLen, M, msgLen);
-/*    hashToLength(sigma_M, 2 * msgLen, sigma_M_hash, SHA256_DIGEST_LEN);
-    embedded_pairing_bls12_381_zp_from_hash(&r, sigma_M_hash);
-
-    /* Test u = rP */
- /*   embedded_pairing_bls12_381_g2_multiply_affine(&U_test, embedded_pairing_bls12_381_g2affine_generator, &r);
-    if (!embedded_pairing_bls12_381_g2_equal(&U_test, U)) {
-        memset(msg, 0x8, msgLen);
-        printf("--------- ERROR IN DECRYPTION ----------\n");
-        return;
-    }*/
-
     memcpy(msg, sigma_M + msgLen, msgLen);
-    uint32_t t2 = millis();
-    //printf("ibe decrypt: %d\n", t2 - t1);
-    //printf("pairing: %d\n", t4 - t3);
 }
 
 void IBE_MarshalCt(uint8_t *buf, int msgLen, embedded_pairing_bls12_381_g2_t *U, uint8_t *V, uint8_t *W) {
@@ -154,5 +113,3 @@ void IBE_UnmarshalSk(uint8_t buf[BASEFIELD_SZ_G1], embedded_pairing_bls12_381_g1
     embedded_pairing_bls12_381_g1_unmarshal(&sk_affine, buf, true, true);
     embedded_pairing_bls12_381_g1_from_affine(sk, &sk_affine);
 }
-
-// TODO: decrypt

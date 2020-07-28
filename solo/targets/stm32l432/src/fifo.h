@@ -13,22 +13,7 @@
 #define TEST_FIFO 0
 #endif
 
-/*int fifo_##NAME##_add(uint8_t * c)\
-{\
-    if (__##NAME##_SIZE < LENGTH)\
-    {\
-        __##NAME##_SIZE++;\
-        memmove(__##NAME##_WRITE_BUF + __##NAME##_WRITE_PTR * BYTES, c, BYTES);\
-        if (__##NAME##_WRITE_PTR >= LENGTH - 1)\
-            __##NAME##_WRITE_PTR = 0;\
-        else\
-            __##NAME##_WRITE_PTR ++;\
-        return 0;\
-    }\
-    return -1;\
-}\
-\
-*/
+//#define HID 
 
 #define FIFO_CREATE(NAME,LENGTH,BYTES)\
 int __##NAME##_WRITE_PTR = 0;\
