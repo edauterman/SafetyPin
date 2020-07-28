@@ -3,7 +3,8 @@
 #include "hsm.h"
 #include "shamir.h"
 #include "uECC.h"
-//#include "../crypto/cifra/src/arm/unacl/scalarmult.c"
+
+/* Shamir secret sharing. */
 
 void Shamir_ReconstructShares(int t, int n, struct ShamirShare **shares, fieldElem secret) {
     fieldElem currTerm, numerator, denominator, denominatorInverse, lambda, currLambda, zero;

@@ -2,7 +2,6 @@
 #define _SHAMIR_H
 
 #include "uECC.h"
-//#include "../crypto/cifra/src/arm/unacl/scalarmult.c"
 
 struct ShamirShare {
     fieldElem x;
