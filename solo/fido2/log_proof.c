@@ -15,6 +15,7 @@ int ctr;
 int subCtr;
 int chunkSize;
 
+/* Set the parameters for the log. */
 void Log_SetParams(uint8_t logPk_in[COMPRESSED_PT_SZ], int groupSize_in, int chunkSize_in) {
     memcpy(logPk, logPk_in, COMPRESSED_PT_SZ);
     groupSize = groupSize_in;
@@ -23,7 +24,8 @@ void Log_SetParams(uint8_t logPk_in[COMPRESSED_PT_SZ], int groupSize_in, int chu
     subCtr = 0;
 }
 
-int Log_Verify(uint8_t ct[ELGAMAL_CT_LEN], uint8_t hsms[HSM_GROUP_SIZE], uint8_t proof[PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t root[SHA256_DIGEST_LEN], uint8_t opening[FIELD_ELEM_LEN]) {
+/* Verify that a recovery attempt is present in the log. */
+int Log_Verify(uint8_t ct[ELGAMAL_CT_LEN], uint8_t hsms[HSM_GROUP_SIZE], uint8_t proof[PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t rootSig[SIG_LEN], uint8_t opening[FIELD_ELEM_LEN]) {
     uint8_t curr[SHA256_DIGEST_LEN];
 
     /* Verify Merkle proof */
@@ -40,10 +42,10 @@ int Log_Verify(uint8_t ct[ELGAMAL_CT_LEN], uint8_t hsms[HSM_GROUP_SIZE], uint8_t
         crypto_sha256_final(curr);
     }
 
-    return (memcmp(curr, root, SHA256_DIGEST_LEN) == 0);
-    //    return (uECC_ecdsaVerify(logPk, curr, SHA256_DIGEST_LEN, rootSig) == 1) ? OKAY : ERROR;
+    return (uECC_ecdsaVerify(logPk, curr, SHA256_DIGEST_LEN, rootSig) == 1) ? OKAY : ERROR;
 }
 
+/* Used to keep track of current state during log epoch verification. */
 int Log_SetChunkRoot(uint8_t *chunkRootIn) {
     memcpy(chunkRoot, chunkRootIn, SHA256_DIGEST_LEN);
 }
@@ -56,10 +58,10 @@ void Log_SetNewChunkHead(uint8_t head[SHA256_DIGEST_LEN]) {
     memcpy(newChunkHead, head, SHA256_DIGEST_LEN);
 }
 
+/* Choose chunks to query. */
 int Log_GenChunkQueries (int *queriesOut) {
     for (int i = 0; i < NUM_CHUNKS; i++) {
-        /*ctap_generate_rng(queries[2*i], sizeof(int));
-        queries[2*i] = queries[2*i] % (TOTAL_HSMS - 1);*/
+        // Choosing dummy chunks for now.
         queries[2*i] = i % (TOTAL_HSMS - 1);
         queries[2*i+1] = queries[2*i] + 1;
         queriesOut[i]  = queries[2*i+1];
@@ -67,7 +69,7 @@ int Log_GenChunkQueries (int *queriesOut) {
     ctr = 0;
 }
 
-
+/* Verify that the Merkle root for a chunk is committed to by the log head. */
 int Log_CheckChunkRootProof (uint64_t id, uint8_t head[SHA256_DIGEST_LEN], uint8_t proof[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint64_t ids[MAX_PROOF_LEVELS], int len) {
     uint8_t curr[SHA256_DIGEST_LEN];
 
@@ -76,7 +78,6 @@ int Log_CheckChunkRootProof (uint64_t id, uint8_t head[SHA256_DIGEST_LEN], uint8
     int currIndex = queries[ctr];
     for (int i = len - 1; i >= 0; i--) {
         crypto_sha256_init();
-        //if (currIndex % 2 == 0) {
         if (id <= ids[i]) {
             crypto_sha256_update(curr, SHA256_DIGEST_LEN);
             crypto_sha256_update(proof[i], SHA256_DIGEST_LEN);
@@ -92,6 +93,7 @@ int Log_CheckChunkRootProof (uint64_t id, uint8_t head[SHA256_DIGEST_LEN], uint8
     return (memcmp(curr, chunkRoot, SHA256_DIGEST_LEN) ==  0);
 }
 
+/* Verify a transition proof within a log chunk. */
 int Log_CheckTransProof(uint64_t id, uint8_t headOld[SHA256_DIGEST_LEN], uint8_t headNew[SHA256_DIGEST_LEN], uint8_t leaf[SHA256_DIGEST_LEN], uint8_t proofOld[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint8_t proofNew[MAX_PROOF_LEVELS][SHA256_DIGEST_LEN], uint64_t idsOld[MAX_PROOF_LEVELS], uint64_t idsNew[MAX_PROOF_LEVELS], int lenOld, int lenNew) {
 
     uint8_t curr[SHA256_DIGEST_LEN];

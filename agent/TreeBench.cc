@@ -24,12 +24,6 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  struct timeval s1, s2;
-
-  gettimeofday(&s1, NULL);
-  HSM_GetMpk(d->hsms[0]);
-  gettimeofday(&s2, NULL);
-  printf("*** Get mpk time: %ld micros\n", s2.tv_usec - s1.tv_usec);
   HSM_TestSetup(d->hsms[0]);
   
   struct timeval t1, t2, t3;

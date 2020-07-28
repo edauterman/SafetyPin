@@ -37,8 +37,6 @@
 
 using namespace std;
 
-static bool isSmall;
-
 HSM *HSM_new() {
     int rv = ERROR;
     HSM *h = NULL;
@@ -61,51 +59,12 @@ void HSM_free(HSM *h) {
     free(h);
 }
 
-/* Get puncturable encryption public key. */
-int HSM_GetMpk(HSM *h) {
-    int rv =  ERROR;
-    HSM_MPK_RESP resp;
-    string resp_str;
-    pthread_mutex_lock(&h->m);
-
-#ifdef HID
-    CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_MPK, 0, 0,
-                "", &resp_str));
-    memcpy(&resp, resp_str.data(), resp_str.size());
-#else
-    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_MPK, NULL, 0, (uint8_t *)&resp,
-                sizeof(resp)));
-#endif
-
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    if (rv == ERROR) printf("MPK ERROR\n");
-    return rv;
-}
-
-/* Helper function for puncturable encryption setup. */
-void copySubTree(uint8_t *out, uint8_t *in, int numLeaves, int numSubLeaves, int ctr) {
-    int offsetOut = 0;
-    int offsetIn = 0;
-    int factor = 1;
-    int numToCopy = numSubLeaves;
-    for (int i = 0; i < SUB_TREE_LEVELS; i++) {
-        memcpy(out + offsetOut + (ctr * numToCopy * CT_LEN), in + offsetIn, numToCopy * CT_LEN);
-        offsetOut += (numLeaves / factor * CT_LEN);
-        offsetIn += (numToCopy * CT_LEN);
-        numToCopy /= 2;
-        factor *= 2;
-    }
-}
-
 /* Run puncturable encryption setup where create puncturable encryption tree
  * on host first (ONLY FOR TESTING, NOT SECURE). */
 int HSM_TestSetup(HSM *h) {
     int rv = ERROR;
     HSM_TEST_SETUP_REQ req;
     string resp_str;
-
-    isSmall = false;
 
     pthread_mutex_lock(&h->m);
 
@@ -132,8 +91,6 @@ int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmac
     HSM_TEST_SETUP_REQ req;
     string resp_str;
 
-    isSmall = false;
-
     pthread_mutex_lock(&h->m);
 
     memcpy(h->cts, cts, TREE_SIZE * CT_LEN);
@@ -155,98 +112,11 @@ cleanup:
     return rv;
 }
 
-/* Create small puncturable encryption tree on HSM. */
-int HSM_SmallSetup(HSM *h) {
-    int rv = ERROR;
-    HSM_SETUP_RESP resp;
-    string resp_str;
-
-    isSmall = true;
-
-    pthread_mutex_lock(&h->m);
-
-#ifdef HID
-    CHECK_C (EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_SMALL_SETUP, 0,
-                0, "", &resp_str));
-    memcpy(&resp, resp_str.data(), resp_str.size());
-#else
-    CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SMALL_SETUP, NULL, 0,
-                (uint8_t *)&resp, sizeof(resp)));
-#endif
-
-    memcpy(h->cts, resp.cts, SUB_TREE_SIZE * CT_LEN);
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    if (rv == ERROR) printf("SMALL SETUP ERROR\n");
-    return rv;
-}
-
-/* Run puncturable encryption setup on HSM. Secure, but takes a very
- * long time (order of days). */
-int HSM_Setup(HSM *h) {
-    int rv =  ERROR;
-    HSM_SETUP_RESP resp;
-    string resp_str;
-    int currLevel = LEVEL_0;
-    int ctr[4] = {0, 0, 0, 0};
-
-    isSmall = false;
-
-    pthread_mutex_lock(&h->m);
-
-    while (currLevel != LEVEL_DONE) {
-        debug_print("currLevel = %d, ctr[0] = %d, ctr[1] = %d, ctr[2] = %d, ctr[3] = %d\n", currLevel, ctr[0], ctr[1], ctr[2], ctr[3]);
-
-#ifdef HID 
-        CHECK_C(EXPECTED_RET_VAL ==  U2Fob_apdu(h->hidDevice, 0, HSM_SETUP, 0, 0,
-                    "", &resp_str));
-        memcpy(&resp, resp_str.data(), resp_str.size());
-#else
-        CHECK_C (UsbDevice_exchange(h->usbDevice, HSM_SETUP, NULL, 0, 
-                    (uint8_t *)&resp, sizeof(resp)));
-#endif
-        if (currLevel ==  LEVEL_0) {
-            copySubTree((uint8_t *)h->cts, (uint8_t *)resp.cts, NUM_LEAVES, NUM_SUB_LEAVES, ctr[0]);
-            ctr[0]++;
-            if (ctr[0] % NUM_INTERMEDIATE_KEYS == 0) {
-                currLevel = LEVEL_1;
-            }
-        } else if (currLevel == LEVEL_1) {
-            copySubTree((uint8_t *)h->cts + LEVEL_1_OFFSET, (uint8_t *)resp.cts, LEVEL_1_NUM_LEAVES, NUM_SUB_LEAVES, ctr[1]);
-           ctr[1]++;
-           if (ctr[0] == 2 * LEVEL_1_NUM_LEAVES) {
-                currLevel = LEVEL_2;
-           } else {
-                currLevel = LEVEL_0;
-           }
-        } else if (currLevel == LEVEL_2) {
-            copySubTree((uint8_t *)h->cts + LEVEL_2_OFFSET, (uint8_t *)resp.cts, LEVEL_2_NUM_LEAVES, NUM_SUB_LEAVES, ctr[2]);
-           ctr[2]++;
-           if (ctr[0] == 2 * LEVEL_2_NUM_LEAVES) {
-                currLevel = LEVEL_3;
-           } else {
-                currLevel = LEVEL_0;
-           }
-        } else if (currLevel == LEVEL_3) {
-            copySubTree((uint8_t *)h->cts + LEVEL_3_OFFSET, (uint8_t *)resp.cts, LEVEL_3_NUM_LEAVES, NUM_SUB_LEAVES, ctr[3]);
-            ctr[3]++;
-            currLevel = LEVEL_DONE;
-        }
-        
-        debug_print("next level: %d\n", currLevel);
-
-    }
-cleanup:
-    pthread_mutex_unlock(&h->m);
-    if (rv == ERROR) printf("SETUP ERROR\n");
-    return rv;
-}
-
 /* Retrieve a leaf indexed by index from puncturable encryption tree. */
 int HSM_Retrieve(HSM *h, uint32_t index) {
     int rv = ERROR;
-    int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
-    int levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
+    int numLeaves = NUM_LEAVES;
+    int levels = LEVELS;
     HSM_RETRIEVE_REQ req;
     HSM_RETRIEVE_REQ req2;
     HSM_RETRIEVE_RESP resp;
@@ -290,8 +160,8 @@ int puncture_noLock(HSM *h, uint32_t index) {
     HSM_PUNCTURE_REQ req;
     HSM_PUNCTURE_RESP resp;
     string resp_str;
-    int numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
-    int keyLevels = isSmall ? SUB_TREE_LEVELS - 1 : KEY_LEVELS;
+    int numLeaves = NUM_LEAVES;
+    int keyLevels = KEY_LEVELS;
     uint32_t currIndex = index;
     uint32_t totalTraveled = numLeaves;
     uint32_t currInterval = numLeaves / 2;
@@ -384,8 +254,8 @@ int HSM_AuthDecrypt(HSM *h, uint32_t tag, ElGamal_ciphertext *c[PUNC_ENC_REPL], 
             continue;
         }
 
-        numLeaves = isSmall ? NUM_SUB_LEAVES : NUM_LEAVES;
-        levels = isSmall ? SUB_TREE_LEVELS : LEVELS;
+        numLeaves = NUM_LEAVES;
+        levels = LEVELS;
         currIndex = indexes[i];
         totalTraveled = 0;
         currInterval = numLeaves;

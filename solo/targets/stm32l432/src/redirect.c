@@ -40,7 +40,9 @@ int _write (int fd, const void *buf, unsigned long int len)
 
 	// Send out USB serial
     // JUST TRYING COMMENTING OUT THIS NEXT LINE
-//    	CDC_Transmit_FS(data, len);
+#ifdef HID 
+        CDC_Transmit_FS(data, len);
+#endif
 	// if (res == USBD_OK)
 	// 	logbuflen = 0;
 #endif

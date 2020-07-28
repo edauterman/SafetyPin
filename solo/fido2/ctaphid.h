@@ -50,9 +50,11 @@
 
 #define CTAPHID_BROADCAST_CID       0xffffffff
 
-//#define CTAPHID_BUFFER_SIZE         4096
-//#define CTAPHID_BUFFER_SIZE         7609
+#ifndef HID
 #define CTAPHID_BUFFER_SIZE         128
+#else
+#define CTAPHID_BUFFER_SIZE         4096
+#endif
 
 #define CAPABILITY_WINK             0x01
 #define CAPABILITY_LOCK             0x02

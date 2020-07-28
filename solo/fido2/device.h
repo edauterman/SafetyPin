@@ -9,6 +9,8 @@
 
 #include "storage.h"
 
+//#define HID 
+
 void device_init(int argc, char *argv[]);
 
 uint32_t millis();

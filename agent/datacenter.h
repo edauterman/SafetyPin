@@ -34,8 +34,6 @@ Datacenter *Datacenter_new();
 void Datacenter_free(Datacenter *d);
 int Datacenter_init(Datacenter *d);
 
-int Datacenter_Setup(Datacenter *d);
-int Datacenter_SmallSetup(Datacenter *d);
 int Datacenter_TestSetup(Datacenter *d);
 int Datacenter_VirtualSetup(Datacenter *d);
 
