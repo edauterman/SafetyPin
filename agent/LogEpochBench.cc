@@ -63,12 +63,6 @@ int main(int argc, char *argv[]) {
       t[i].join();
   }
 
-  long verifySec, verifyMicro, aggSec, aggMicro;
-  double verifyTime, aggTime;
-  struct timeval tStart, tVerify, tEnd;
-
-  gettimeofday(&tStart, NULL);
-
   printf("Going to start log epoch verification\n");
 
   Datacenter_LogEpochVerification(d, state);

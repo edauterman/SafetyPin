@@ -22,8 +22,6 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  embedded_pairing_bls12_381_g1_t sig[NUM_HSMS];
-  uint8_t msg[NUM_HSMS][SHA256_DIGEST_LENGTH];
   for (int i = 0; i < NUM_HSMS; i++) {
 
     uint8_t msg[SHA256_DIGEST_LENGTH];
