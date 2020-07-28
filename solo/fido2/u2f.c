@@ -109,24 +109,6 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished long msg\n");
                 break;
 
-           case HSM_MAC:
-                printf1(TAG_GREEN, "starting mac\n");
-                rcode = HSM_Mac((struct hsm_mac_request *)payload, NULL, NULL);
-                printf1(TAG_GREEN, "finished mac\n");
-                break;
-
-           case HSM_GET_NONCE:
-                printf1(TAG_GREEN, "starting get nonce\n");
-                rcode = HSM_GetNonce(NULL, NULL);
-                printf1(TAG_GREEN, "finished get nonce\n");
-                break;
-
-          case HSM_RET_MAC:
-                printf1(TAG_GREEN, "starting ret mac\n");
-                rcode = HSM_RetMac((struct hsm_ret_mac_request *)payload, NULL, NULL);
-                printf1(TAG_GREEN, "finished ret mac\n");
-                break;
- 
           case HSM_ELGAMAL_PK:
                 printf1(TAG_GREEN, "starting el gamal pk\n");
                 rcode = HSM_ElGamalPk(NULL, NULL);
@@ -139,43 +121,6 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 printf1(TAG_GREEN, "finished el gamal decrypt\n");
                 break;
 
-          /*case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
-                printf1(TAG_GREEN, "starting mpc decrypt 1\n");
-                rcode = HSM_AuthMPCDecrypt_1_Commit((struct hsm_auth_mpc_decrypt_1_commit_request *)payload, NULL, NULL);
-                printf1(TAG_GREEN, "finished mpc decrypt 1\n");
-                break;
-
-         case HSM_AUTH_MPC_DECRYPT_1_OPEN:
-                printf1(TAG_GREEN, "starting mpc decrypt 1\n");
-                rcode = HSM_AuthMPCDecrypt_1_Open((struct hsm_auth_mpc_decrypt_1_open_request *)payload, NULL, NULL);
-                printf1(TAG_GREEN, "finished mpc decrypt 1\n");
-                break;
-
-        case HSM_AUTH_MPC_DECRYPT_2_COMMIT:
-                printf1(TAG_GREEN, "starting mpc decrypt 2\n");
-                rcode = HSM_AuthMPCDecrypt_2_Commit((struct hsm_auth_mpc_decrypt_2_commit_request *)payload, NULL, NULL);
-                printf1(TAG_GREEN, "finished mpc decrypt 2\n");
-                break;
-
-       case HSM_AUTH_MPC_DECRYPT_2_OPEN:
-                printf1(TAG_GREEN, "starting mpc decrypt 2\n");
-                rcode = HSM_AuthMPCDecrypt_2_Open((struct hsm_auth_mpc_decrypt_2_open_request *)payload, NULL, NULL);
-                printf1(TAG_GREEN, "finished mpc decrypt 2\n");
-                break;
-
-        case HSM_AUTH_MPC_DECRYPT_3:
-                printf1(TAG_GREEN, "starting mpc decrypt 3\n");
-                rcode = HSM_AuthMPCDecrypt_3((struct hsm_auth_mpc_decrypt_3_request *)payload, NULL, NULL);
-                printf1(TAG_GREEN, "finished mpc decrypt 3\n");
-                break;
-
-       case HSM_SET_MAC_KEYS:
-                printf1(TAG_GREEN, "starting set mac keys with len %d\n", len);
-                rcode = HSM_SetMacKeys((struct hsm_set_mac_keys_request *)payload, NULL, NULL);
-                printf1(TAG_GREEN, "finished set mac keys\n");
-                break;
-
-*/
        case HSM_SET_PARAMS:
                 printf1(TAG_GREEN, "starting set params\n");
                 rcode = HSM_SetParams((struct hsm_set_params_request *)payload, NULL, NULL);

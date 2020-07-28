@@ -83,13 +83,9 @@ extern "C" {
 #define HSM_TEST_SETUP      0x77
 #define HSM_MICROBENCH      0x78
 #define HSM_LONGMSG         0x79
-#define HSM_MAC             0x7a
-#define HSM_GET_NONCE       0x7b
-#define HSM_RET_MAC         0x7c
 #define HSM_RESET           0x7d
 #define HSM_ELGAMAL_PK      0x7e
 #define HSM_ELGAMAL_DECRYPT 0x7f
-#define HSM_SET_MAC_KEYS                0x85
 #define HSM_SET_PARAMS                  0x86
 #define HSM_LOG_PROOF                   0x87
 #define HSM_BASELINE                    0x88

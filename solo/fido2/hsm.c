@@ -9,7 +9,7 @@
 #include "ibe.h"
 #include "log.h"
 #include "log_proof.h"
-#include "mpc.h"
+#include "multisig.h"
 #include "punc_enc.h"
 #include "u2f.h"
 #include "../crypto/cifra/src/modes.h"
@@ -44,39 +44,12 @@ void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
         case HSM_LONGMSG:
             HSM_LongMsg((struct hsm_long_request *)(in), out, outLen);
             break;
-        case HSM_MAC:
-            HSM_Mac((struct hsm_mac_request *)(in), out, outLen);
-            break;
-        case HSM_GET_NONCE:
-            HSM_GetNonce(out, outLen);
-            break;
-        case HSM_RET_MAC:
-            HSM_RetMac((struct hsm_ret_mac_request *)(in), out, outLen);
-            break;
         case HSM_ELGAMAL_PK:
             HSM_ElGamalPk(out, outLen);
             break;
         case HSM_ELGAMAL_DECRYPT:
             HSM_ElGamalDecrypt((struct hsm_elgamal_decrypt_request *)(in), out, outLen);
             break;
-/*        case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
-            HSM_AuthMPCDecrypt_1_Commit((struct hsm_auth_mpc_decrypt_1_commit_request *)(in), out, outLen);
-            break;
-        case HSM_AUTH_MPC_DECRYPT_1_OPEN:
-            HSM_AuthMPCDecrypt_1_Open((struct hsm_auth_mpc_decrypt_1_open_request *)(in), out, outLen);
-            break;
-        case HSM_AUTH_MPC_DECRYPT_2_COMMIT:
-            HSM_AuthMPCDecrypt_2_Commit((struct hsm_auth_mpc_decrypt_2_commit_request *)(in), out, outLen);
-            break;
-        case HSM_AUTH_MPC_DECRYPT_2_OPEN:
-            HSM_AuthMPCDecrypt_2_Open((struct hsm_auth_mpc_decrypt_2_open_request *)(in), out, outLen);
-            break;
-        case HSM_AUTH_MPC_DECRYPT_3:
-            HSM_AuthMPCDecrypt_3((struct hsm_auth_mpc_decrypt_3_request *)(in), out, outLen);
-            break;
-        case HSM_SET_MAC_KEYS:
-            HSM_SetMacKeys((struct hsm_set_mac_keys_request *)(in), out, outLen);
-            break;*/
         case HSM_SET_PARAMS:
             HSM_SetParams((struct hsm_set_params_request *)(in), out, outLen);
             break; 
@@ -134,28 +107,10 @@ int HSM_GetReqLenFromMsgType(uint8_t msgType) {
             return 0;
         case HSM_LONGMSG:
             return sizeof(struct hsm_long_request);
-        case HSM_MAC:
-            return sizeof(struct hsm_mac_request);
-        case HSM_GET_NONCE:
-            return 0;
-        case HSM_RET_MAC:
-            return sizeof(struct hsm_ret_mac_request);
         case HSM_ELGAMAL_PK:
             return 0;
         case HSM_ELGAMAL_DECRYPT:
             return sizeof(struct hsm_elgamal_decrypt_request);
-        case HSM_AUTH_MPC_DECRYPT_1_OPEN:
-            return sizeof(struct hsm_auth_mpc_decrypt_1_open_request);
-        case HSM_AUTH_MPC_DECRYPT_1_COMMIT:
-            return sizeof(struct hsm_auth_mpc_decrypt_1_commit_request);
-        case HSM_AUTH_MPC_DECRYPT_2_OPEN:
-            return sizeof(struct hsm_auth_mpc_decrypt_2_open_request);
-        case HSM_AUTH_MPC_DECRYPT_2_COMMIT:
-            return sizeof(struct hsm_auth_mpc_decrypt_2_commit_request);
-        case HSM_AUTH_MPC_DECRYPT_3:
-            return sizeof(struct hsm_auth_mpc_decrypt_3_request);
-        case HSM_SET_MAC_KEYS:
-            return sizeof(struct hsm_set_mac_keys_request);
         case HSM_SET_PARAMS:
             return sizeof(struct hsm_set_params_request);
         case HSM_LOG_PROOF:
@@ -475,47 +430,6 @@ int HSM_LongMsg(struct hsm_long_request *req, uint8_t *out, int *outLen) {
     return U2F_SW_NO_ERROR;
 }
 
-int HSM_Mac(struct hsm_mac_request *req, uint8_t *out, int *outLen) {
-//    uint8_t buf[1024];
-    uint8_t mac[SHA256_DIGEST_LEN];
-    crypto_hmac(pingKey, mac, req->nonce, NONCE_LEN);
-    //memset(buf, 0xff, 1024);
-    if (out) {
-        //memcpy(out, buf, 1024);
-        memcpy(out, mac, SHA256_DIGEST_LEN);
-        //*outLen = 1024;
-        *outLen = SHA256_DIGEST_LEN;
-    } else {
-        u2f_response_writeback(mac, SHA256_DIGEST_LEN);
-    }
-    return U2F_SW_NO_ERROR;
-}
-
-int HSM_GetNonce(uint8_t *out, int *outLen) {
-//    uint8_t buf[1024];
-    uint8_t nonce[NONCE_LEN];
-    ctap_generate_rng(nonce, NONCE_LEN);
-    //memset(buf, 0xff, 1024);
-    if (out) {
-        //memcpy(out, buf, 1024);
-        memcpy(out, nonce, NONCE_LEN);
-        //*outLen = 1024;
-        *outLen = NONCE_LEN;
-    } else {
-        u2f_response_writeback(nonce, NONCE_LEN);
-    }
-    return U2F_SW_NO_ERROR;
-}
-
-int HSM_RetMac(struct hsm_ret_mac_request *req, uint8_t *out, int *outLen) {
-//    uint8_t buf[1024];
-    //memset(buf, 0xff, 1024);
-    if (out) {
-        *outLen = 0;
-    }
-    return U2F_SW_NO_ERROR;
-}
-
 int HSM_ElGamalPk(uint8_t *out, int *outLen) {
     uint8_t buf[ELGAMAL_PK_LEN];
     ElGamal_GetPk(buf);
@@ -539,158 +453,7 @@ int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, in
     }
     return U2F_SW_NO_ERROR;
 }
-/*
-void getMsg(struct hsm_auth_mpc_decrypt_1_commit_request *req, uint8_t *msg, uint8_t *leaf) {
-    embedded_pairing_bls12_381_g2_t U;
-    uint8_t V[IBE_MSG_LEN];
-    uint8_t W[IBE_MSG_LEN];
-    embedded_pairing_bls12_381_g1_t sk;
 
-    IBE_UnmarshalCt(req->ibeCt, IBE_MSG_LEN, &U, V, W);
-    IBE_UnmarshalSk(leaf, &sk);
-    IBE_Decrypt(&sk, &U, V, W, msg, IBE_MSG_LEN);
-}
-
-void mpcStep1(struct hsm_auth_mpc_decrypt_1_commit_request *req, uint8_t *msg, uint8_t *out, int *outLen) {
-    uint8_t dCommit[SHA256_DIGEST_LEN];
-    uint8_t eCommit[SHA256_DIGEST_LEN];
-    uint8_t tmpNewCts[KEY_LEVELS][CT_LEN];
-
-    PuncEnc_PunctureLeaf(req->treeCts, req->index, tmpNewCts);
-    MPC_Step1_Commit(dCommit, eCommit, msg, req->pinShare, req->aesCt, req->aesCtTag);
-
-    //memset(dMacs, 0xff, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-    if (out) {
-        memcpy(out, tmpNewCts, KEY_LEVELS * CT_LEN);
-        memcpy(out + (KEY_LEVELS * CT_LEN), dCommit, SHA256_DIGEST_LEN);
-        memcpy(out + (KEY_LEVELS * CT_LEN) + SHA256_DIGEST_LEN, eCommit, SHA256_DIGEST_LEN);
-        *outLen = (2 * SHA256_DIGEST_LEN) + (KEY_LEVELS * CT_LEN);
-    } else {
-        u2f_response_writeback(tmpNewCts, KEY_LEVELS * CT_LEN);
-        u2f_response_writeback(dCommit, SHA256_DIGEST_LEN);
-        u2f_response_writeback(eCommit, SHA256_DIGEST_LEN);
-    }
-    //printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
-}
-
-int HSM_AuthMPCDecrypt_1_Commit(struct hsm_auth_mpc_decrypt_1_commit_request *req, uint8_t *out, int *outLen) {
-    uint8_t leaf[CT_LEN];
-    uint8_t msg[IBE_MSG_LEN];
-
-    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
-        printf("Couldn't retrieve leaf\n");
-        if (out) {
-            memset(out, 0, (2 * SHA256_DIGEST_LEN) + (KEY_LEVELS * CT_LEN));
-            *outLen = (2 * SHA256_DIGEST_LEN) + (KEY_LEVELS * CT_LEN);
-        }
-        return U2F_SW_NO_ERROR;
-    }
-    getMsg(req, msg, leaf);
-
-    mpcStep1(req, msg, out, outLen);
-
-    return U2F_SW_NO_ERROR;
-}
-
-int HSM_AuthMPCDecrypt_1_Open(struct hsm_auth_mpc_decrypt_1_open_request *req, uint8_t *out, int *outLen) {
-    uint8_t dShareBuf[FIELD_ELEM_LEN];
-    uint8_t eShareBuf[FIELD_ELEM_LEN];
-    uint8_t dOpening[FIELD_ELEM_LEN];
-    uint8_t eOpening[FIELD_ELEM_LEN];
-    uint8_t dMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
-    uint8_t eMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
-
-    MPC_Step1_Open(dShareBuf, eShareBuf, dOpening, eOpening, dMacs, eMacs, req->dCommits, req->eCommits, req->hsms);
-
-    if (out) {
-        memcpy(out, dShareBuf, FIELD_ELEM_LEN);
-        memcpy(out + FIELD_ELEM_LEN, eShareBuf, FIELD_ELEM_LEN);
-        memcpy(out + (2 * FIELD_ELEM_LEN), dOpening, FIELD_ELEM_LEN);
-        memcpy(out + (3 * FIELD_ELEM_LEN), eOpening, FIELD_ELEM_LEN);
-        memcpy(out + (4 * FIELD_ELEM_LEN), dMacs, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-        memcpy(out + (4 * FIELD_ELEM_LEN) + (HSM_GROUP_SIZE * SHA256_DIGEST_LEN), eMacs, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-        *outLen = (4 * FIELD_ELEM_LEN) + (2 * HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-    } else {
-        u2f_response_writeback(dShareBuf, FIELD_ELEM_LEN);
-        u2f_response_writeback(eShareBuf, FIELD_ELEM_LEN);
-        u2f_response_writeback(dOpening, FIELD_ELEM_LEN);
-        u2f_response_writeback(eOpening, FIELD_ELEM_LEN);
-        u2f_response_writeback(dMacs, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-        u2f_response_writeback(eMacs, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-    }
-    return U2F_SW_NO_ERROR;
-}
-
-
-int HSM_AuthMPCDecrypt_2_Commit(struct hsm_auth_mpc_decrypt_2_commit_request *req, uint8_t *out, int *outLen) {
-    uint8_t resultCommit[SHA256_DIGEST_LEN];
-    if (MPC_Step2_Commit(resultCommit, req->d, req->e, req->dShares, req->eShares, req->dOpenings, req->eOpenings, req->dMacs, req->eMacs, req->hsms) != OKAY) {
-        //memset(resultCommit, 0, SHA256_DIGEST_LEN);
-    }
-
-    if (out) {
-        memcpy(out, resultCommit, SHA256_DIGEST_LEN);
-        *outLen = SHA256_DIGEST_LEN;
-    } else {
-        u2f_response_writeback(resultCommit, SHA256_DIGEST_LEN);
-    }
-    return U2F_SW_NO_ERROR;
-}
-
-int HSM_AuthMPCDecrypt_2_Open(struct hsm_auth_mpc_decrypt_2_open_request *req, uint8_t *out, int *outLen) {
-    uint8_t resultShareBuf[FIELD_ELEM_LEN];
-    uint8_t resultOpening[FIELD_ELEM_LEN];
-    uint8_t resultMacs[HSM_GROUP_SIZE][SHA256_DIGEST_LEN];
-
-    if (MPC_Step2_Open(resultShareBuf, resultOpening, resultMacs, req->resultCommits, req->hsms) != OKAY) {
-        //memset(resultShareBuf, 0, FIELD_ELEM_LEN);
-    }
-
-    if (out) {
-        memcpy(out, resultShareBuf, FIELD_ELEM_LEN);
-        memcpy(out + FIELD_ELEM_LEN, resultOpening, FIELD_ELEM_LEN);
-        memcpy(out + 2 * FIELD_ELEM_LEN, resultMacs, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-        *outLen = (2 * FIELD_ELEM_LEN) + (HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-    } else {
-        u2f_response_writeback(resultShareBuf, FIELD_ELEM_LEN);
-        u2f_response_writeback(resultOpening, FIELD_ELEM_LEN);
-        u2f_response_writeback(resultMacs, HSM_GROUP_SIZE * SHA256_DIGEST_LEN);
-    }
-    return U2F_SW_NO_ERROR;
-}
-
-int HSM_AuthMPCDecrypt_3(struct hsm_auth_mpc_decrypt_3_request *req, uint8_t *out, int *outLen) {
-    uint8_t msg[FIELD_ELEM_LEN];
-    //printf("in mpc step 3\n");
-    
-    if (MPC_Step3(msg, req->result, req->resultShares, req->resultOpenings, req->resultMacs, req->hsms) != OKAY) {
-        printf("ERROR in mpc step 3\n");
-        //memset(msg, 0, FIELD_ELEM_LEN);
-    }
-
-    //printf("writing back\n");
-    if (out) {
-        memcpy(out, msg, FIELD_ELEM_LEN);
-        *outLen = FIELD_ELEM_LEN;
-    } else {
-        u2f_response_writeback(msg, FIELD_ELEM_LEN);
-    }
-    //printf1(TAG_GREEN, "finished writeback for auth decrypt\n");
-
-    return U2F_SW_NO_ERROR;
-}
-
-int HSM_SetMacKeys(struct hsm_set_mac_keys_request *req, uint8_t *out, int *outLen) {
-    printf1(TAG_GREEN, "calling set mac keys mpc\n");
-    MPC_SetMacKeys((uint8_t *)req->macKeys);
-
-    if (out) {
-        *outLen = 0;
-    }
-
-    return U2F_SW_NO_ERROR;
-}
-*/
 int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen) {
     Log_SetParams(req->logPk, req->groupSize, req->chunkSize);
 
