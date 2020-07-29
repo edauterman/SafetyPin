@@ -253,6 +253,7 @@ int Datacenter_TestSetup(Datacenter *d) {
     for (int i = 0; i < NUM_HSMS; i++) {
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
         CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, mpk));
+	CHECK_C (HSM_SetParams(d->hsms[i], logPk));
         printf("Done with setup for %d/%d\n", i, NUM_HSMS);
     }
 cleanup:
