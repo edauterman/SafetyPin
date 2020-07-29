@@ -1,6 +1,6 @@
 # HSM 
 
-The implementation for the HSM is built on [SoloKeys](https://solokeys.com). The code added to support the SafetyPin protocol is largely in `fido2/`. Instructions for setup and pointers to additional documentation from the original [SoloKey README](https://github.com/solokeys/solo) are included below.
+The implementation for the HSM is built on [SoloKeys](https://solokeys.com). The code added to support the SafetyPin protocol is largely in `safetypin/`. Instructions for setup and pointers to additional documentation from the original [SoloKey README](https://github.com/solokeys/solo) are included below.
 
 To switch between USB CDC (faster but no debugging output) and USB HID (slower but has debugging support), comment or uncomment the `#define HID` in `fido2/device.h` and `targets/stm32l432/src/fifo.h`. With USB HID enabled, you can view debug statements by building with the option `build firmward-debug-2` and running `solo monitor` (after having installed the Solo developer tools).
 

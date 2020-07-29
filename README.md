@@ -11,7 +11,7 @@ The implementation is split into two components:
 This prototype is released under the Apache v2 license (see [License](#license)).
 
 ## Setup
-Follow the instructions for setup for the [host](host/README.md) and the [hsm](hsm/README.md). See instructions for running tests and benchmarks [here](host/README.md).
+Follow the instructions for setup for the [host](host/) and the [hsm](hsm/). See instructions for running tests and benchmarks [here](host/).
 
 If you change any constants that are defined on both the host and the HSM, make sure to update the constants in both places.
 Constants in `host/[hsm.h, datacenter.h]` and `solo/fido2/hsm.h` with the same name must have the same values.
