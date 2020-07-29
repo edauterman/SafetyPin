@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 #include "cbor.h"
-#include "cdc.h"
+#include "../safetypin/cdc.h"
 #include "device.h"
 #include "ctaphid.h"
 //#include "bsp.h"
@@ -20,11 +20,11 @@
 #include "ctap.h"
 #include "crypto.h"
 #include "bls12_381/bls12_381.h"
-#include "ibe.h"
-#include "punc_enc.h"
-#include "hsm.h"
-#include "multisig.h"
-#include "uECC.h"
+#include "../safetypin/ibe.h"
+#include "../safetypin/punc_enc.h"
+#include "../safetypin/hsm.h"
+#include "../safetypin/multisig.h"
+#include "../safetypin/uECC.h"
 #include "../crypto/micro-ecc/uECC.h"
 #include APP_CONFIG
 

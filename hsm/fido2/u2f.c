@@ -13,7 +13,7 @@
 #include "device.h"
 #include "apdu.h"
 #include "wallet.h"
-#include "hsm.h"
+#include "../safetypin/hsm.h"
 #ifdef ENABLE_U2F_EXTENSIONS
 #include "extensions.h"
 #endif
