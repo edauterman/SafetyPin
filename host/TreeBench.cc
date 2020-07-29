@@ -24,8 +24,8 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  HSM_TestSetup(d->hsms[0]);
-  
+  Datacenter_TestSetup(d);
+
   struct timeval t1, t2, t3;
 
   gettimeofday(&t1, NULL);

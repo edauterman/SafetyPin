@@ -8,7 +8,7 @@
 
 /* See hsm.h for how to set these constants. These MUST be set to the same
  * values as those in hsm.h. */
-#define NUM_HSMS 1 
+#define NUM_HSMS 10 
 #define HSM_GROUP_SIZE 10
 #define HSM_THRESHOLD_SIZE 5
 
