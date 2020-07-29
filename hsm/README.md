@@ -35,6 +35,12 @@ The `builds` folder will contain all the variation on the firmware in `.hex` fil
 
 ## Build locally
 
+First build the `jedi-pairing` library by running:
+```bash
+cd crypto/jedi-pairing
+make
+```
+
 If you have the toolchain installed on your machine you can build the firmware with: 
 
 ```bash
