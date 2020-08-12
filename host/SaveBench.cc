@@ -1,9 +1,3 @@
-// Copyright 2018 Google Inc. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file or at
-// https://developers.google.com/open-source/licenses/bsd
-
 #include <iostream>
 #include <string>
 #include <stdlib.h>
@@ -24,7 +18,10 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Datacenter *d = Datacenter_new();
+  int numHsms = 10;
+  int hsmGroupSize = 10;
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
 
   Params *params = Params_new(); 
 
@@ -37,7 +34,7 @@ int main(int argc, char *argv[]) {
   saveKeyTest = BN_new();
   BN_rand_range(saveKey, params->order);
   BN_rand_range(pin, params->order);
-  RecoveryCiphertext *c = RecoveryCiphertext_new(params);
+  RecoveryCiphertext *c = RecoveryCiphertext_new(params, hsmGroupSize);
 
   Datacenter_VirtualSetup(d);
 
@@ -67,13 +64,7 @@ int main(int argc, char *argv[]) {
   printf("**** Save time: %f, %d seconds, %d microseconds\n", saveTime, saveSeconds, saveMicros);
   printf("**** Google/Apple save time: %f, %d seconds, %d microseconds\n", shortTime, shortSeconds, shortMicros);
 
-  string filename = "../out/save_" + to_string(NUM_HSMS);
-  FILE *f = fopen(filename.c_str(), "w+");
-  string str1 = "save time: " + to_string(saveTime) + "\n";
-  fputs(str1.c_str() , f);
-  fclose(f);
-
-  RecoveryCiphertext_free(c);
+  RecoveryCiphertext_free(c, hsmGroupSize);
   Datacenter_free(d);
 
   printf("Initialization completed. \n");

@@ -9,7 +9,7 @@
 #include <string.h>
 #include <time.h>
 #include <thread>
-#include <map>
+#include <vector>
 #include <sys/time.h>
 
 #include "datacenter.h"
@@ -23,7 +23,11 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Datacenter *d = Datacenter_new();
+  int numHsms = 1;
+  int hsmGroupSize = 1;
+  int hsmThresholdSize = 1;
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
@@ -34,32 +38,32 @@ int main(int argc, char *argv[]) {
   printf("Finished log setup\n");
 
   embedded_pairing_bls12_381_g2_t aggPk;
-  embedded_pairing_bls12_381_g2_t multisigPks[NUM_HSMS];
-  thread t[NUM_HSMS];
+  embedded_pairing_bls12_381_g2_t *multisigPks = (embedded_pairing_bls12_381_g2_t *)malloc(numHsms * sizeof(embedded_pairing_bls12_381_g2_t));
+  vector<thread> t(numHsms);
 
   Log_Init(d->hsms[0]->params);
   Log_GetPk(d->hsms[0]->params, logPk);
 
   printf("Initialized log\n");
 
-  for (int i = 0; i < NUM_HSMS; i++) {
-    HSM_SetParams(d->hsms[i], logPk);
+  for (int i = 0; i < numHsms; i++) {
+    HSM_SetParams(d->hsms[i], hsmGroupSize, hsmThresholdSize, logPk);
   }
 
-  for (int i = 0; i < NUM_HSMS; i++) {
+  for (int i = 0; i < numHsms; i++) {
       t[i] = thread(HSM_MultisigGetPk, d->hsms[i]);
   }
-  for (int i = 0; i < NUM_HSMS; i++) {
+  for (int i = 0; i < numHsms; i++) {
       t[i].join();
       memcpy((uint8_t *)&multisigPks[i], (uint8_t *)&d->hsms[i]->multisigPk, sizeof(embedded_pairing_bls12_381_g2_t));
   }
 
-  Multisig_AggPks(multisigPks, NUM_HSMS, &aggPk);
+  Multisig_AggPks(multisigPks, numHsms, &aggPk);
 
-  for (int i = 0; i < NUM_HSMS; i++) {
+  for (int i = 0; i < numHsms; i++) {
       t[i] = thread(HSM_MultisigSetAggPk, d->hsms[i], &aggPk);
   }
-  for (int i = 0; i < NUM_HSMS; i++) {
+  for (int i = 0; i < numHsms; i++) {
       t[i].join();
   }
 

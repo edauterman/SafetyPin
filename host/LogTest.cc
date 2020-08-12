@@ -16,7 +16,10 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Datacenter *d = Datacenter_new();
+  int numHsms = 10;
+  int hsmGroupSize = 10;
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
@@ -29,7 +32,7 @@ int main(int argc, char *argv[]) {
   Log_Init(d->hsms[0]->params);
   Log_GetPk(d->hsms[0]->params, logPk);
 
-  for (int i = 0; i < NUM_HSMS; i++) {
+  for (int i = 0; i < numHsms; i++) {
     ElGamal_ciphertext *c = ElGamalCiphertext_new(d->hsms[i]->params); 
     uint8_t hsms[HSM_MAX_GROUP_SIZE];
     BIGNUM *msg = BN_new();
@@ -37,8 +40,8 @@ int main(int argc, char *argv[]) {
     HSM_ElGamalGetPk(d->hsms[i]);
     HSM_ElGamalEncrypt(d->hsms[i], msg, c);
 
-    HSM_SetParams(d->hsms[i], logPk);
-    Log_Prove(d->hsms[i]->params, p, c, hsms);
+    HSM_SetParams(d->hsms[i], numHsms, hsmGroupSize, logPk);
+    Log_Prove(d->hsms[i]->params, p, c, hsms, hsmGroupSize);
     HSM_LogProof(d->hsms[i], c, hsms, p);    
   }  
 

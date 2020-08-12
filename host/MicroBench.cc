@@ -17,7 +17,10 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Datacenter *d = Datacenter_new();
+  int numHsms = 1;
+  int hsmGroupSize = 1;
+  
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;

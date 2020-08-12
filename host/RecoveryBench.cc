@@ -17,7 +17,10 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Datacenter *d = Datacenter_new();
+  int numHsms = 1;
+  int hsmGroupSize = 1;
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
@@ -34,9 +37,9 @@ int main(int argc, char *argv[]) {
   saveKeyTest = BN_new();
   BN_rand_range(saveKey, params->order);
   BN_rand_range(pin, params->order);
-  RecoveryCiphertext *c = RecoveryCiphertext_new(params);
-  LogProof *logProofs[HSM_GROUP_SIZE];
-  for (int i = 0; i < HSM_GROUP_SIZE; i++) {
+  RecoveryCiphertext *c = RecoveryCiphertext_new(params,  hsmGroupSize);
+  LogProof **logProofs = (LogProof **)malloc(hsmGroupSize * sizeof(LogProof *));
+  for (int i = 0; i < hsmGroupSize; i++) {
     logProofs[i] = LogProof_new();
   }
 
@@ -66,15 +69,7 @@ int main(int argc, char *argv[]) {
   printf("**** Save time: %f, %d seconds, %d microseconds\n", saveTime, saveSeconds, saveMicros);
   printf("**** Recover time: %f, %d seconds, %d microseconds\n", recoverTime, recoverSeconds, recoverMicros);
 
-  string filename = "../out/recovery_" + to_string(NUM_HSMS);
-  FILE *f = fopen(filename.c_str(), "w+");
-  string str1 = "save time: " + to_string(saveTime) + "\n";
-  fputs(str1.c_str() , f);
-  string str2 = "recover time: " + to_string(recoverTime) +  "\n";
-  fputs(str2.c_str(), f);
-  fclose(f);
-
-  RecoveryCiphertext_free(c);
+  RecoveryCiphertext_free(c, hsmGroupSize);
   Datacenter_free(d);
 
   printf("Initialization completed. \n");

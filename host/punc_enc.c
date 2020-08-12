@@ -91,18 +91,24 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
     uint8_t bufOut[SHA256_DIGEST_LENGTH];
     BIGNUM *modIndexBn;
     BIGNUM *rawIndexBn;
+    BIGNUM *numLeavesBn;
     uint32_t indexInt;
     
     CHECK_A (modIndexBn = BN_new());
+    CHECK_A (numLeavesBn = BN_new());
     memset(bufIn, 0, 8);
     memcpy(bufIn, &tag, sizeof(uint16_t));
-    
+
+    char numLeavesBuf[4];
+    sprintf(numLeavesBuf, "%d", NUM_LEAVES);
+    BN_dec2bn(&numLeavesBn, numLeavesBuf);
+   
     for (uint32_t i = 0; i < PUNC_ENC_REPL; i++) {
         indexes[i] = 0;
         memcpy(bufIn +  sizeof(uint32_t), &i, sizeof(uint32_t));
         CHECK_C (hash_to_bytes(bufOut, SHA256_DIGEST_LENGTH, bufIn, 8));
         CHECK_A (rawIndexBn = BN_bin2bn(bufOut, SHA256_DIGEST_LENGTH, NULL));
-        CHECK_C (BN_mod(modIndexBn, rawIndexBn, params->numLeaves, params->bn_ctx));
+        CHECK_C (BN_mod(modIndexBn, rawIndexBn, numLeavesBn, params->bn_ctx));
         if (BN_num_bytes(modIndexBn) == 3) {
             uint8_t buf[3];
             memset(buf, 0, 3);

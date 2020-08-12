@@ -6,31 +6,28 @@
 #include "params.h"
 #include "punc_enc.h"
 
-/* See hsm.h for how to set these constants. These MUST be set to the same
- * values as those in hsm.h. */
-#define NUM_HSMS 10 
-#define HSM_GROUP_SIZE 10
-#define HSM_THRESHOLD_SIZE 5
-
 typedef struct {
-    HSM *hsms[NUM_HSMS];
+    int numHsms;
+    int hsmGroupSize;
+    int hsmThresholdSize;
+    HSM **hsms;
 } Datacenter;
 
 typedef struct {
-    ElGamal_ciphertext *recoveryCts[HSM_GROUP_SIZE][PUNC_ENC_REPL];
+    ElGamal_ciphertext ***recoveryCts;
     BIGNUM *r;
     BIGNUM *s;
     uint8_t iv[AES256_IV_LEN];
-    uint8_t ct[HSM_GROUP_SIZE * PUNC_ENC_REPL * IBE_CT_LEN];
+    uint8_t *ct;
     LocationHidingCt *locationHidingCt;
-    uint8_t aesCts[HSM_GROUP_SIZE][AES_CT_LEN];
-    uint8_t aesCtTags[HSM_GROUP_SIZE][SHA256_DIGEST_LENGTH];
+    uint8_t **aesCts;
+    uint8_t **aesCtTags;
 } RecoveryCiphertext;
 
-RecoveryCiphertext *RecoveryCiphertext_new(Params *params);
-void RecoveryCiphertext_free(RecoveryCiphertext *c);
+RecoveryCiphertext *RecoveryCiphertext_new(Params *params, int hsmGroupSize);
+void RecoveryCiphertext_free(RecoveryCiphertext *c, int hsmGroupSize);
 
-Datacenter *Datacenter_new();
+Datacenter *Datacenter_new(int numHsms, int hsmGroupSize);
 void Datacenter_free(Datacenter *d);
 int Datacenter_init(Datacenter *d);
 

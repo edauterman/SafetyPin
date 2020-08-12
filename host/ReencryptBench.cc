@@ -1,9 +1,3 @@
-// Copyright 2018 Google Inc. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file or at
-// https://developers.google.com/open-source/licenses/bsd
-
 #include <iostream>
 #include <string>
 #include <stdlib.h>
@@ -23,7 +17,10 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Datacenter *d = Datacenter_new();
+  int numHsms = 1;
+  int hsmGroupSize = 1;
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;

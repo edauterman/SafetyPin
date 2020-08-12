@@ -19,7 +19,10 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Datacenter *d = Datacenter_new();
+  int numHsms = 10;
+  int hsmGroupSize = 10;
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
@@ -71,14 +74,6 @@ int main(int argc, char *argv[]) {
   double recoverTime = recoverSeconds + (recoverMicros / 1000000.0);
   printf("**** Save time: %f, %d seconds, %d microseconds\n", saveTime, saveSeconds, saveMicros);
   printf("**** Recover time: %f, %d seconds, %d microseconds\n", recoverTime, recoverSeconds, recoverMicros);
-
-  string filename = "../out/recovery_" + to_string(NUM_HSMS);
-  FILE *f = fopen(filename.c_str(), "w+");
-  string str1 = "save time: " + to_string(saveTime) + "\n";
-  fputs(str1.c_str() , f);
-  string str2 = "recover time: " + to_string(recoverTime) +  "\n";
-  fputs(str2.c_str(), f);
-  fclose(f);
 
   Datacenter_free(d);
 

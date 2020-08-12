@@ -17,7 +17,10 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Datacenter *d = Datacenter_new();
+  int numHsms = 1;
+  int hsmGroupSize = 1;
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
@@ -33,12 +36,15 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < PUNC_ENC_REPL; i++) {
     cts[i] = ElGamalCiphertext_new(d->hsms[0]->params);
   }
-      
+
+  printf("going to start encrypt\n");  
   gettimeofday(&t1, NULL);
   HSM_Encrypt(d->hsms[0], 0, msg, cts);
+  printf("finished encrypt, going to auth decrypt\n");
   gettimeofday(&t2, NULL);
   HSM_AuthDecrypt(d->hsms[0], 0, cts, msgTest);
   gettimeofday(&t3, NULL);
+  printf("finished auth decrypt\n");
 
   if (BN_cmp(msg, msgTest) !=  0) {
     printf("FAIL");

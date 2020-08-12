@@ -24,18 +24,8 @@ Params *Params_new()
     Params *params = NULL;
     CHECK_A (params = (Params *)malloc(sizeof(Params)));
     CHECK_A (params->base_prime = BN_new());
-    CHECK_A (params->numHsms = BN_new());
-    CHECK_A (params->numLeaves = BN_new());
     CHECK_A (params->order = BN_new());
     CHECK_A (params->bn_ctx = BN_CTX_new());
-
-    char numHsmsBuf[4];
-    sprintf(numHsmsBuf, "%d", NUM_HSMS);
-    BN_dec2bn(&params->numHsms, numHsmsBuf);
-
-    char numLeavesBuf[4];
-    sprintf(numLeavesBuf, "%d", NUM_LEAVES);
-    BN_dec2bn(&params->numLeaves, numLeavesBuf);
 
     CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1));
     CHECK_C (EC_GROUP_get_order(params->group, params->order, params->bn_ctx));
@@ -53,8 +43,6 @@ cleanup:
 void Params_free(Params *params) {
     BN_free(params->order);
     BN_free(params->base_prime);
-    BN_free(params->numHsms);
-    BN_free(params->numLeaves);
     BN_CTX_free(params->bn_ctx);
     EC_GROUP_free(params->group);
     free(params);

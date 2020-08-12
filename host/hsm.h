@@ -22,14 +22,14 @@ extern "C" {
 //#define HID
 
 // The corresponding constants in datacenter.h must also be updated.
-#define NUM_HSMS 10		// Number of physical HSMs
-#define HSM_GROUP_SIZE 10	// Number of HSMs to encrypt to
-#define HSM_THRESHOLD_SIZE 5	// Number of HSMs that cannot fail
+//#define NUM_HSMS 10		// Number of physical HSMs
+//#define HSM_GROUP_SIZE 10	// Number of HSMs to encrypt to
+//#define HSM_THRESHOLD_SIZE 5	// Number of HSMs that cannot fail
 #define TOTAL_HSMS 50000	// Total number of HSMs theoretically in system
 				// (used to compute amount of log verification work).
 
-#define HSM_MAX_GROUP_SIZE 100	// Maximum size of HSM_GROUP_SIZE
-#define HSM_MAX_THRESHOLD_SIZE  50	// Maximum size of HSM_THRESHOLD_SIZE
+#define HSM_MAX_GROUP_SIZE 100
+#define HSM_MAX_THRESHOLD_SIZE 50
 
 // Log
 #define NUM_CHUNKS 92   // Number of chunks each HSM should audit for lambda = 128.
@@ -266,7 +266,7 @@ void HSM_free(HSM *h);
 /* Setup */
 int HSM_TestSetup(HSM *h);
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], EC_POINT **mpk);
-int HSM_SetParams(HSM *h, uint8_t *logPk);
+int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, uint8_t *logPk);
 
 /* Testing tree. */
 int HSM_Retrieve(HSM *h, uint32_t index);

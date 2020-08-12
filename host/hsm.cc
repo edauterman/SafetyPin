@@ -401,15 +401,15 @@ cleanup:
 }
 
 /* Set system parameters on a HSM: group size, threshold size, and chunk size.. */
-int HSM_SetParams(HSM *h, uint8_t *logPk) {
+int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, uint8_t *logPk) {
     int rv;
     HSM_SET_PARAMS_REQ req;
     string resp_str;
 
     pthread_mutex_lock(&h->m);
 
-    req.groupSize = HSM_GROUP_SIZE;
-    req.thresholdSize = HSM_THRESHOLD_SIZE;
+    req.groupSize = hsmGroupSize;
+    req.thresholdSize = hsmThresholdSize;
     req.chunkSize = CHUNK_SIZE;
     memcpy(req.logPk, logPk, COMPRESSED_PT_SZ);
 
@@ -452,7 +452,6 @@ int HSM_LogProof(HSM *h, ElGamal_ciphertext *c, uint8_t *hsms, LogProof *p) {
                 sizeof(req), (uint8_t *)&resp, sizeof(resp)));
 #endif
     CHECK_C (resp.result != 0);
-
 cleanup:
     if (rv == ERROR) {
 	printf("ERROR with log proof\n");
@@ -622,7 +621,7 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
 
     pthread_mutex_unlock(&h->m);
     for (i = 0; i < NUM_CHUNKS; i++) {
-	uint64_t query = ((uint64_t)resp.queries[i]) % NUM_TRANSITIONS;
+	    uint64_t query = ((uint64_t)resp.queries[i]) % NUM_TRANSITIONS;
         HSM_LOG_ROOTS_PROOF_REQ rootReq;
         HSM_LOG_ROOTS_PROOF_RESP rootResp;
 
@@ -636,13 +635,13 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
             memcpy(rootReq.rootProofNew[k], rootProofNew->hash[k], SHA256_DIGEST_LENGTH);
             rootReq.idsNew[k] = rootProofNew->ids[k];
         }
-	rootReq.idNew = rootProofNew->id;
+	    rootReq.idNew = rootProofNew->id;
         rootReq.lenNew = rootProofNew->len;
         rootReq.idOld = rootProofOld->id;
         rootReq.lenOld = rootProofOld->len;
         memcpy(rootReq.headOld, rootProofOld->leaf, SHA256_DIGEST_LENGTH);
         memcpy(rootReq.headNew, rootProofNew->leaf, SHA256_DIGEST_LENGTH);
-	pthread_mutex_lock(&h->m);
+	    pthread_mutex_lock(&h->m);
 
 #ifdef HID
         CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_LOG_ROOTS_PROOF, 0, 0,
@@ -653,9 +652,9 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
                     sizeof(rootReq), (uint8_t *)&rootResp, sizeof(rootResp)));
 #endif
         pthread_mutex_unlock(&h->m);
-	CHECK_C(rootResp.result == 1);
+	    CHECK_C(rootResp.result == 1);
 
-	// Auditing transition j in round i for queried chunk
+	    // Auditing transition j in round i for queried chunk
         for (j = 0; j < CHUNK_SIZE; j++) {
             HSM_LOG_TRANS_PROOF_REQ proofReq;
             HSM_LOG_TRANS_PROOF_RESP proofResp;

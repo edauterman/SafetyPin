@@ -16,13 +16,16 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  Datacenter *d = Datacenter_new();
+  int numHsms = 1;
+  int hsmGroupSize = 1;
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
   }
 
-  for (int i = 0; i < NUM_HSMS; i++) {
+  for (int i = 0; i < numHsms; i++) {
 
     uint8_t msg[SHA256_DIGEST_LENGTH];
     embedded_pairing_bls12_381_g1_t sig;
