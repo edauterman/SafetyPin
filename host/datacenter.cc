@@ -29,8 +29,8 @@
 using namespace std;
 
 /* UPDATE AS NEEDED */
-const char *HANDLES[] = { "/dev/cu.usbmodem2052338246482" };
-/*const char *HANDLES[] = {"/dev/ttyACM0",
+//const char *HANDLES[] = { "/dev/cu.usbmodem2052338246482" };
+const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
 			"/dev/ttyACM2",
 			"/dev/ttyACM3",
@@ -130,7 +130,7 @@ const char *HANDLES[] = { "/dev/cu.usbmodem2052338246482" };
 			"/dev/ttyACM97",
 			"/dev/ttyACM98",
 			"/dev/ttyACM99",
-};*/
+};
 
 
 RecoveryCiphertext *RecoveryCiphertext_new(Params *params, int hsmGroupSize) {
@@ -451,6 +451,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
 
     /* Split saveKey into shares */
     CHECK_C (Shamir_CreateShares(d->hsmThresholdSize, d->hsmGroupSize, encryptedSaveKey, params->order, saveKeyShares, h1Bns));
+
 
     debug_print("created shares of save key\n");
 
