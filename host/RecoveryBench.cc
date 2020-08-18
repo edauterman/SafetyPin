@@ -17,8 +17,8 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  int numHsms = 1;
-  int hsmGroupSize = 1;
+  int numHsms = 100;
+  int hsmGroupSize = 100;
 
   Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
   if (Datacenter_init(d) != OKAY) {

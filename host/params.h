@@ -16,6 +16,7 @@ extern "C"{
 
 typedef struct {
     BIGNUM *base_prime;
+    BIGNUM *numLeaves;
     BN_CTX *bn_ctx;
     EC_GROUP *group;
     BIGNUM *order;
