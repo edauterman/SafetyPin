@@ -41,7 +41,6 @@ cleanup:
 }
 
 void LocationHidingCt_free(LocationHidingCt *c, int n) {
-    printf("free for LH\n");
     for (int i = 0; i < n; i++) {
         if (c->shares[i]) ElGamalCtShare_free(c->shares[i]);
     }

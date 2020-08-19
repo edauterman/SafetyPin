@@ -95,30 +95,17 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
     uint32_t indexInt;
     uint32_t numLeaves;
 
-    printf("in get indexes for tag\n");
-
     CHECK_A (modIndexBn = BN_new());
     CHECK_A (numLeavesBn = BN_new());
     memset(bufIn, 0, 8);
     memcpy(bufIn, &tag, sizeof(uint16_t));
 
-/*    printf("before num leaves\n");
-    numLeaves = NUM_LEAVES;
-    char numLeavesBuf[4];
-    memset(numLeavesBuf, 0, 4);
-    sprintf(numLeavesBuf, "%x", numLeaves);
-    BN_hex2bn(&numLeavesBn, NUM_LEAVES_HEX_STR);
-    printf("after num leaves: %s\n", BN_bn2hex(numLeavesBn));
-*/
     for (uint32_t i = 0; i < PUNC_ENC_REPL; i++) {
-        printf("i=%d\n", i);
         indexes[i] = 0;
         memcpy(bufIn +  sizeof(uint32_t), &i, sizeof(uint32_t));
         CHECK_C (hash_to_bytes(bufOut, SHA256_DIGEST_LENGTH, bufIn, 8));
         CHECK_A (rawIndexBn = BN_bin2bn(bufOut, SHA256_DIGEST_LENGTH, NULL));
-        printf("right before mod: %s, %s, %s\n", BN_bn2hex(rawIndexBn), BN_bn2hex(params->numLeaves), BN_bn2hex(modIndexBn));
 	CHECK_C (BN_mod(modIndexBn, rawIndexBn, params->numLeaves, params->bn_ctx));
-	printf("did mod, i=%d\n", i);
 	if (BN_num_bytes(modIndexBn) == 3) {
             uint8_t buf[3];
             memset(buf, 0, 3);
@@ -136,10 +123,7 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
             BN_bn2bin(modIndexBn, (uint8_t *)&indexes[i]);
         }
     }
-    printf("made it through\n");
 cleanup:
-    if (rv == ERROR) printf("ERROR in get indexes\n");
-    else printf("success in get indexes\n");
     if (rawIndexBn) BN_free(rawIndexBn);
     if (modIndexBn) BN_free(modIndexBn);
     return rv;

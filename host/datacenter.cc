@@ -250,7 +250,8 @@ int Datacenter_init(Datacenter *d) {
   }
 #else
     for (int i = 0; i < d->numHsms; i++) {
-        CHECK_A (d->hsms[i]->usbDevice = UsbDevice_new(HANDLES[i]));
+	printf("init %d/%d\n", i, d->numHsms);
+    	CHECK_A (d->hsms[i]->usbDevice = UsbDevice_new(HANDLES[i]));
     }
 #endif
 
@@ -659,8 +660,8 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     puncEncTime = puncEncSec + (puncEncMicro / 1000000.0);
 
     printf("------ Log time: %f, %d sec, %d micros\n", logTime, logSec, logMicro);
-    printf("------ El Gamal time: %f, %d sec, %d micros\n", elGamalTime, elGamalSec, elGamalMicro);
-    printf("------ Punc Enc time: %f, %d sec, %d micros\n", puncEncTime, puncEncSec, puncEncMicro);
+    printf("------ ElGamal time: %f, %d sec, %d micros\n", elGamalTime, elGamalSec, elGamalMicro);
+    printf("------ Puncturable Encryption time: %f, %d sec, %d micros\n", puncEncTime, puncEncSec, puncEncMicro);
 
 cleanup:
     if (rv == ERROR) printf("ERROR in recovery\n");
@@ -684,7 +685,6 @@ cleanup:
     if (h1Bns) free(h1Bns);
     if (recoveryCts) free(recoveryCts);
     if (innerCtBuf) free(innerCtBuf);
-    printf("finished cleanup\n");
 
     return rv;
 }
