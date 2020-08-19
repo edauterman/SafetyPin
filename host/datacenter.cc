@@ -250,7 +250,7 @@ int Datacenter_init(Datacenter *d) {
   }
 #else
     for (int i = 0; i < d->numHsms; i++) {
-	printf("init %d/%d\n", i, d->numHsms);
+	fprintf(stderr, "init %d/%d\n", i, d->numHsms);
     	CHECK_A (d->hsms[i]->usbDevice = UsbDevice_new(HANDLES[i]));
     }
 #endif
@@ -284,7 +284,7 @@ int Datacenter_TestSetup(Datacenter *d) {
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
         CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, mpk));
 	    CHECK_C (HSM_SetParams(d->hsms[i], d->hsmGroupSize, d->hsmThresholdSize, logPk));
-        printf("Done with setup for %d/%d\n", i, d->numHsms);
+        fprintf(stderr, "Done with setup for %d/%d\n", i, d->numHsms);
     }
 cleanup:
     if (t) free(t);
@@ -602,6 +602,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     for (int i = 0; i < d->hsmGroupSize; i++) {
         t0[i].join();
+	fprintf(stderr, "Finished log proof %d/%d\n", i, d->hsmGroupSize);
     }
  
     gettimeofday(&tLog, NULL);
@@ -612,6 +613,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     for (int i = 0; i < d->hsmGroupSize; i++) {
         t1[i].join();
+	fprintf(stderr, "Finished ElGamal decrypt %d/%d\n", i, d->hsmGroupSize);
     }
     CHECK_C (ElGamalShamir_ReconstructShares(params, d->hsmThresholdSize, d->hsmGroupSize, c->locationHidingCt, elGamalRandShares, elGamalRand));
 
@@ -631,6 +633,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     for (int i = 0; i < d->hsmGroupSize; i++) {
 	    t2[i].join();
         Shamir_UnmarshalX(saveKeyShares[i], i + 1);
+	fprintf(stderr, "Finished puncturable encryption decrypt %d/%d\n", i, d->hsmGroupSize);
     }
 
     /* Reassemble original saveKey. */
