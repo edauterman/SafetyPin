@@ -48,7 +48,7 @@ for raw_line in lines:
         baseline_time = float(m.group(1))
 print("Done with baseline")
 
-f = open("out/recovery_breakdown", "w")
+f = open("out/fig10.dat", "w")
 
 print("SafetyPin (n = 40): ")
 print(("Log: %f sec") % (log_time))
@@ -59,13 +59,15 @@ print(("Total time: %f sec\n") % (log_time + elgamal_time + punc_enc_time))
 print("Baseline: ")
 print(("Total time: %f sec") % (baseline_time))
 
-f.write("SafetyPin (n = 40): \n")
-f.write(("Log: %f sec\n") % (log_time))
-f.write(("Location-hiding encryption: %f sec\n") % (elgamal_time))
-f.write(("Puncturable encryption: %f sec\n") % (punc_enc_time))
-f.write(("Total time: %f sec\n\n") % (log_time + elgamal_time + punc_enc_time))
-
-f.write("Baseline: \n")
-f.write(("Total time: %f sec\n") % (baseline_time))
+f.write("***SafetyPin (n = 40): \n")
+f.write(("Log: %f\n") % (log_time))
+f.write(("Location-hiding encryption: %f\n") % (log_time + elgamal_time))
+f.write(("Puncturable encryption: %f\n") % (log_time + elgamal_time + punc_enc_time))
+f.write(("Public-key encryption: %f\n") % (log_time + elgamal_time + punc_enc_time))
+f.write("***Baseline: \n")
+f.write(("Log: 0.0\n"))
+f.write(("Location-hiding encryption: 0.0\n"))
+f.write(("Puncturable encryption: 0.0\n"))
+f.write(("Public-key encryption: %f\n") % (baseline_time))
 
 f.close()
