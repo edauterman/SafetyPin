@@ -267,7 +267,7 @@ void HSM_free(HSM *h);
 /* Setup */
 int HSM_TestSetup(HSM *h);
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], EC_POINT **mpk);
-int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, uint8_t *logPk);
+int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, int hsmChunkSize, uint8_t *logPk);
 
 /* Testing tree. */
 int HSM_Retrieve(HSM *h, uint32_t index);
@@ -295,7 +295,7 @@ int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgD
 int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest);
 int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk);
 
-int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogState *state);
+int HSM_LogEpochVerification(HSM *h, int chunkSize, embedded_pairing_bls12_381_g1_t *sig, LogState *state);
 #ifdef __cplusplus
 }
 #endif

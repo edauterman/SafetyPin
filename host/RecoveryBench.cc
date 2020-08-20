@@ -19,6 +19,7 @@ int main(int argc, char *argv[]) {
   
   int numHsms = 100;
   int hsmGroupSize = 100;
+  int chunkSize = 1;
 
   if (argc >= 3) {
     numHsms = atoi(argv[1]);
@@ -27,7 +28,7 @@ int main(int argc, char *argv[]) {
   }
  
 
-  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize, chunkSize);
   printf("did datacenter new\n");
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");

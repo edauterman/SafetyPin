@@ -178,7 +178,7 @@ void RecoveryCiphertext_free(RecoveryCiphertext *c, int hsmGroupSize) {
     if (c) free(c);
 }
 
-Datacenter *Datacenter_new(int numHsms, int hsmGroupSize) {
+Datacenter *Datacenter_new(int numHsms, int hsmGroupSize, int chunkSize) {
     int rv = ERROR;
     Datacenter *d;
 
@@ -186,6 +186,7 @@ Datacenter *Datacenter_new(int numHsms, int hsmGroupSize) {
     d->numHsms = numHsms;
     d->hsmGroupSize = hsmGroupSize;
     d->hsmThresholdSize = hsmGroupSize > 1 ? hsmGroupSize / 2 : 1;
+    d->chunkSize = chunkSize;
 
     printf("# HSMs = %d, group size = %d, threshold size = %d\n", d->numHsms, d->hsmGroupSize, d->hsmThresholdSize);
 
@@ -283,7 +284,7 @@ int Datacenter_TestSetup(Datacenter *d) {
     for (int i = 0; i < d->numHsms; i++) {
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
         CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, mpk));
-	    CHECK_C (HSM_SetParams(d->hsms[i], d->hsmGroupSize, d->hsmThresholdSize, logPk));
+        CHECK_C (HSM_SetParams(d->hsms[i], d->hsmGroupSize, d->hsmThresholdSize, d->chunkSize, logPk));
         fprintf(stderr, "Done with setup for %d/%d\n", i, d->numHsms);
     }
 cleanup:
@@ -714,7 +715,7 @@ int Datacenter_LogEpochVerification(Datacenter *d, LogState *state) {
     gettimeofday(&tStart, NULL);
 
     for (int i = 0; i < d->numHsms; i++) {
-        t[i] = thread(HSM_LogEpochVerification, d->hsms[i], &sigs[i], state);
+        t[i] = thread(HSM_LogEpochVerification, d->hsms[i], d->chunkSize, &sigs[i], state);
     }
     for (int i = 0; i < d->numHsms; i++) {
         t[i].join();
@@ -747,7 +748,7 @@ int Datacenter_LogEpochVerification(Datacenter *d, LogState *state) {
     aggTime = aggSec + (aggMicro / 1000000.0);
 
     printf("------ Transition verification time: %f, %d sec, %d micros\n", verifyTime, verifySec, verifyMicro);
-    printf("------ Signature aggregation and verification: %f, %d sec, %d micros\n", aggTime, aggSec, aggMicro);
+    printf("------ Total time: %f, %d sec, %d micros\n", aggTime, aggSec, aggMicro);
 
 cleanup:
     return rv;

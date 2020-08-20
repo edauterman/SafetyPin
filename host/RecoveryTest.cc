@@ -15,8 +15,9 @@ int main(int argc, char *argv[]) {
 
   int numHsms = 10;
   int hsmGroupSize = 10;
+  int chunkSize = 1;
 
-  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize, chunkSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;

@@ -401,7 +401,7 @@ cleanup:
 }
 
 /* Set system parameters on a HSM: group size, threshold size, and chunk size.. */
-int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, uint8_t *logPk) {
+int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, int chunkSize, uint8_t *logPk) {
     int rv;
     HSM_SET_PARAMS_REQ req;
     string resp_str;
@@ -410,7 +410,7 @@ int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, uint8_t *logPk
 
     req.groupSize = hsmGroupSize;
     req.thresholdSize = hsmThresholdSize;
-    req.chunkSize = CHUNK_SIZE;
+    req.chunkSize = chunkSize;
     memcpy(req.logPk, logPk, COMPRESSED_PT_SZ);
 
 #ifdef HID
@@ -608,7 +608,7 @@ cleanup:
  * epoch. Each HSM chooses a number of chunks to verify the transitions for. If all
  * transitions are correct, it signs the log head. The datacenter aggregates signatures
  * and then the HSMs verify the aggregate signatures. */
-int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogState *state) {
+int HSM_LogEpochVerification(HSM *h, int chunkSize, embedded_pairing_bls12_381_g1_t *sig, LogState *state) {
     int rv;
     int i, j, k;
 
@@ -633,8 +633,8 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
         HSM_LOG_ROOTS_PROOF_REQ rootReq;
         HSM_LOG_ROOTS_PROOF_RESP rootResp;
 
-        MerkleProof *rootProofOld = MerkleTree_GetProof(state->rootsTree, (query - 1) * CHUNK_SIZE); 
-        MerkleProof *rootProofNew = MerkleTree_GetProof(state->rootsTree, query * CHUNK_SIZE);
+        MerkleProof *rootProofOld = MerkleTree_GetProof(state->rootsTree, (query - 1) * chunkSize); 
+        MerkleProof *rootProofNew = MerkleTree_GetProof(state->rootsTree, query * chunkSize);
 	for (k = 0; k < rootProofOld->len; k++) {
             memcpy(rootReq.rootProofOld[k], rootProofOld->hash[k], SHA256_DIGEST_LENGTH);
             rootReq.idsOld[k] = rootProofOld->ids[k];
@@ -663,10 +663,10 @@ int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogSt
 	    CHECK_C(rootResp.result == 1);
 
 	    // Auditing transition j in round i for queried chunk
-        for (j = 0; j < CHUNK_SIZE; j++) {
+        for (j = 0; j < chunkSize; j++) {
             HSM_LOG_TRANS_PROOF_REQ proofReq;
             HSM_LOG_TRANS_PROOF_RESP proofResp;
-            int subquery = ((query - 1) * CHUNK_SIZE) + j;
+            int subquery = ((query - 1) * chunkSize) + j;
 
             memcpy(proofReq.leafNew, state->tProofs[subquery].newProof->leaf, SHA256_DIGEST_LENGTH);
             memset(proofReq.leafNew, 0xff, SHA256_DIGEST_LENGTH);

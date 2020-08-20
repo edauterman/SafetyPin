@@ -10,6 +10,7 @@ typedef struct {
     int numHsms;
     int hsmGroupSize;
     int hsmThresholdSize;
+    int chunkSize;
     HSM **hsms;
 } Datacenter;
 
@@ -27,7 +28,7 @@ typedef struct {
 RecoveryCiphertext *RecoveryCiphertext_new(Params *params, int hsmGroupSize);
 void RecoveryCiphertext_free(RecoveryCiphertext *c, int hsmGroupSize);
 
-Datacenter *Datacenter_new(int numHsms, int hsmGroupSize);
+Datacenter *Datacenter_new(int numHsms, int hsmGroupSize, int chunkSize);
 void Datacenter_free(Datacenter *d);
 int Datacenter_init(Datacenter *d);
 
