@@ -15,6 +15,9 @@
 #include "../crypto/cifra/src/modes.h"
 #include "../crypto/cifra/src/aes.h"
 
+uint8_t PUNC_MEASURE_WITH_PUB_KEY = true;
+uint8_t PUNC_MEASURE_WITH_SYM_KEY = true;
+
 void HSM_Handle(uint8_t msgType, uint8_t *in, uint8_t *out, int *outLen) {
     switch (msgType) {
         case HSM_RETRIEVE:
@@ -151,7 +154,9 @@ int HSM_Retrieve(struct hsm_retrieve_request *req, uint8_t *out, int *outLen) {
 int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen) {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
 
-    PuncEnc_PunctureLeaf(req->cts, req->index, newCts);
+    if (PUNC_MEASURE_WITH_SYM_KEY) {
+        PuncEnc_PunctureLeaf(req->cts, req->index, newCts);
+    }
 
     if (out) {
         memcpy(out, newCts, KEY_LEVELS * CT_LEN);
@@ -165,7 +170,9 @@ int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen) {
 
 void punctureAndWriteback(struct hsm_auth_decrypt_request *req, uint8_t *msg, uint8_t *out, int*outLen) {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
-    PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
+    if (PUNC_MEASURE_WITH_SYM_KEY) {
+        PuncEnc_PunctureLeaf(req->treeCts, req->index, newCts);
+    }
 
     if (out) {
         memcpy(out, msg, FIELD_ELEM_LEN);
@@ -182,18 +189,22 @@ int HSM_AuthDecrypt(struct hsm_auth_decrypt_request *req, uint8_t *out, int *out
     uint8_t leaf[CT_LEN];
     uint8_t msg[FIELD_ELEM_LEN];
 
-    if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
-        if (out) {
-            memset(msg, 0, FIELD_ELEM_LEN +  (KEY_LEVELS * CT_LEN));
-            *outLen = FIELD_ELEM_LEN + (KEY_LEVELS * CT_LEN);
-        } else {
-            memset(msg, 0, FIELD_ELEM_LEN + (KEY_LEVELS * CT_LEN));
-            u2f_response_writeback(msg, FIELD_ELEM_LEN  + (KEY_LEVELS * CT_LEN));
+    if (PUNC_MEASURE_WITH_SYM_KEY) {
+        if (PuncEnc_RetrieveLeaf(req->treeCts, req->index, leaf) == ERROR) {
+            if (out) {
+                memset(msg, 0, FIELD_ELEM_LEN +  (KEY_LEVELS * CT_LEN));
+                *outLen = FIELD_ELEM_LEN + (KEY_LEVELS * CT_LEN);
+            } else {
+                memset(msg, 0, FIELD_ELEM_LEN + (KEY_LEVELS * CT_LEN));
+                u2f_response_writeback(msg, FIELD_ELEM_LEN  + (KEY_LEVELS * CT_LEN));
+            }
+            return U2F_SW_NO_ERROR;
         }
-        return U2F_SW_NO_ERROR;
     }
 
-    ElGamal_DecryptWithSk(req->elGamalCt, leaf, msg);
+    if (PUNC_MEASURE_WITH_PUB_KEY) {
+        ElGamal_DecryptWithSk(req->elGamalCt, leaf, msg);
+    }
 
     punctureAndWriteback(req, msg, out, outLen);
 
@@ -250,6 +261,8 @@ int HSM_ElGamalDecrypt(struct hsm_elgamal_decrypt_request *req, uint8_t *out, in
 /* Set system parameters. */
 int HSM_SetParams(struct hsm_set_params_request *req, uint8_t *out, int *outLen) {
     Log_SetParams(req->logPk, req->groupSize, req->chunkSize);
+    PUNC_MEASURE_WITH_PUB_KEY = req->puncMeasureWithPubKey;
+    PUNC_MEASURE_WITH_SYM_KEY = req->puncMeasureWithSymKey;
 
     if (out) {
         *outLen = 0;
@@ -273,7 +286,7 @@ int HSM_LogProof(struct hsm_log_proof_request *req, uint8_t *out, int *outLen) {
 
 /* Process request to decrypt (baseline for measurement). */
 int HSM_Baseline(struct hsm_baseline_request *req, uint8_t *out, int *outLen) {
-    uint8_t k[33];
+    uint8_t k[32];
     uint8_t kHash[32];
     uint8_t msg[SHA256_DIGEST_LEN + KEY_LEN];
     uint8_t tagTest[SHA256_DIGEST_LEN];
@@ -282,7 +295,7 @@ int HSM_Baseline(struct hsm_baseline_request *req, uint8_t *out, int *outLen) {
     ElGamal_Decrypt(req->elGamalCt, k);
 
     crypto_sha256_init();
-    crypto_sha256_update(k, 33);
+    crypto_sha256_update(k, 32);
     crypto_sha256_final(kHash);
 
     /* Decrypt aes ciphertext. */
