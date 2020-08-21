@@ -1,3 +1,4 @@
+import matplotlib 
 import re
 import matplotlib.pyplot as plt
 import sys
@@ -12,6 +13,10 @@ bmap1 = brewer2mpl.get_map('Set1', 'Qualitative', 7)
 bmap2 = brewer2mpl.get_map('Dark2', 'Qualitative', 7)
 hash_colors = bmap1.mpl_colors
 mix_colors = bmap2.mpl_colors
+
+font = {'size'   : 22}
+
+matplotlib.rc('font', **font)
 
 log_times = []
 elgamal_times = []
@@ -49,12 +54,8 @@ ax.set_xlabel("Cluster size ($n$)", labelpad=8.0)
 ax.set_ylabel("Recovery time (s)")
 ax.set_ylim([0,1.5])
 ax.set_xlim([40,105])
-ax.minorticks_on()
 ax.set_xticks(range(40,91,10))
 ax.set_yticks([0.25*i for i in range(5)])
-
-for i, xpos in enumerate(ax.get_xticks()):
-    ax.text(xpos, -0.33, str(round(sec_param[i],2)), size=6, ha='center')
 
 handles, labels = ax.get_legend_handles_labels()
 handles.reverse()
@@ -64,5 +65,6 @@ ax.legend(handles, labels, bbox_to_anchor=(0, 1.0, 1., .102), loc='lower left', 
 ax.spines['bottom'].set_position("zero")
 
 ax.yaxis.grid(which='major', color='0.9', linestyle=':')
+plt.tight_layout()
 plt.savefig("out/fig11.png")
 plt.show()

@@ -1,4 +1,5 @@
 import re
+import matplotlib
 import matplotlib.pyplot as plt
 import sys
 import numpy as np
@@ -12,6 +13,10 @@ bmap1 = brewer2mpl.get_map('Set1', 'Qualitative', 7)
 bmap2 = brewer2mpl.get_map('Dark2', 'Qualitative', 7)
 hash_colors = bmap1.mpl_colors
 mix_colors = bmap2.mpl_colors
+
+font = {'size'   : 22}
+
+matplotlib.rc('font', **font)
 
 colors=[mix_colors[2], hash_colors[4], hash_colors[1], hash_colors[0]]
 
@@ -32,4 +37,5 @@ ax.set_xlabel(r"Data center size ($N$)")
 ax.set_ylabel(r"Time to audit log (s)")
 ax.set_xticks([0, 2500, 5000, 7500, 10000])
 ax.set_xticklabels(["0", "2.5K", "5K", "7.5K", "10K"])
+plt.tight_layout()
 plt.savefig("out/fig8.png")
