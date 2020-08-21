@@ -17,7 +17,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  int numHsms = 1;
+  int numHsms = 100;
   int hsmGroupSize = 1;
   int chunkSize = 1;
   int hsmNum = 0;

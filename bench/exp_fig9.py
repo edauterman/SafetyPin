@@ -18,10 +18,8 @@ level_list = [5,7,9,11,13,15,17,19,21]
 # Time to audit 100K recovery attempts
 
 def measureLatency(levels, hsm_num):
-    cmd = "cd ../host/; make clean"
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    process.wait()
-    cmd = ("cd ../host/; make LEVELS=%d") % (levels)
+    print(("Running experiment for %d levels with HSM #%d\n") % (levels, hsm_num))
+    cmd = ("cd ../host/; make clean; make LEVELS=%d") % (levels)
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     process.wait()
     cmd = ("./../host/PuncEncBench %d") % (hsm_num)
@@ -46,8 +44,12 @@ def measureLatency(levels, hsm_num):
 # Run experiment
 for i in range(len(level_list)):
     print(("Running experiment for level = %d") % (level_list[i]))
-    measureLatency(level_list[i], i)
+    measureLatency(level_list[i], 90 + i)
 
+cmd = "cd ../host/; make clean; make"
+process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+process.wait()
+ 
 f = open("out/fig8.dat", "w")
 
 for i in range(len(log_times)):
