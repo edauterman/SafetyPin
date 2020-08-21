@@ -19,10 +19,10 @@ SSH into the test machine using the credentials provided separately. All the HSM
 To run all the experiments and generate all the plots, run:
  ```
 cd bench
-./runAll.sh
+./runAll.sh     # 50 minutes
 ```
 
-This will produce figures 8, 9, 10, and 11 in the `bench/out` folder. Details about running these experiments and the plots that are produced are included below.
+This will produce figures 8, 9, 10, and 11 in the `bench/out` folder. Details about running these experiments and the plots that are produced are included below. The figures we generated running the same scripts are included in `bench/ref`.
 
 ### Figure 8
 
@@ -34,9 +34,11 @@ python3 exp_fig8.py     # 16 minutes
 python3 plot_fig8.py    # few seconds
 ```
 
-This will produce a plot matching Figure 8 on page 11 in the paper in `bench/out/fig8.png`. Use `scp` to copy this figure back to your local machine.
+This will produce a plot close to Figure 8 on page 11 in the paper in `bench/out/fig8.png`. Use `scp` to copy this figure back to your local machine.
 
-![Figure 8](#bench/ref/fig8.png)
+The only difference from the Figure 8 included in the paper is that we use 90 HSMs instead of 100 HSMs for this experiment (the remaining 10 HSMs have different firmware used to generate figure 9). The figure we generated using 90 HSMs is below for comparison:
+
+<img src="https://github.com/edauterman/SafetyPin/blob/master/bench/ref/fig8.png" width="400">
 
 ### Figure 9 
 
@@ -52,7 +54,9 @@ This will produce a plot matching Figure 9 on page 11 in the paper in `bench/out
 
 Note that this experiment uses 10 HSMs that are flashed with firmware using different parameter settings. Between each experiment run, the code at the host is recompiled using a different setting of constants.
 
-![Figure 9](#bench/ref/fig9.png)
+We include the figure we genereated below for reference:
+
+<img src="https://github.com/edauterman/SafetyPin/blob/master/bench/ref/fig9.png" width="400">
 
 ### Figure 10
 
@@ -66,7 +70,11 @@ python3 plot_fig10.py    # few seconds
 
 This will produce a plot matching the right half of Figure 10 on page 11 in the paper (breakdown of recovery time) in `bench/out/fig10.png`. Use `scp` to copy this figure back to your local machine.
 
-![Figure 10](#bench/ref/fig10.png)
+Note that this figure looks slightly different than the one in the camera-ready because since submission, we fixed a bug that increased the log time.
+
+We incldue the figure we generated below for reference:
+
+<img src="https://github.com/edauterman/SafetyPin/blob/master/bench/ref/fig10.png" width="400">
 
 ### Figure 11
 
@@ -78,9 +86,13 @@ python3 exp_fig11.py     # 10 minutes
 python3 plot_fig11.py    # few seconds
 ```
 
-This will produce a plot matching Figure 11 on page 12 up to a cluster size of 90 HSMs in `bench/out/fig11.png`. We only measure up to 90 HSMs because we reserve the last 10 HSMs for the experiment for figure 10, which requires the HSMs to use firmware with a different setting of the parameters. Use `scp` to copy this figure back to your local machine.
+This will produce a plot matching Figure 11 on page 12 up to a cluster size of 90 HSMs in `bench/out/fig11.png`. Use `scp` to copy this figure back to your local machine.
 
-![Figure 11](#bench/ref/fig11.png)
+We only measure up to 90 HSMs because we reserve the last 10 HSMs for the experiment for figure 10, which requires the HSMs to use firmware with a different setting of the parameters. Note that this figure looks slightly different than the one in the camera-ready because since submission, we fixed a bug that increased the log time.
+
+We include the figure we generated (only up to 90 HSMs) below for reference:
+
+<img src="https://github.com/edauterman/SafetyPin/blob/master/bench/ref/fig11.png" width="400">
 
 ## Acknowledgements
 The code for the HSMs was adapted from the [SoloKey project](https://github.com/solokeys/solo).
