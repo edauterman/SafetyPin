@@ -401,7 +401,7 @@ cleanup:
 }
 
 /* Set system parameters on a HSM: group size, threshold size, and chunk size.. */
-int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, int chunkSize, uint8_t *logPk) {
+int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, int chunkSize, uint8_t *logPk, uint8_t puncMeasureWithPubKey, uint8_t puncMeasureWithSymKey) {
     int rv;
     HSM_SET_PARAMS_REQ req;
     string resp_str;
@@ -412,6 +412,8 @@ int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, int chunkSize,
     req.thresholdSize = hsmThresholdSize;
     req.chunkSize = chunkSize;
     memcpy(req.logPk, logPk, COMPRESSED_PT_SZ);
+    req.puncMeasureWithPubKey = puncMeasureWithPubKey;
+    req.puncMeasureWithSymKey = puncMeasureWithSymKey;
 
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_SET_PARAMS, 0, 0,

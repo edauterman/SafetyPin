@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     HSM_ElGamalGetPk(d->hsms[i]);
     HSM_ElGamalEncrypt(d->hsms[i], msg, c);
 
-    HSM_SetParams(d->hsms[i], numHsms, hsmGroupSize, chunkSize, logPk);
+    HSM_SetParams(d->hsms[i], numHsms, hsmGroupSize, chunkSize, logPk, 1, 1);
     Log_Prove(d->hsms[i]->params, p, c, hsms, hsmGroupSize);
     HSM_LogProof(d->hsms[i], c, hsms, p);    
   }  

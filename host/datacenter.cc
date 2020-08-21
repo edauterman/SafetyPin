@@ -187,6 +187,8 @@ Datacenter *Datacenter_new(int numHsms, int hsmGroupSize, int chunkSize) {
     d->hsmGroupSize = hsmGroupSize;
     d->hsmThresholdSize = hsmGroupSize > 1 ? hsmGroupSize / 2 : 1;
     d->chunkSize = chunkSize;
+    d->puncMeasureWithPubKey = true;
+    d->puncMeasureWithSymKey = true;
 
     printf("# HSMs = %d, group size = %d, threshold size = %d\n", d->numHsms, d->hsmGroupSize, d->hsmThresholdSize);
 
@@ -230,6 +232,11 @@ cleanup:
     HSM_free(h);
   }
   return rv;
+}
+
+void Datacenter_SetPuncMeasureParams(Datacenter *d, uint8_t puncMeasureWithPubKey, uint8_t puncMeasureWithSymKey) {
+    d->puncMeasureWithPubKey = puncMeasureWithPubKey;
+    d->puncMeasureWithSymKey = puncMeasureWithSymKey;
 }
 
 /* Initialize the datacenter with all the connected HSMst. */
@@ -284,7 +291,7 @@ int Datacenter_TestSetup(Datacenter *d) {
     for (int i = 0; i < d->numHsms; i++) {
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
         CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, mpk));
-        CHECK_C (HSM_SetParams(d->hsms[i], d->hsmGroupSize, d->hsmThresholdSize, d->chunkSize, logPk));
+        CHECK_C (HSM_SetParams(d->hsms[i], d->hsmGroupSize, d->hsmThresholdSize, d->chunkSize, logPk, d->puncMeasureWithPubKey, d->puncMeasureWithSymKey));
         fprintf(stderr, "Done with setup for %d/%d\n", i, d->numHsms);
     }
 cleanup:

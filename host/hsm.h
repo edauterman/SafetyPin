@@ -164,6 +164,8 @@ typedef struct {
     uint8_t thresholdSize;
     uint8_t chunkSize;
     uint8_t logPk[COMPRESSED_PT_SZ];
+    uint8_t puncMeasureWithPubKey;
+    uint8_t puncMeasureWithSymKey;
 } HSM_SET_PARAMS_REQ;
 
 typedef struct {
@@ -267,7 +269,7 @@ void HSM_free(HSM *h);
 /* Setup */
 int HSM_TestSetup(HSM *h);
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], EC_POINT **mpk);
-int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, int hsmChunkSize, uint8_t *logPk);
+int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, int hsmChunkSize, uint8_t *logPk, uint8_t puncMeasureWithPubKey, uint8_t puncMeasureWithSymKey);
 
 /* Testing tree. */
 int HSM_Retrieve(HSM *h, uint32_t index);

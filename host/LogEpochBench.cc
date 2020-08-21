@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   printf("Initialized log\n");
 
   for (int i = 0; i < numHsms; i++) {
-    HSM_SetParams(d->hsms[i], hsmGroupSize, hsmThresholdSize, chunkSize, logPk);
+    HSM_SetParams(d->hsms[i], hsmGroupSize, hsmThresholdSize, chunkSize, logPk, 1, 1);
   }
 
   for (int i = 0; i < numHsms; i++) {

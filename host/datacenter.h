@@ -12,6 +12,8 @@ typedef struct {
     int hsmThresholdSize;
     int chunkSize;
     HSM **hsms;
+    uint8_t puncMeasureWithPubKey;
+    uint8_t puncMeasureWithSymKey;
 } Datacenter;
 
 typedef struct {
@@ -34,6 +36,8 @@ int Datacenter_init(Datacenter *d);
 
 int Datacenter_TestSetup(Datacenter *d);
 int Datacenter_VirtualSetup(Datacenter *d);
+
+void Datacenter_SetPuncMeasureParams(Datacenter *d, uint8_t puncMeasureWithPubKey, uint8_t puncMeasureWithSymKey);
 
 int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t userID, BIGNUM *pin, RecoveryCiphertext *c);
 int Datacenter_GenerateLogProofs(Datacenter *d, Params *params, LogProof **logProofs, BIGNUM *pin, RecoveryCiphertext *c);
