@@ -126,6 +126,8 @@ struct hsm_set_params_request {
     uint8_t thresholdSize;
     uint8_t chunkSize;
     uint8_t logPk[COMPRESSED_PT_SZ];
+    uint8_t puncMeasureWithPubKey;
+    uint8_t puncMeasureWithSymKey;
 };
 
 struct hsm_log_proof_request {
