@@ -40,7 +40,7 @@ def measureLatency(N, n):
             print("punc enc match")
 
 # Run experiment
-for i in range(40, 110, 10):
+for i in range(40, 91, 10):
     print(("Running experiment for n=%d") % (i))
     measureLatency(i, i)
 #    print(("log = %f, location-hiding encryption = %f, puncturable encryption = %f") % (log_times[len(log_times) - 1], elgamal_times[len(elgamal_times) - 1], punc_enc_times[len(punc_enc_times) - 1]))
@@ -48,9 +48,9 @@ for i in range(40, 110, 10):
 punc_enc_times = [punc_enc_times[i] - elgamal_times[i] for i in range(len(punc_enc_times))]
 elgamal_times = [elgamal_times[i] - log_times[i] for i in range(len(elgamal_times))]
 
-f = open("out/cluster_sz_vs_recovery_time", "w")
+f = open("out/fig11.dat", "w")
 
-n_vals = range(40, 110, 10)
+n_vals = range(40, 91, 10)
 for i in range(len(log_times)):
     n = n_vals[i]
 

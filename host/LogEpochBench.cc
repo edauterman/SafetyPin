@@ -23,8 +23,8 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  int numHsms = 100;
-  int hsmGroupSize = 100;
+  int numHsms = 90;
+  int hsmGroupSize = 90;
   int hsmThresholdSize = 50;
   int chunkSize = 1;
 
