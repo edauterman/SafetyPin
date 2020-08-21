@@ -36,7 +36,7 @@ python3 plot_fig8.py    # few seconds
 
 This will produce a plot matching Figure 8 on page 11 in the paper in `bench/out/fig8.png`. Use `scp` to copy this figure back to your local machine.
 
-![](https://github.com/edauterman/SafetyPin/bench/ref/fig8.png "Figure 8")
+![](bench/ref/fig8.png)
 
 ### Figure 9 
 
@@ -52,7 +52,7 @@ This will produce a plot matching Figure 9 on page 11 in the paper in `bench/out
 
 Note that this experiment uses 10 HSMs that are flashed with firmware using different parameter settings. Between each experiment run, the code at the host is recompiled using a different setting of constants.
 
-![](https://github.com/edauterman/SafetyPin/bench/ref/fig9.png "Figure 9")
+![](bench/ref/fig9.png)
 
 ### Figure 10
 
@@ -66,7 +66,7 @@ python3 plot_fig10.py    # few seconds
 
 This will produce a plot matching the right half of Figure 10 on page 11 in the paper (breakdown of recovery time) in `bench/out/fig10.png`. Use `scp` to copy this figure back to your local machine.
 
-![](https://github.com/edauterman/SafetyPin/bench/ref/fig10.png "Figure 10")
+![](bench/ref/fig10.png "Figure 10")
 
 ### Figure 11
 
@@ -80,7 +80,7 @@ python3 plot_fig11.py    # few seconds
 
 This will produce a plot matching Figure 11 on page 12 up to a cluster size of 90 HSMs in `bench/out/fig11.png`. We only measure up to 90 HSMs because we reserve the last 10 HSMs for the experiment for figure 10, which requires the HSMs to use firmware with a different setting of the parameters. Use `scp` to copy this figure back to your local machine.
 
-![](https://github.com/edauterman/SafetyPin/bench/ref/fig11.png "Figure 11")
+![](bench/ref/fig11.png "Figure 11")
 
 ## Acknowledgements
 The code for the HSMs was adapted from the [SoloKey project](https://github.com/solokeys/solo).
