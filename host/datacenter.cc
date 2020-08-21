@@ -29,8 +29,8 @@
 using namespace std;
 
 /* UPDATE AS NEEDED */
-const char *HANDLES[] = { "/dev/cu.usbmodem2052338246482" };
-/*const char *HANDLES[] = {"/dev/ttyACM0",
+//const char *HANDLES[] = { "/dev/cu.usbmodem2052338246482" };
+const char *HANDLES[] = {"/dev/ttyACM0",
 			"/dev/ttyACM1",
 			"/dev/ttyACM2",
 			"/dev/ttyACM3",
@@ -130,7 +130,7 @@ const char *HANDLES[] = { "/dev/cu.usbmodem2052338246482" };
 			"/dev/ttyACM97",
 			"/dev/ttyACM98",
 			"/dev/ttyACM99",
-};*/
+};
 
 
 RecoveryCiphertext *RecoveryCiphertext_new(Params *params, int hsmGroupSize) {
@@ -178,7 +178,7 @@ void RecoveryCiphertext_free(RecoveryCiphertext *c, int hsmGroupSize) {
     if (c) free(c);
 }
 
-Datacenter *Datacenter_new(int numHsms, int hsmGroupSize) {
+Datacenter *Datacenter_new(int numHsms, int hsmGroupSize, int chunkSize) {
     int rv = ERROR;
     Datacenter *d;
 
@@ -186,6 +186,9 @@ Datacenter *Datacenter_new(int numHsms, int hsmGroupSize) {
     d->numHsms = numHsms;
     d->hsmGroupSize = hsmGroupSize;
     d->hsmThresholdSize = hsmGroupSize > 1 ? hsmGroupSize / 2 : 1;
+    d->chunkSize = chunkSize;
+    d->puncMeasureWithPubKey = true;
+    d->puncMeasureWithSymKey = true;
 
     printf("# HSMs = %d, group size = %d, threshold size = %d\n", d->numHsms, d->hsmGroupSize, d->hsmThresholdSize);
 
@@ -231,6 +234,11 @@ cleanup:
   return rv;
 }
 
+void Datacenter_SetPuncMeasureParams(Datacenter *d, uint8_t puncMeasureWithPubKey, uint8_t puncMeasureWithSymKey) {
+    d->puncMeasureWithPubKey = puncMeasureWithPubKey;
+    d->puncMeasureWithSymKey = puncMeasureWithSymKey;
+}
+
 /* Initialize the datacenter with all the connected HSMst. */
 int Datacenter_init(Datacenter *d) {
   int rv = ERROR;
@@ -250,7 +258,8 @@ int Datacenter_init(Datacenter *d) {
   }
 #else
     for (int i = 0; i < d->numHsms; i++) {
-        CHECK_A (d->hsms[i]->usbDevice = UsbDevice_new(HANDLES[i]));
+	fprintf(stderr, "init %d/%d\n", i, d->numHsms);
+    	CHECK_A (d->hsms[i]->usbDevice = UsbDevice_new(HANDLES[i]));
     }
 #endif
 
@@ -282,8 +291,8 @@ int Datacenter_TestSetup(Datacenter *d) {
     for (int i = 0; i < d->numHsms; i++) {
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
         CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, mpk));
-	    CHECK_C (HSM_SetParams(d->hsms[i], d->hsmGroupSize, d->hsmThresholdSize, logPk));
-        printf("Done with setup for %d/%d\n", i, d->numHsms);
+        CHECK_C (HSM_SetParams(d->hsms[i], d->hsmGroupSize, d->hsmThresholdSize, d->chunkSize, logPk, d->puncMeasureWithPubKey, d->puncMeasureWithSymKey));
+        fprintf(stderr, "Done with setup for %d/%d\n", i, d->numHsms);
     }
 cleanup:
     if (t) free(t);
@@ -452,6 +461,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     /* Split saveKey into shares */
     CHECK_C (Shamir_CreateShares(d->hsmThresholdSize, d->hsmGroupSize, encryptedSaveKey, params->order, saveKeyShares, h1Bns));
 
+
     debug_print("created shares of save key\n");
 
     debug_print("Going to encrypt ciphertexts to each HSM\n");
@@ -600,6 +610,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     for (int i = 0; i < d->hsmGroupSize; i++) {
         t0[i].join();
+	fprintf(stderr, "Finished log proof %d/%d\n", i, d->hsmGroupSize);
     }
  
     gettimeofday(&tLog, NULL);
@@ -610,6 +621,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     for (int i = 0; i < d->hsmGroupSize; i++) {
         t1[i].join();
+	fprintf(stderr, "Finished ElGamal decrypt %d/%d\n", i, d->hsmGroupSize);
     }
     CHECK_C (ElGamalShamir_ReconstructShares(params, d->hsmThresholdSize, d->hsmGroupSize, c->locationHidingCt, elGamalRandShares, elGamalRand));
 
@@ -629,6 +641,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     for (int i = 0; i < d->hsmGroupSize; i++) {
 	    t2[i].join();
         Shamir_UnmarshalX(saveKeyShares[i], i + 1);
+	fprintf(stderr, "Finished puncturable encryption decrypt %d/%d\n", i, d->hsmGroupSize);
     }
 
     /* Reassemble original saveKey. */
@@ -658,8 +671,8 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     puncEncTime = puncEncSec + (puncEncMicro / 1000000.0);
 
     printf("------ Log time: %f, %d sec, %d micros\n", logTime, logSec, logMicro);
-    printf("------ El Gamal time: %f, %d sec, %d micros\n", elGamalTime, elGamalSec, elGamalMicro);
-    printf("------ Punc Enc time: %f, %d sec, %d micros\n", puncEncTime, puncEncSec, puncEncMicro);
+    printf("------ ElGamal time: %f, %d sec, %d micros\n", elGamalTime, elGamalSec, elGamalMicro);
+    printf("------ Puncturable Encryption time: %f, %d sec, %d micros\n", puncEncTime, puncEncSec, puncEncMicro);
 
 cleanup:
     if (rv == ERROR) printf("ERROR in recovery\n");
@@ -683,7 +696,6 @@ cleanup:
     if (h1Bns) free(h1Bns);
     if (recoveryCts) free(recoveryCts);
     if (innerCtBuf) free(innerCtBuf);
-    printf("finished cleanup\n");
 
     return rv;
 }
@@ -710,7 +722,7 @@ int Datacenter_LogEpochVerification(Datacenter *d, LogState *state) {
     gettimeofday(&tStart, NULL);
 
     for (int i = 0; i < d->numHsms; i++) {
-        t[i] = thread(HSM_LogEpochVerification, d->hsms[i], &sigs[i], state);
+        t[i] = thread(HSM_LogEpochVerification, d->hsms[i], d->chunkSize, &sigs[i], state);
     }
     for (int i = 0; i < d->numHsms; i++) {
         t[i].join();
@@ -743,7 +755,7 @@ int Datacenter_LogEpochVerification(Datacenter *d, LogState *state) {
     aggTime = aggSec + (aggMicro / 1000000.0);
 
     printf("------ Transition verification time: %f, %d sec, %d micros\n", verifyTime, verifySec, verifyMicro);
-    printf("------ Signature aggregation and verification: %f, %d sec, %d micros\n", aggTime, aggSec, aggMicro);
+    printf("------ Total time: %f, %d sec, %d micros\n", aggTime, aggSec, aggMicro);
 
 cleanup:
     return rv;

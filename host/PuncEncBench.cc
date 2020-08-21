@@ -19,8 +19,15 @@ int main(int argc, char *argv[]) {
 
   int numHsms = 1;
   int hsmGroupSize = 1;
+  int chunkSize = 1;
+  int hsmNum = 0;
 
-  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
+  if (argc >= 2) {
+    hsmNum = atoi(argv[1]);
+    printf("HSM #%d\n", hsmNum);
+  }
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize, chunkSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
@@ -28,44 +35,65 @@ int main(int argc, char *argv[]) {
 
   Datacenter_TestSetup(d);
 
-  struct timeval t1, t2, t3;
+  struct timeval startFull, endFull, startOnlySymKey, endOnlySymKey, startOnlyIO, endOnlyIO;
   BIGNUM *msg = BN_new();
   BIGNUM *msgTest = BN_new();
+  uint8_t logPk[COMPRESSED_PT_SZ];
   BN_rand_range(msg, d->hsms[0]->params->order);
   ElGamal_ciphertext *cts[PUNC_ENC_REPL];
   for (int i = 0; i < PUNC_ENC_REPL; i++) {
     cts[i] = ElGamalCiphertext_new(d->hsms[0]->params);
   }
 
+  Log_GetPk(d->hsms[hsmNum]->params, logPk);
+
+  HSM_SetParams(d->hsms[hsmNum], d->hsmGroupSize, d->hsmThresholdSize, d->chunkSize, logPk, d->puncMeasureWithPubKey, d->puncMeasureWithSymKey);
   printf("going to start encrypt\n");  
-  gettimeofday(&t1, NULL);
-  HSM_Encrypt(d->hsms[0], 0, msg, cts);
+  HSM_Encrypt(d->hsms[hsmNum], 1, msg, cts);
   printf("finished encrypt, going to auth decrypt\n");
-  gettimeofday(&t2, NULL);
-  HSM_AuthDecrypt(d->hsms[0], 0, cts, msgTest);
-  gettimeofday(&t3, NULL);
+  gettimeofday(&startFull, NULL);
+  HSM_AuthDecrypt(d->hsms[hsmNum], 1, cts, msgTest);
+  gettimeofday(&endFull, NULL);
   printf("finished auth decrypt\n");
 
-  if (BN_cmp(msg, msgTest) !=  0) {
-    printf("FAIL");
-  }
+  Datacenter_SetPuncMeasureParams(d, 0, 1);
+  HSM_SetParams(d->hsms[hsmNum], d->hsmGroupSize, d->hsmThresholdSize, d->chunkSize, logPk, d->puncMeasureWithPubKey, d->puncMeasureWithSymKey);
+  printf("going to start encrypt\n");  
+  HSM_Encrypt(d->hsms[hsmNum], 2, msg, cts);
+  printf("finished encrypt, going to auth decrypt\n");
+  gettimeofday(&startOnlySymKey, NULL);
+  HSM_AuthDecrypt(d->hsms[hsmNum], 2, cts, msgTest);
+  gettimeofday(&endOnlySymKey, NULL);
+  printf("finished auth decrypt\n");
 
-  long encryptSeconds = (t2.tv_sec - t1.tv_sec);
-  long encryptMicros = (t2.tv_usec - t1.tv_usec);
-  long decryptSeconds = (t3.tv_sec - t2.tv_sec);
-  long decryptMicros = (t3.tv_usec - t2.tv_usec);
-  double encryptTime = encryptSeconds + (encryptMicros / 1000000.0);
-  double decryptTime = decryptSeconds + (decryptMicros / 1000000.0);
-  printf("**** Encrypt time: %f, %ld seconds, %ld microseconds\n", encryptTime, encryptSeconds, encryptMicros);
-  printf("**** Decrypt time: %f, %ld seconds, %ld microseconds\n", decryptTime, decryptSeconds, decryptMicros);
+  Datacenter_SetPuncMeasureParams(d, 0, 0);
+  HSM_SetParams(d->hsms[hsmNum], d->hsmGroupSize, d->hsmThresholdSize, d->chunkSize, logPk, d->puncMeasureWithPubKey, d->puncMeasureWithSymKey);
+  printf("going to start encrypt\n");  
+  HSM_Encrypt(d->hsms[hsmNum], 0, msg, cts);
+  printf("finished encrypt, going to auth decrypt\n");
+  gettimeofday(&startOnlyIO, NULL);
+  HSM_AuthDecrypt(d->hsms[hsmNum], 0, cts, msgTest);
+  gettimeofday(&endOnlyIO, NULL);
+  printf("finished auth decrypt\n");
 
-  string filename = "../out/punc_enc";
-  FILE *f = fopen(filename.c_str(), "w+");
-  string str1 = "encrypt time: " + to_string(encryptTime) + "\n";
-  fputs(str1.c_str() , f); 
-  string str2 = "decrypt time: " + to_string(decryptTime) +  "\n";
-  fputs(str2.c_str(), f); 
-  fclose(f);
+
+  long fullSeconds = (endFull.tv_sec - startFull.tv_sec);
+  long fullMicros = (endFull.tv_usec - startFull.tv_usec);
+  long onlySymKeySeconds = (endOnlySymKey.tv_sec - startOnlySymKey.tv_sec);
+  long onlySymKeyMicros = (endOnlySymKey.tv_usec - startOnlySymKey.tv_usec);
+  long onlyIOSeconds = (endOnlyIO.tv_sec - startOnlyIO.tv_sec);
+  long onlyIOMicros = (endOnlyIO.tv_usec - startOnlyIO.tv_usec);
+  double fullTime = fullSeconds + (fullMicros / 1000000.0);
+  double onlySymKeyTime = onlySymKeySeconds + (onlySymKeyMicros / 1000000.0);
+  double onlyIOTime = onlyIOSeconds + (onlyIOMicros / 1000000.0);
+  
+  double pubKeyOpsTime = fullTime - onlySymKeyTime;
+  double symKeyOpsTime = onlySymKeyTime - onlyIOTime;
+
+  printf("**** Public key ops time: %f sec\n", pubKeyOpsTime);
+  printf("**** Symmetric key ops time: %f sec\n", symKeyOpsTime);
+  printf("**** IO time: %f sec\n", onlyIOTime);
+  printf("**** Full time: %f sec\n", fullTime);
 
   Datacenter_free(d);
 

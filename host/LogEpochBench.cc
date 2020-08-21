@@ -23,11 +23,17 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  int numHsms = 1;
-  int hsmGroupSize = 1;
-  int hsmThresholdSize = 1;
+  int numHsms = 100;
+  int hsmGroupSize = 100;
+  int hsmThresholdSize = 50;
+  int chunkSize = 1;
 
-  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
+  if (argc >= 2) {
+    chunkSize = atoi(argv[1]);
+    printf("Chunk size: %d\n", chunkSize);
+  }
+
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize, chunkSize);
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
@@ -47,7 +53,7 @@ int main(int argc, char *argv[]) {
   printf("Initialized log\n");
 
   for (int i = 0; i < numHsms; i++) {
-    HSM_SetParams(d->hsms[i], hsmGroupSize, hsmThresholdSize, logPk);
+    HSM_SetParams(d->hsms[i], hsmGroupSize, hsmThresholdSize, chunkSize, logPk, 1, 1);
   }
 
   for (int i = 0; i < numHsms; i++) {

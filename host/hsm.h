@@ -41,6 +41,7 @@ extern "C" {
 #define CT_LEN (2 * KEY_LEN + 32)	// Size of ciphertext in puncturable encryption tree
 #define PUNC_ENC_REPL 5 	// Number of leaves each puncturable encryption ciphertext hashes to
 #define NUM_LEAVES 2097152	// Total number of leaves in puncturable encryption tree
+#define NUM_LEAVES_HEX_STR "200000"
 #define LEVELS 22 		// log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES)
 #define TREE_SIZE (NUM_LEAVES * 2 - 1)	// Number of nodes in entire tree
@@ -163,6 +164,8 @@ typedef struct {
     uint8_t thresholdSize;
     uint8_t chunkSize;
     uint8_t logPk[COMPRESSED_PT_SZ];
+    uint8_t puncMeasureWithPubKey;
+    uint8_t puncMeasureWithSymKey;
 } HSM_SET_PARAMS_REQ;
 
 typedef struct {
@@ -266,7 +269,7 @@ void HSM_free(HSM *h);
 /* Setup */
 int HSM_TestSetup(HSM *h);
 int HSM_TestSetupInput(HSM *h,  uint8_t *cts, uint8_t msk[KEY_LEN], uint8_t hmacKey[KEY_LEN], EC_POINT **mpk);
-int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, uint8_t *logPk);
+int HSM_SetParams(HSM *h, int hsmGroupSize, int hsmThresholdSize, int hsmChunkSize, uint8_t *logPk, uint8_t puncMeasureWithPubKey, uint8_t puncMeasureWithSymKey);
 
 /* Testing tree. */
 int HSM_Retrieve(HSM *h, uint32_t index);
@@ -294,7 +297,7 @@ int HSM_MultisigSign(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgD
 int HSM_MultisigVerify(HSM *h, embedded_pairing_bls12_381_g1_t *sig, uint8_t *msgDigest);
 int HSM_MultisigSetAggPk(HSM *h, embedded_pairing_bls12_381_g2_t *aggPk);
 
-int HSM_LogEpochVerification(HSM *h, embedded_pairing_bls12_381_g1_t *sig, LogState *state);
+int HSM_LogEpochVerification(HSM *h, int chunkSize, embedded_pairing_bls12_381_g1_t *sig, LogState *state);
 #ifdef __cplusplus
 }
 #endif

@@ -20,12 +20,14 @@ inline int min (int a, int b) {
 Params *Params_new() 
 {
     int rv = ERROR;
-
     Params *params = NULL;
     CHECK_A (params = (Params *)malloc(sizeof(Params)));
     CHECK_A (params->base_prime = BN_new());
     CHECK_A (params->order = BN_new());
     CHECK_A (params->bn_ctx = BN_CTX_new());
+    CHECK_A (params->numLeaves = BN_new());
+
+    BN_hex2bn(&params->numLeaves, NUM_LEAVES_HEX_STR);
 
     CHECK_A (params->group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1));
     CHECK_C (EC_GROUP_get_order(params->group, params->order, params->bn_ctx));
@@ -34,7 +36,7 @@ Params *Params_new()
 
 cleanup:
     if (rv == ERROR) {
-        Params_free(params);
+    	Params_free(params);
         return NULL;
     }
     return params;
@@ -43,6 +45,7 @@ cleanup:
 void Params_free(Params *params) {
     BN_free(params->order);
     BN_free(params->base_prime);
+    BN_free(params->numLeaves);
     BN_CTX_free(params->bn_ctx);
     EC_GROUP_free(params->group);
     free(params);

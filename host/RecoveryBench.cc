@@ -16,16 +16,26 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
+  
+  int numHsms = 100;
+  int hsmGroupSize = 100;
+  int chunkSize = 1;
 
-  int numHsms = 1;
-  int hsmGroupSize = 1;
+  if (argc >= 3) {
+    numHsms = atoi(argv[1]);
+    hsmGroupSize = atoi(argv[2]);
+    printf("Number of HSMs: %d, HSM group size: %d\n", numHsms, hsmGroupSize);
+  }
+ 
 
-  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize);
+  Datacenter *d = Datacenter_new(numHsms, hsmGroupSize, chunkSize);
+  printf("did datacenter new\n");
   if (Datacenter_init(d) != OKAY) {
     printf("No device found. Exiting.\n");
     return 0;
   }
 
+  printf("init'd datacenter\n");
   Params *params = Params_new(); 
 
 
