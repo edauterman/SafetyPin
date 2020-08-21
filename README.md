@@ -30,11 +30,13 @@ Run the experiment and plot the data for Figure 8 showing datacenter size vs aud
 
 ```
 cd bench
-python3 exp_fig8.py     # time estimate
-python3 plot_fig8.py    #
+python3 exp_fig8.py     # 16 minutes 
+python3 plot_fig8.py    # few seconds
 ```
 
-This will produce a plot matching Figure 8 in the paper in `bench/out/fig8.png`. Use `scp` to copy this figure back to your local machine.
+This will produce a plot matching Figure 8 on page 11 in the paper in `bench/out/fig8.png`. Use `scp` to copy this figure back to your local machine.
+
+![Figure 8](#bench/ref/fig8.png)
 
 ### Figure 9 
 
@@ -42,13 +44,15 @@ Run the experiment and plot the data for Figure 9 showing how the number of reco
 
 ```
 cd bench
-python3 exp_fig9.py     # time estimate
-python3 plot_fig9.py    #
+python3 exp_fig9.py     # 20 minutes
+python3 plot_fig9.py    # few seconds
 ```
 
-This will produce a plot matching Figure 9 in the paper in `bench/out/fig9.png`. Use `scp` to copy this figure back to your local machine.
+This will produce a plot matching Figure 9 on page 11 in the paper in `bench/out/fig9.png`. Use `scp` to copy this figure back to your local machine.
 
 Note that this experiment uses 10 HSMs that are flashed with firmware using different parameter settings. Between each experiment run, the code at the host is recompiled using a different setting of constants.
+
+![Figure 9](#bench/ref/fig9.png)
 
 ### Figure 10
 
@@ -56,12 +60,13 @@ Run the experiment and plot the data for part of Figure 10 showing the breakdown
 
 ```
 cd bench
-python3 exp_fig10.py     # time estimate
-python3 plot_fig10.py    #
+python3 exp_fig10.py     # 2 minutes
+python3 plot_fig10.py    # few seconds
 ```
 
-This will produce a plot matching the right half of Figure 10 in the paper (breakdown of recovery time) in `bench/out/fig10.png`. Use `scp` to copy this figure back to your local machine.
+This will produce a plot matching the right half of Figure 10 on page 11 in the paper (breakdown of recovery time) in `bench/out/fig10.png`. Use `scp` to copy this figure back to your local machine.
 
+![Figure 10](#bench/ref/fig10.png)
 
 ### Figure 11
 
@@ -69,11 +74,13 @@ Run the experiment and plot the data for Figure 11 showing how recovery time cha
 
 ```
 cd bench
-python3 exp_fig11.py     # time estimate
-python3 plot_fig11.py    #
+python3 exp_fig11.py     # 10 minutes
+python3 plot_fig11.py    # few seconds
 ```
 
-This will produce a plot matching Figure 9 up to a cluster size of 90 HSMs in `bench/out/fig11.png`. We only measure up to 90 HSMs because we reserve the last 10 HSMs for the experiment for figure 10, which requires the HSMs to use firmware with a different setting of the parameters. Use `scp` to copy this figure back to your local machine.
+This will produce a plot matching Figure 11 on page 12 up to a cluster size of 90 HSMs in `bench/out/fig11.png`. We only measure up to 90 HSMs because we reserve the last 10 HSMs for the experiment for figure 10, which requires the HSMs to use firmware with a different setting of the parameters. Use `scp` to copy this figure back to your local machine.
+
+![Figure 11](#bench/ref/fig11.png)
 
 ## Acknowledgements
 The code for the HSMs was adapted from the [SoloKey project](https://github.com/solokeys/solo).
