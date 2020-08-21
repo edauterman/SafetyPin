@@ -50,14 +50,14 @@ cmd = "cd ../host/; make clean; make"
 process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
 process.wait()
  
-f = open("out/fig8.dat", "w")
+f = open("out/fig9.dat", "w")
 
-for i in range(len(log_times)):
+for i in range(len(level_list)):
     print(("Levels: %d") % (level_list[i]))
-    print(("-> public key ops time: %d") % (pub_key_times[i]))
-    print(("-> symmetric key ops time: %d") % (sym_key_times[i]))
-    print(("-> IO time: %d") % (io_times[i]))
+    print(("-> public key ops time: %f") % (pub_key_times[i]))
+    print(("-> symmetric key ops time: %f") % (sym_key_times[i]))
+    print(("-> IO time: %f") % (io_times[i]))
 
-    f.write(("%d\n%d\n%d\n") % (pub_key_times[i], sym_key_times[i], io_times[i]))
+    f.write(("%f\n%f\n%f\n") % (pub_key_times[i], sym_key_times[i], io_times[i]))
 
 f.close()

@@ -40,14 +40,17 @@ sec_param = [6.813781191217037, 6.491853096329675,
 
 fig = plt.figure(figsize = (8,8))
 ax = fig.add_subplot(111)
-print(np.arange(40, 110, step=10))
-ax.stackplot(np.arange(40, 110, step=10), log_times, elgamal_times, punc_enc_times, labels=labels, colors=colors)
+print(np.arange(40, 91, step=10))
+print(log_times)
+print(elgamal_times)
+print(punc_enc_times)
+ax.stackplot(np.arange(40, 91, step=10), log_times, elgamal_times, punc_enc_times, labels=labels, colors=colors)
 ax.set_xlabel("Cluster size ($n$)", labelpad=8.0)
 ax.set_ylabel("Recovery time (s)")
 ax.set_ylim([0,1.5])
 ax.set_xlim([40,105])
 ax.minorticks_on()
-ax.set_xticks(range(40,101,10))
+ax.set_xticks(range(40,91,10))
 ax.set_yticks([0.25*i for i in range(5)])
 
 for i, xpos in enumerate(ax.get_xticks()):
