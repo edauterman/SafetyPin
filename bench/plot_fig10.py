@@ -1,3 +1,4 @@
+import matplotlib 
 import re
 import matplotlib.pyplot as plt
 import sys
@@ -12,6 +13,10 @@ bmap1 = brewer2mpl.get_map('Set1', 'Qualitative', 7)
 bmap2 = brewer2mpl.get_map('Dark2', 'Qualitative', 7)
 hash_colors = bmap1.mpl_colors
 mix_colors = bmap2.mpl_colors
+
+font = {'size'   : 22}
+
+matplotlib.rc('font', **font)
 
 extras = {'edgecolor': 'black', 'linewidth': 0.5}
 stages_label = ["", ""] 
@@ -97,5 +102,6 @@ plt.legend(handles=legend_elements, ncol=1)
 #fig.legend(handles=legend_elements, bbox_to_anchor=(-0.05, 1.2, 0.9, .102), loc=3, ncol=1, borderaxespad=0.)
 #fig.legend(handles=legend_elements, bbox_to_anchor=(-0.05, 1.2, 0.9, .102), loc=3, ncol=1, borderaxespad=0.)
 
+plt.tight_layout()
 plt.savefig("out/fig10.png")
 plt.show()

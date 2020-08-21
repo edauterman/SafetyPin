@@ -1,3 +1,4 @@
+import matplotlib 
 import matplotlib.pyplot as plt
 import sys
 import numpy as np
@@ -11,6 +12,10 @@ bmap1 = brewer2mpl.get_map('Set1', 'Qualitative', 7)
 bmap2 = brewer2mpl.get_map('Dark2', 'Qualitative', 7)
 hash_colors = bmap1.mpl_colors
 mix_colors = bmap2.mpl_colors
+
+font = {'size'   : 22}
+
+matplotlib.rc('font', **font)
 
 labels = ["Public key ops", "Symmetric key ops", "I/O"] 
 colors=[mix_colors[3], mix_colors[0], mix_colors[2]]
@@ -35,11 +40,6 @@ ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
 ax.set_xticks([math.log2(1000000), math.log2(100000), math.log2(10000), math.log2(1000), math.log2(100)])
 ax.set_xticklabels(["100K", "10K", "1K", "100", "10"])
 
-key_sz = ["30MB", "3MB", "300KB", "30KB", "3KB"]
-
-for i, xpos in enumerate(ax.get_xticks()):
-    ax.text(xpos, -0.25, key_sz[i], size=6, ha='center')
-
 handles, labels = ax.get_legend_handles_labels()
 handles.reverse()
 labels.reverse()
@@ -48,5 +48,6 @@ ax.legend(handles, labels, bbox_to_anchor=(0.1, 0.75, 1., -.102), loc='lower lef
 ax.spines['bottom'].set_position("zero")
 
 ax.yaxis.grid(which='major', color='0.9', linestyle=':')
+plt.tight_layout()
 plt.savefig("out/fig9.png")
 plt.show()
