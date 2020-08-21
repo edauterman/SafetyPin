@@ -36,7 +36,7 @@ python3 plot_fig8.py    # few seconds
 
 This will produce a plot matching Figure 8 on page 11 in the paper in `bench/out/fig8.png`. Use `scp` to copy this figure back to your local machine.
 
-<img src="https://github.com/edauterman/SafetyPin/bench/ref/fig8.png" width="100">
+<img src="https://github.com/edauterman/SafetyPin/blob/master/bench/ref/fig8.png" width="100">
 
 ### Figure 9 
 
