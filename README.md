@@ -24,6 +24,8 @@ cd bench
 
 This will produce figures 8, 9, 10, and 11 in the `bench/out` folder. Details about running these experiments and the plots that are produced are included below. The figures we generated running the same scripts are included in `bench/ref`.
 
+Each experiment follows the same general pattern. To run the experiment for Figure x, go to the `bench` folder and run `python3 exp_figx.py`, which will output raw data in `out/figx.dat`. To plot the data, run `python3 plot_figx.py`.
+
 ### Figure 8
 
 Run the experiment and plot the data for Figure 8 showing datacenter size vs audit time:
