@@ -42,7 +42,7 @@ extern "C" {
 #define PUNC_ENC_REPL 5 	// Number of leaves each puncturable encryption ciphertext hashes to
 #define NUM_LEAVES 2097152	// Total number of leaves in puncturable encryption tree
 #define NUM_LEAVES_HEX_STR "200000"
-#define LEVELS 22 		// log2(NUM_LEAVES) + 1
+//#define LEVELS 22 		// log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // log2(NUM_LEAVES)
 #define TREE_SIZE (NUM_LEAVES * 2 - 1)	// Number of nodes in entire tree
 

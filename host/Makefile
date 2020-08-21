@@ -1,10 +1,17 @@
 all: CryptoTest TreeBench RecoveryTest RecoveryBench PuncEncBench MicroBench ElGamalTest SaveBench LogTest BaselineBench MultisigTest LogEpochBench ReencryptBench
 
+.PHONY: clean
+
+clean:
+	rm -f *.o
+
 #CC ?= gcc
 #CXX ?= g++
 CC ?= clang
 CXX ?= clang++
 PKG_CONFIG ?= pkg-config
+
+LEVELS=22
 
 UNAME := $(shell uname)
 
@@ -26,8 +33,8 @@ HIDAPI:=
 HIDAPI_CPPFLAGS:=$(shell $(PKG_CONFIG) --cflags-only-I $(HIDAPI_PKG))
 endif # hidapi library
 
-CPPFLAGS+=$(HIDAPI_CPPFLAGS) -D__OS_LINUX -Ijedi-pairing/include -fno-stack-protector
-CFLAGS+=$(HIDAPI_CFLAGS) -D__OS_LINUX -Ijedi-pairing/include -fno-stack-protector
+CPPFLAGS+=$(HIDAPI_CPPFLAGS) -D__OS_LINUX -Ijedi-pairing/include -fno-stack-protector -DLEVELS=$(LEVELS)
+CFLAGS+=$(HIDAPI_CFLAGS) -D__OS_LINUX -Ijedi-pairing/include -fno-stack-protector -DLEVELS=$(LEVELS)
 LDLIBS+=-lrt -ludev $(HIDAPI_LDLIBS) -Ljedi-pairing/pairing.a
 endif  # Linux
 
