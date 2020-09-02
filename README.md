@@ -1,4 +1,4 @@
-# SafetyPin
+# SafetyPin: Encrypted Backups with Human-Memorable Secrets
 
 SafetyPin is a system for encrypted backups that provides a strong defense against hardware compromise. The system only requires users to remember a short PIN and defends against brute-force PIN-guessing attacks while protecting against an attacker that can adaptively compromise many hardware elements. 
 
