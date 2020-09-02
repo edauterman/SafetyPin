@@ -456,7 +456,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
     CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, saltHash, NULL));
     CHECK_C (EVP_EncryptUpdate(ctx, encryptedSaveKeyBuf, &bytesFilled, saveKeyBuf, FIELD_ELEM_LEN));
     BN_bin2bn(encryptedSaveKeyBuf, FIELD_ELEM_LEN, encryptedSaveKey);
-    printf("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
+    debug_print("encryptedSaveKey: %s\n", BN_bn2hex(encryptedSaveKey));
 
     /* Split saveKey into shares */
     CHECK_C (Shamir_CreateShares(d->hsmThresholdSize, d->hsmGroupSize, encryptedSaveKey, params->order, saveKeyShares, h1Bns));
@@ -491,7 +491,7 @@ int Datacenter_Save(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t use
 
     CHECK_C (aesEncrypt(elGamalRand, innerCtBuf, d->hsmGroupSize * PUNC_ENC_REPL * ELGAMAL_CT_LEN, c->iv, c->ct));
 
-    printf("Finished saving secret.\n");
+    debug_print("Finished saving secret.\n");
 
 cleanup:
     if (r) BN_free(r);
@@ -610,7 +610,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     for (int i = 0; i < d->hsmGroupSize; i++) {
         t0[i].join();
-	fprintf(stderr, "Finished log proof %d/%d\n", i, d->hsmGroupSize);
+	debug_print("Finished log proof %d/%d\n", i, d->hsmGroupSize);
     }
  
     gettimeofday(&tLog, NULL);
@@ -621,7 +621,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     }
     for (int i = 0; i < d->hsmGroupSize; i++) {
         t1[i].join();
-	fprintf(stderr, "Finished ElGamal decrypt %d/%d\n", i, d->hsmGroupSize);
+	debug_print("Finished ElGamal decrypt %d/%d\n", i, d->hsmGroupSize);
     }
     CHECK_C (ElGamalShamir_ReconstructShares(params, d->hsmThresholdSize, d->hsmGroupSize, c->locationHidingCt, elGamalRandShares, elGamalRand));
 
@@ -641,7 +641,7 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     for (int i = 0; i < d->hsmGroupSize; i++) {
 	    t2[i].join();
         Shamir_UnmarshalX(saveKeyShares[i], i + 1);
-	fprintf(stderr, "Finished puncturable encryption decrypt %d/%d\n", i, d->hsmGroupSize);
+	debug_print("Finished puncturable encryption decrypt %d/%d\n", i, d->hsmGroupSize);
     }
 
     /* Reassemble original saveKey. */
@@ -658,7 +658,6 @@ int Datacenter_Recover(Datacenter *d, Params *params, BIGNUM *saveKey, uint16_t 
     BN_bin2bn(saveKeyBuf, FIELD_ELEM_LEN, saveKey);
 
     gettimeofday(&tEnd, NULL);
-    printf("3\n");
 
     logSec = (tLog.tv_sec - tStart.tv_sec);
     logMicro = (tLog.tv_usec - tStart.tv_usec);

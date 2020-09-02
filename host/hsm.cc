@@ -475,7 +475,6 @@ int HSM_Baseline(HSM *h, uint8_t *key, ElGamal_ciphertext *c, uint8_t *aesCt, ui
     memcpy(req.aesCt, aesCt, SHA256_DIGEST_LENGTH + KEY_LEN);
     memcpy(req.pinHash, pinHash, SHA256_DIGEST_LENGTH);
 
-    printf("going to send for baseline\n");
 #ifdef HID
     CHECK_C(EXPECTED_RET_VAL == U2Fob_apdu(h->hidDevice, 0, HSM_BASELINE, 0, 0,
                 string(reinterpret_cast<char*>(&req), sizeof(req)), &resp_str));
@@ -486,12 +485,6 @@ int HSM_Baseline(HSM *h, uint8_t *key, ElGamal_ciphertext *c, uint8_t *aesCt, ui
 #endif
 
     memcpy(key, resp.key, KEY_LEN);
-
-    printf("key received (direct): ");
-    for (int i = 0; i < KEY_LEN; i++) {
-      printf("%02x", key[i]);
-    }
-    printf("\n");
 
 cleanup:
     if (rv == ERROR) printf("ERROR in baseline (hsm)\n");

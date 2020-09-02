@@ -31,7 +31,6 @@ void encryptKeysAndCreateTag(uint8_t *encKey, uint8_t *hmacKey, uint8_t *key1, u
 // cts of size TREE_SIZE * CT_LEN
 void PuncEnc_BuildTree(Params *params, uint8_t *cts, uint8_t msk[KEY_LEN],  uint8_t hmacKey[KEY_LEN], EC_POINT **mpk) {
     /* For each level in subtree, choose random key, encrypt two children keys or leaf */
-    printf("building tree at host\n");
 
     uint8_t *leaves;
     int index = 0;
@@ -71,7 +70,6 @@ void PuncEnc_BuildTree(Params *params, uint8_t *cts, uint8_t msk[KEY_LEN],  uint
             index++;
         }
         currLeaves = (uint8_t *)keys + (initialIndex * KEY_LEN);
-        printf("initial index = %d, currLeaves addr = %x\n", initialIndex, currLeaves);
         currPtr -= currNumLeaves;
         currNumLeaves /= 2.0;
     }
@@ -79,7 +77,6 @@ void PuncEnc_BuildTree(Params *params, uint8_t *cts, uint8_t msk[KEY_LEN],  uint
     /* Set key for root. */
     memcpy(msk, keys + (TREE_SIZE - 1) * KEY_LEN, KEY_LEN);
 
-    printf("done building tree\n");
     free(leaves);
     free(keys);
 }
@@ -122,6 +119,7 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
         } else {
             BN_bn2bin(modIndexBn, (uint8_t *)&indexes[i]);
         }
+	indexes[i] = indexes[i] % NUM_LEAVES;
     }
 cleanup:
     if (rawIndexBn) BN_free(rawIndexBn);
