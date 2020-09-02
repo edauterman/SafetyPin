@@ -37,6 +37,9 @@ void main_loop_delay();
 void device_flag();
 void device_unflag();
 
+void device_flag2();
+void device_unflag2();
+
 void heartbeat();
 
 void device_reboot();

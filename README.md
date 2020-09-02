@@ -3,7 +3,7 @@
 SafetyPin is a system for encrypted backups that provides a strong defense against hardware compromise. The system only requires users to remember a short PIN and defends against brute-force PIN-guessing attacks while protecting against an attacker that can adaptively compromise many hardware elements. 
 
 The implementation is split into two components:
-- **HSM**: The HSMs (hardware security modules) are used to store user secrets. We implement the HSM functionality on Solokeys.
+- **HSM**: The HSMs (hardware security modules) are used to store user secrets. We implement the HSM functionality on [SoloKeys](https://solokeys.com/).
 - **Host**: The host is not run on any special hardware and simply coordinates the HSMs.
 
 **WARNING**: This is an academic proof-of-concept prototype and has not received careful code review. This implementation is NOT ready for production use.
@@ -24,6 +24,12 @@ cd bench
 
 This will produce figures 8, 9, 10, and 11 in the `bench/out` folder. Details about running these experiments and the plots that are produced are included below. The figures we generated running the same scripts are included in `bench/ref`.
 
+Each experiment follows the same general pattern. To run the experiment for Figure x, go to the `bench` folder and run `python3 exp_figx.py`, which will output raw data in `out/figx.dat`. To plot the data, run `python3 plot_figx.py`.
+
+One caveat: the experiments run using a fixed source of randomness. We found that the SoloKey's RNG will occasionally crash, making it necessary to manually power cycle the key. We ran our experiments using the RNG, but for our experiments, we use a fixed source of randomness.
+
+**Note**: If for some reason an experiment takes significantly longer than the time estimate, please contact the reviewers, as the system may need to be physically reset (for example, due to a poor USB connection).
+
 ### Figure 8
 
 Run the experiment and plot the data for Figure 8 showing datacenter size vs audit time:
@@ -36,7 +42,7 @@ python3 plot_fig8.py    # few seconds
 
 This will produce a plot close to Figure 8 on page 11 in the paper in `bench/out/fig8.png`. Use `scp` to copy this figure back to your local machine.
 
-The only difference from the Figure 8 included in the paper is that we use 90 HSMs instead of 100 HSMs for this experiment (the remaining 10 HSMs have different firmware used to generate figure 9). The figure we generated using 90 HSMs is below for comparison:
+The only difference from the Figure 8 included in the paper is that we use 90 HSMs instead of 100 HSMs for this experiment (the remaining 10 HSMs have different firmware used to generate figure 9). To generate the figure in the paper, we reflashed HSMs between experiments (which we cannot be done remotely). The figure we generated using 90 HSMs is below for comparison:
 
 <img src="https://github.com/edauterman/SafetyPin/blob/master/bench/ref/fig8.png" width="400">
 
@@ -45,7 +51,7 @@ The only difference from the Figure 8 included in the paper is that we use 90 HS
 Run the experiment and plot the data for Figure 9 showing how the number of recoveries before key rotation affects the time to decrypt and puncture:
 
 ```
-cd bench
+cd SafetyPin/bench
 python3 exp_fig9.py     # 20 minutes
 python3 plot_fig9.py    # few seconds
 ```
@@ -63,7 +69,7 @@ We include the figure we genereated below for reference:
 Run the experiment and plot the data for part of Figure 10 showing the breakdown for recovery time with a cluster of 40 HSMs:
 
 ```
-cd bench
+cd SafetyPin/bench
 python3 exp_fig10.py     # 2 minutes
 python3 plot_fig10.py    # few seconds
 ```
@@ -81,7 +87,7 @@ We incldue the figure we generated below for reference:
 Run the experiment and plot the data for Figure 11 showing how recovery time changes with cluster size:
 
 ```
-cd bench
+cd SafetyPin/bench
 python3 exp_fig11.py     # 10 minutes
 python3 plot_fig11.py    # few seconds
 ```
