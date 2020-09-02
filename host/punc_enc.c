@@ -122,6 +122,7 @@ int PuncEnc_GetIndexesForTag(Params *params, uint32_t tag, uint32_t indexes[PUNC
         } else {
             BN_bn2bin(modIndexBn, (uint8_t *)&indexes[i]);
         }
+	indexes[i] = indexes[i] % NUM_LEAVES;
     }
 cleanup:
     if (rawIndexBn) BN_free(rawIndexBn);

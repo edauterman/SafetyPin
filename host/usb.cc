@@ -99,12 +99,12 @@ int send(UsbDevice *dev, uint8_t msgType, uint8_t *req, int reqLen, bool isIniti
            
             debug_print("waiting to write seqno = %d\n", frame.seqNo); 
             numSent += write(dev->fd, (uint8_t *)&frame + numSent, CDC_FRAME_SZ - numSent);
-            if (!isInitial) continue;
+/*            if (!isInitial) continue;
             FD_ZERO(&fds);
             FD_SET(dev->fd, &fds);
             timeout.tv_sec = 0;
             timeout.tv_usec = 0;
-            uint8_t buf[CDC_FRAME_SZ];
+            uint8_t buf[CDC_FRAME_SZ]; */
         }
         bytesWritten += CDC_PAYLOAD_SZ;
         i++;
