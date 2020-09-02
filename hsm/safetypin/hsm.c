@@ -154,9 +154,11 @@ int HSM_Retrieve(struct hsm_retrieve_request *req, uint8_t *out, int *outLen) {
 int HSM_Puncture(struct hsm_puncture_request *req, uint8_t *out, int *outLen) {
     uint8_t newCts[KEY_LEVELS][CT_LEN];
 
+    device_flag();
     if (PUNC_MEASURE_WITH_SYM_KEY) {
         PuncEnc_PunctureLeaf(req->cts, req->index, newCts);
     }
+    device_unflag();
 
     if (out) {
         memcpy(out, newCts, KEY_LEVELS * CT_LEN);

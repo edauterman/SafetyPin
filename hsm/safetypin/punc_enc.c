@@ -231,7 +231,10 @@ void PuncEnc_PunctureLeaf(uint8_t oldCts[KEY_LEVELS][CT_LEN], uint32_t index, ui
         }
 
         /* Generate replacement key. */
-        ctap_generate_rng(newKey,  KEY_LEN);
+        device_flag2();
+        memset(newKey, 0xff, KEY_LEN);
+        //ctap_generate_rng(newKey,  KEY_LEN);
+        device_unflag2();
    
         /* Encrypt original key and replacement key. */
         encryptKeysAndCreateTag(newKey, hmacKey, plaintext, plaintext + KEY_LEN, newCts[keyLevels - i - 1]);

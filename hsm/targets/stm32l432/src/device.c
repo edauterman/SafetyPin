@@ -388,7 +388,10 @@ void usbcdc_send(uint8_t *msg, int len) {
     //printf("transmit of len %d\n", len);
     // getting an error here and putting it in a loop doesn't help
     //CDC_Transmit_FS(msg, len);
-    while (CDC_Transmit_FS(msg, len) != USBD_OK);
+    while (CDC_Transmit_FS(msg, len) != USBD_OK) {
+        device_flag();
+    }
+    device_unflag();
     /*if (res == USBD_OK) {
         printf("ok transmit\n");
     } else if (res == USBD_FAIL) {
@@ -450,13 +453,22 @@ void device_wink(void)
 }
 
 static uint8_t flag = 0;
+static uint8_t flag2 = 0;
 
 void device_flag(void) {
     flag = 1;
 }
 
+void device_flag2(void) {
+    flag2 = 1;
+}
+
 void device_unflag(void) {
     flag = 0;
+}
+
+void device_unflag2(void) {
+    flag2 = 0;
 }
 
 void heartbeat(void)
@@ -468,6 +480,11 @@ void heartbeat(void)
     uint8_t b = (LED_INIT_VALUE >> 0) & 0xff;
     if (flag == 1) {
         r = (LED_INIT_VALUE >> 16) & 0xff;
+        g = (LED_INIT_VALUE >> 16) & 0xff;
+        b = (LED_INIT_VALUE >> 8) & 0xff;
+    }
+    if (flag2 == 1) {
+        r = (LED_INIT_VALUE >> 8) & 0xff;
         g = (LED_INIT_VALUE >> 16) & 0xff;
         b = (LED_INIT_VALUE >> 8) & 0xff;
     }
