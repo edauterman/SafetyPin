@@ -1,4 +1,4 @@
-# SafetyPin
+# SafetyPin: Encrypted Backups with Human-Memorable Secrets
 
 SafetyPin is a system for encrypted backups that provides a strong defense against hardware compromise. The system only requires users to remember a short PIN and defends against brute-force PIN-guessing attacks while protecting against an attacker that can adaptively compromise many hardware elements. 
 
@@ -7,6 +7,8 @@ The implementation is split into two components:
 - **Host**: The host is not run on any special hardware and simply coordinates the HSMs.
 
 **WARNING**: This is an academic proof-of-concept prototype and has not received careful code review. This implementation is NOT ready for production use.
+
+This implementation accompanies our paper "SafetyPin: Encrypted Backups with Human-Memorable Secrets" by Emma Dauterman, Henry Corrigan-Gibbs, and David Mazières to appear at OSDI20. 
 
 This prototype is released under the Apache v2 license (see [License](#license)).
 
@@ -26,7 +28,7 @@ This will produce figures 8, 9, 10, and 11 in the `bench/out` folder. Details ab
 
 Each experiment follows the same general pattern. To run the experiment for Figure x, go to the `bench` folder and run `python3 exp_figx.py`, which will output raw data in `out/figx.dat`. To plot the data, run `python3 plot_figx.py`.
 
-One caveat: the experiments run using a fixed source of randomness. We found that the SoloKey's RNG will occasionally crash, making it necessary to manually power cycle the key. We ran our experiments using the RNG, but for our experiments, we use a fixed source of randomness.
+One caveat: the experiments run using a fixed source of randomness. We found that the SoloKey's RNG will occasionally crash, making it necessary to manually power cycle the key. We ran our experiments using the RNG, but in our setup allowing reviewers to remotely SSH into our machine, we use a fixed source of randomness.
 
 **Note**: If for some reason an experiment takes significantly longer than the time estimate, please contact the reviewers, as the system may need to be physically reset (for example, due to a poor USB connection).
 
