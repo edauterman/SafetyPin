@@ -16,7 +16,7 @@ If setting up your own system, please read the instructions [here](#setup). If r
 
 ## Instructions for artifact evaluation
 
-SSH into the test machine using the credentials provided separately. All the HSMs are connected to the machine via USB and flashed with the correct firmware. The code on the host is already built (you can rebuild the code by running `make` in `host/`.
+SSH into the test machine using the credentials provided separately. All the HSMs are connected to the machine via USB and flashed with the correct firmware. The code on the host is already built (you can rebuild the code by running `make` in `host/`).
 
 To run all the experiments and generate all the plots, run:
  ```
