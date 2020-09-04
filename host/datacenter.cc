@@ -251,14 +251,14 @@ int Datacenter_init(Datacenter *d) {
   cur_dev = devs;
   while (cur_dev) {
       CHECK_C(create_hsm(d->hsms[i], cur_dev->path, i));
-      printf("created hsm %d/%d\n", i, d->numHsms);
+      printf("created hsm %d/%d\n", i + 1, d->numHsms);
       i++;
       if (i == d->numHsms) break;
     cur_dev = cur_dev->next;
   }
 #else
     for (int i = 0; i < d->numHsms; i++) {
-	fprintf(stderr, "init %d/%d\n", i, d->numHsms);
+	fprintf(stderr, "init %d/%d\n", i + 1, d->numHsms);
     	CHECK_A (d->hsms[i]->usbDevice = UsbDevice_new(HANDLES[i]));
     }
 #endif
@@ -292,7 +292,7 @@ int Datacenter_TestSetup(Datacenter *d) {
         CHECK_C (HSM_ElGamalGetPk(d->hsms[i]));
         CHECK_C (HSM_TestSetupInput(d->hsms[i], cts, msk, hmacKey, mpk));
         CHECK_C (HSM_SetParams(d->hsms[i], d->hsmGroupSize, d->hsmThresholdSize, d->chunkSize, logPk, d->puncMeasureWithPubKey, d->puncMeasureWithSymKey));
-        fprintf(stderr, "Done with setup for %d/%d\n", i, d->numHsms);
+        fprintf(stderr, "Done with setup for %d/%d\n", i + 1, d->numHsms);
     }
 cleanup:
     if (t) free(t);
@@ -318,7 +318,7 @@ int Datacenter_VirtualSetup(Datacenter *d) {
         }
         BN_rand_range(x, d->hsms[i]->params->order);
         EC_POINT_mul(d->hsms[i]->params->group, d->hsms[i]->elGamalPk, x, NULL, NULL, d->hsms[i]->params->bn_ctx);
-        printf("Done with setup for %d/%d\n", i, d->numHsms);
+        printf("Done with setup for %d/%d\n", i + 1, d->numHsms);
     }
 cleanup:
     return rv;
