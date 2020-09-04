@@ -30,7 +30,7 @@ Each experiment follows the same general pattern. To run the experiment for Figu
 
 One caveat: the experiments run using a fixed source of randomness. We found that the SoloKey's RNG will occasionally crash, making it necessary to manually power cycle the key. We ran our experiments using the RNG, but in our setup allowing reviewers to remotely SSH into our machine, we use a fixed source of randomness.
 
-**Note**: If for some reason an experiment takes significantly longer than the time estimate, please contact the reviewers, as the system may need to be physically reset (for example, due to a poor USB connection).
+**Note**: If for some reason an experiment takes significantly longer than the time estimate, please contact the authors, as the system may need to be physically reset (for example, due to a poor USB connection).
 
 ### Figure 8
 
