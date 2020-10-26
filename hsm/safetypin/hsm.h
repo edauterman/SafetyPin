@@ -33,7 +33,7 @@
 
 // Puncturable encryption
 #define NUM_LEAVES 2097152      // Number of leaves in puncturable encryption tree
-#define LEVELS 22               // Number of levels in tree, log2(NUM_LEAVES) + 1
+#define LEVELS 21               // Number of levels in tree, log2(NUM_LEAVES) + 1
 #define KEY_LEVELS (LEVELS - 1) // Number of levels containing intermediate keys
 
 // Message opcodes

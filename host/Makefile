@@ -40,8 +40,8 @@ endif  # Linux
 
 ifeq ($(UNAME), Darwin)
 
-CFLAGS+=-Ihidapi/hidapi -D__OS_MAC -Ijedi-pairing/include
-CPPFLAGS+=-Ihidapi/hidapi -D__OS_MAC -Ijedi-pairing/include
+CFLAGS+=-Ihidapi/hidapi -D__OS_MAC -Ijedi-pairing/include -DLEVELS=$(LEVELS) 
+CPPFLAGS+=-Ihidapi/hidapi -D__OS_MAC -Ijedi-pairing/include  -DLEVELS=$(LEVELS) 
 LDLIBS+=-framework IOKit -framework CoreFoundation -Ljedi-pairing/pairing.a
 HIDAPI=hid.o
 hid.o: hidapi/mac/hid.c

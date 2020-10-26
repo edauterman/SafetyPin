@@ -8,7 +8,7 @@ The implementation is split into two components:
 
 **WARNING**: This is an academic proof-of-concept prototype and has not received careful code review. This implementation is NOT ready for production use.
 
-This implementation accompanies our paper "SafetyPin: Encrypted Backups with Human-Memorable Secrets" by Emma Dauterman, Henry Corrigan-Gibbs, and David Mazières to appear at OSDI20. 
+This implementation accompanies our paper [SafetyPin: Encrypted Backups with Human-Memorable Secrets](https://arxiv.org/pdf/2010.06712.pdf) by Emma Dauterman, Henry Corrigan-Gibbs, and David Mazières to appear at OSDI20. 
 
 This prototype is released under the Apache v2 license (see [License](#license)).
 
