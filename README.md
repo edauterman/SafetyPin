@@ -14,6 +14,8 @@ This prototype is released under the Apache v2 license (see [License](#license))
 
 If setting up your own system, please read the instructions [here](#setup). If running artifact evaluation, please read the instructions below.
 
+**NOTE**: The Hashed ElGamal implementation does not provide CCA-security and domain separation (see A.4 for details on how hashed ElGamal should be implemented). We thank Ian Miers and Gabriel Kaptchuk for bringing this to our attention.
+
 ## Instructions for artifact evaluation
 
 SSH into the test machine using the credentials provided separately. All the HSMs are connected to the machine via USB and flashed with the correct firmware. The code on the host is already built (you can rebuild the code by running `make` in `host/`).

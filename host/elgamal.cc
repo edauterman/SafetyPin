@@ -3,6 +3,7 @@
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "common.h"
 #include "elgamal.h"
@@ -84,6 +85,8 @@ int ElGamal_Encrypt(Params *params, BIGNUM *msg, EC_POINT *pk, BIGNUM *r, EC_POI
     CHECK_A (ctx = EVP_CIPHER_CTX_new());
     CHECK_C (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, hashedKeyBuf, NULL));
     CHECK_C (EVP_EncryptUpdate(ctx, c->C, &bytesFilled, msgBuf, FIELD_ELEM_LEN));
+
+    printf("WARNING: Not using CCA-secure encryption for Hashed ElGamal\n");
 
 cleanup:
     return rv;
